@@ -1,0 +1,4 @@
+this shader does a few things:
+1. bypasses ortho projection and displays the sprite as is on the screen regardless of rotation
+2. set the entire sprite color
+3. dissolve effect
