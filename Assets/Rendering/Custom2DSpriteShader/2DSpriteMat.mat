@@ -100,7 +100,7 @@ Material:
     - _DstBlendAlpha: 0
     - _EdgeBrightness: 10
     - _EdgeSaturation: 1.311
-    - _EdgeWidth: 0.045
+    - _EdgeWidth: 0.012
     - _EnvironmentReflections: 1
     - _FlashAmount: 0
     - _GlossMapScale: 0

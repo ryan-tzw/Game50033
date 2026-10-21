@@ -23,6 +23,18 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _BlitTexture:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _PixelArtColorTexture:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _PixelArtDepthTexture:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - unity_Lightmaps:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -37,10 +49,12 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _DepthThreshold: 0.002
+    - _DepthThreshold: 0.05
     - _InnerEdge: 1.28
-    - _NormalThreshold: 0.451
-    - _OuterEdge: 0.46
-    m_Colors: []
+    - _NormalThreshold: 0.435
+    - _OuterEdge: 0.457
+    m_Colors:
+    - _LowResTexelSize: {r: 0.0015625, g: 0.0027777778, b: 0, a: 0}
+    - _PixelArtResolution: {r: 640, g: 360, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

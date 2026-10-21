@@ -1,25 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-979164422834777431
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b00045f12942b46c698459096c89274e, type: 3}
-  m_Name: EdgeDetect
-  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.FullScreenPassRendererFeature
-  m_Active: 1
-  injectionPoint: 450
-  fetchColorBuffer: 1
-  requirements: 0
-  passMaterial: {fileID: 2100000, guid: d6d77d9bd80b6c8c89d15e5e3bf6e1df, type: 2}
-  passIndex: 0
-  bindDepthStencilAttachment: 0
-  m_Version: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -45,9 +25,8 @@ MonoBehaviour:
     probeSamplingDebugTexture: {fileID: 2800000, guid: 24ec0e140fb444a44ab96ee80844e18e, type: 3}
     probeVolumeBlendStatesCS: {fileID: 7200000, guid: b9a23f869c4fd45f19c5ada54dd82176, type: 3}
   m_RendererFeatures:
-  - {fileID: 6684081267076734557}
-  - {fileID: -979164422834777431}
-  m_RendererFeatureMap: 5d9ef3a57fa0c25ca9923b30254f69f2
+  - {fileID: 2735157961076751394}
+  m_RendererFeatureMap: 22bc8f92ac3bf525
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -76,7 +55,7 @@ MonoBehaviour:
   m_DepthTextureFormat: 0
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 0
---- !u!114 &6684081267076734557
+--- !u!114 &357918216577572617
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -85,36 +64,34 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6b3d386ba5cd94485973aee1479b272e, type: 3}
-  m_Name: ToonShading
-  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.RenderObjects
+  m_Script: {fileID: 11500000, guid: 8af5b7f736ff4aeeb70222eab0728b6f, type: 3}
+  m_Name: PixelArtRendererFeature
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PixelArtRendererFeature
   m_Active: 1
-  settings:
-    passTag: ToonShading
-    Event: 300
-    filterSettings:
-      RenderQueueType: 0
-      LayerMask:
-        serializedVersion: 2
-        m_Bits: 4294967295
-      PassNames: []
-    overrideMaterial: {fileID: 0}
-    overrideMaterialPassIndex: 0
-    overrideShader: {fileID: -6465566751694194690, guid: b72474f93ef419a61aa8df86484fb3d4, type: 3}
-    overrideShaderPassIndex: 0
-    overrideMode: 2
-    overrideDepthState: 0
-    depthCompareFunction: 4
-    enableWrite: 1
-    stencilSettings:
-      overrideStencilState: 0
-      stencilReference: 0
-      stencilCompareFunction: 8
-      passOperation: 0
-      failOperation: 0
-      zFailOperation: 0
-    cameraSettings:
-      overrideCamera: 0
-      restoreCamera: 1
-      offset: {x: 0, y: 0, z: 0, w: 0}
-      cameraFieldOfView: 60
+  resolution: {x: 640, y: 360}
+  edgeDetectMat: {fileID: 2100000, guid: d6d77d9bd80b6c8c89d15e5e3bf6e1df, type: 2}
+--- !u!114 &2735157961076751394
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5aec11094f8481f876f3d2f945af0b7, type: 3}
+  m_Name: PixelArtRendererFeature
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PixelArtRendererFeature
+  m_Active: 1
+  resolution: {x: 640, y: 360}
+  worldLayers:
+    serializedVersion: 2
+    m_Bits: 1025
+  toonLayers:
+    serializedVersion: 2
+    m_Bits: 1024
+  spriteLayers:
+    serializedVersion: 2
+    m_Bits: 2048
+  toonOverrideShader: {fileID: -6465566751694194690, guid: b72474f93ef419a61aa8df86484fb3d4, type: 3}
+  edgeDetectMat: {fileID: 2100000, guid: d6d77d9bd80b6c8c89d15e5e3bf6e1df, type: 2}
