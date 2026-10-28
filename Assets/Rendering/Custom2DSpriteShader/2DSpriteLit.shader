@@ -7,6 +7,7 @@ Shader "Experimental/2D Sprite Lit"
 
         [MainTexture] _BaseMap("Albedo", 2D) = "white" {}
         [MainColor] _BaseColor("Color", Color) = (1,1,1,1)
+        _PlayerTint("Player Tint", Color) = (1,1,1,1)
         
         // flash when entity gets hit
         _FlashAmount("Flash Amount", Range(0.0, 1.0)) = 0.0
@@ -189,7 +190,9 @@ Shader "Experimental/2D Sprite Lit"
             #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
 
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
-            
+
+            half4 _PlayerTint;
+
             // hlsl variables for flash
             half _FlashAmount;
             half4 _FlashColor;

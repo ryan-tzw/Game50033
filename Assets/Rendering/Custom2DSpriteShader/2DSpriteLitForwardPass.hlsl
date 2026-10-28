@@ -287,6 +287,7 @@ void LitPassFragment(
     
     SurfaceData surfaceData;
     InitializeStandardLitSurfaceData(input.uv, surfaceData);
+    surfaceData.albedo *= _PlayerTint.rgb;
 
 #ifdef LOD_FADE_CROSSFADE
     LODFadeCrossFade(input.positionCS);
