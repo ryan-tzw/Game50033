@@ -1,3 +1,30 @@
-*.unity merge=unityyamlmerge
-*.prefab merge=unityyamlmerge
-*.asset merge=unityyamlmerge
+* text=auto
+
+[attr]unityyaml -text diff merge=unityyamlmerge
+
+# Unity serialized files
+*.meta unityyaml
+*.unity unityyaml
+*.prefab unityyaml
+*.asset unityyaml
+*.mat unityyaml
+*.anim unityyaml
+*.controller unityyaml
+*.overrideController unityyaml
+*.physicMaterial unityyaml
+*.physicsMaterial2D unityyaml
+*.playable unityyaml
+*.mask unityyaml
+*.brush unityyaml
+*.flare unityyaml
+*.fontsettings unityyaml
+*.guiskin unityyaml
+*.giparams unityyaml
+*.renderTexture unityyaml
+*.spriteatlas unityyaml
+*.terrainlayer unityyaml
+*.mixer unityyaml
+*.shadervariants unityyaml
+
+# Exclude terrain data (if stored here)
+Assets/Terrains/*.asset binary
