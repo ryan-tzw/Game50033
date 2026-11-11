@@ -34,8 +34,11 @@ public class BaseBoss : MonoBehaviour, IHittable
     [SerializeField, Min(0.01f)] private float hitFlashDuration = 0.15f;
 
     private static readonly int FlashAmountId = Shader.PropertyToID("_FlashAmount");
+    private static readonly int BoneAttackId = Animator.StringToHash("BoneAttack");
+    private static readonly int IsWalkingId = Animator.StringToHash("IsWalking");
     private MaterialPropertyBlock _hitProperties;
     private float _lastHitTime = float.NegativeInfinity;
+    private Animator _attackAnimator;
 
     public float MaxHealth => BossHealthPoints;
     public float CurrentHealth => BossCurrentHealth;
@@ -45,6 +48,13 @@ public class BaseBoss : MonoBehaviour, IHittable
     {
         _sr = GetComponentInChildren<SpriteRenderer>();
         _rb = GetComponent<Rigidbody>();
+        if (_sr != null)
+        {
+            _attackAnimator = _sr.GetComponent<Animator>();
+        }
+
+        // Keep the boss at its arena height when players collide with it.
+        _rb.constraints |= RigidbodyConstraints.FreezePositionY;
         _hitProperties = new MaterialPropertyBlock();
         BossHealthPoints = Mathf.Max(0.01f, BossHealthPoints);
         BossCurrentHealth = BossCurrentHealth < 0f
@@ -72,6 +82,23 @@ public class BaseBoss : MonoBehaviour, IHittable
 
         var elapsed = Time.time - _lastHitTime;
         SetHitFlash(Mathf.Clamp01(1f - elapsed / Mathf.Max(0.01f, hitFlashDuration)));
+
+        if (_attackAnimator != null)
+        {
+            var velocity = _rb.linearVelocity;
+            velocity.y = 0f;
+            _attackAnimator.SetBool(IsWalkingId, !IsAttacking && velocity.sqrMagnitude > 0.01f);
+        }
+    }
+
+    private void OnDisable()
+    {
+        CancelInvoke(nameof(EndAttack));
+        IsAttacking = false;
+        if (_attackAnimator != null && _attackAnimator.isActiveAndEnabled)
+        {
+            _attackAnimator.SetBool(IsWalkingId, false);
+        }
     }
 
     public void TakeHit(in HitInfo hit)
@@ -131,7 +158,11 @@ public class BaseBoss : MonoBehaviour, IHittable
             _rb.linearVelocity = new Vector3(0f, _rb.linearVelocity.y, 0f);
             return;
         }
-        TargetedPlayer = _players[Random.Range(0, _players.Count)];
+        // Keep the current target while it remains in detection range.
+        if (TargetedPlayer == null || !_players.Contains(TargetedPlayer))
+        {
+            TargetedPlayer = _players[Random.Range(0, _players.Count)];
+        }
         FollowPlayer();
     }
 
@@ -153,8 +184,6 @@ public class BaseBoss : MonoBehaviour, IHittable
 
         FaceDirection(toPlayer.x);
 
-        FaceDirection(playerPosition.x - _rb.position.x);
-
         if (InRange)
         {
             _rb.linearVelocity = new Vector3(0f, _rb.linearVelocity.y, 0f);
@@ -175,6 +204,11 @@ public class BaseBoss : MonoBehaviour, IHittable
     private void BasicAttack()
     {
         IsAttacking = true;
+        if (_attackAnimator != null)
+        {
+            _attackAnimator.SetTrigger(BoneAttackId);
+        }
+
         int numberOfProjectiles = 2;
         foreach(var player in _players)
         {
