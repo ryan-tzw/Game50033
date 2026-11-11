@@ -7,6 +7,10 @@ namespace Game50033
     [RequireComponent(typeof(PlayerInput), typeof(PlayerMovement), typeof(PlayerHealth))]
     public sealed class Player : MonoBehaviour
     {
+        [SerializeField, Min(0.01f)] private float autoAimRange = 14f;
+        [Tooltip("Non-player IHittable targets and boss prototypes on these layers can be selected automatically.")]
+        [SerializeField] private LayerMask enemyTargetMask = ~0;
+
         private static readonly int PlayerTintId = Shader.PropertyToID("_PlayerTint");
 
         private static readonly Color[] PlayerColors =
@@ -20,13 +24,11 @@ namespace Game50033
         private PlayerInput _playerInput;
         private InputActionAsset _boundActions;
         private InputAction _moveAction;
-        private InputAction _aimAction;
         private InputAction _dodgeAction;
         private InputAction _primaryAction;
         private InputAction _secondaryAction;
         private InputAction _defensiveAction;
         private InputAction _specialAction;
-        private Camera _aimCamera;
         private bool _initialized;
 
         public PlayerMovement Movement { get; private set; }
@@ -37,6 +39,11 @@ namespace Game50033
         public Color PlayerColor { get; private set; } = Color.white;
         public CharacterDefinition Character { get; private set; }
         public Vector3 AimDirection { get; private set; } = Vector3.forward;
+        public bool HasActiveInput =>
+            _playerInput != null && _playerInput.isActiveAndEnabled && _playerInput.inputIsActive;
+        public bool SpecialInputEnabled => HasActiveInput && _specialAction != null && _specialAction.enabled;
+        public bool SpecialPressedThisFrame => SpecialInputEnabled && _specialAction.WasPressedThisFrame();
+        public bool SpecialHeld => SpecialInputEnabled && _specialAction.IsPressed();
 
         public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDowned
             && (Abilities == null || !Abilities.isActiveAndEnabled || !Abilities.BlocksMovement);
@@ -73,7 +80,6 @@ namespace Game50033
                 if (_boundActions == null) return;
 
                 _moveAction = _boundActions.FindAction("Player/Move", true);
-                _aimAction = _boundActions.FindAction("Player/Aim", true);
                 _dodgeAction = _boundActions.FindAction("Player/Dodge", true);
                 _primaryAction = _boundActions.FindAction("Player/Primary", true);
                 _secondaryAction = _boundActions.FindAction("Player/Secondary", true);
@@ -91,27 +97,10 @@ namespace Game50033
 
             if (acceptsInput)
             {
-                // mouse aim intersects the ground plane; a released aim stick falls back to movement facing.
-                var aimInput = _aimAction.ReadValue<Vector2>();
-                if (_playerInput.currentControlScheme == "Keyboard&Mouse")
-                {
-                    if (_aimCamera == null) _aimCamera = Camera.main;
-                    if (_aimCamera != null)
-                    {
-                        var ray = _aimCamera.ScreenPointToRay(aimInput);
-                        var ground = new Plane(Vector3.up, Vector3.zero);
-                        if (ground.Raycast(ray, out var distance))
-                        {
-                            var offset = ray.GetPoint(distance) - transform.position;
-                            offset.y = 0f;
-                            if (offset.sqrMagnitude > 0.0001f) AimDirection = offset.normalized;
-                        }
-                    }
-                }
-                else if (aimInput.sqrMagnitude > 0.0001f)
-                {
-                    AimDirection = new Vector3(aimInput.x, 0f, aimInput.y).normalized;
-                }
+                AimDirection = GetAttackDirection(
+                    transform.position + Vector3.up * 0.25f,
+                    autoAimRange,
+                    Physics.AllLayers);
 
                 // dodge is press-only; ability activation is retried while held.
                 if (_dodgeAction.WasPressedThisFrame()) Movement.TryDodge(CanDodge);
@@ -120,11 +109,44 @@ namespace Game50033
                 if (CanUseAbilities && _primaryAction.IsPressed()) Abilities.TryUsePrimary();
                 if (CanUseAbilities && _secondaryAction.IsPressed()) Abilities.TryUseSecondary();
                 if (CanUseAbilities && _defensiveAction.IsPressed()) Abilities.TryUseDefensive();
-                if (CanUseAbilities && _specialAction.IsPressed()) Abilities.TryUseSpecial();
+
+                // Keep the press edge so a quick Special tap can still start charging.
+                if (CanUseAbilities && (_specialAction.IsPressed() || _specialAction.WasPressedThisFrame()))
+                {
+                    Abilities.TryUseSpecial();
+                }
             }
 
             // continue grounding and charge recovery while action input is blocked.
             Movement.Tick(Time.deltaTime, CanMove);
+        }
+
+        public Vector3 GetAttackDirection(
+            Vector3 origin,
+            float range,
+            int collisionMask = Physics.AllLayers,
+            Collider attackVolume = null,
+            ResonatingAttack resonatingAttack = null)
+        {
+            var target = AttackTargeting.FindTarget(
+                this,
+                origin,
+                Mathf.Min(range, autoAimRange),
+                enemyTargetMask,
+                collisionMask,
+                attackVolume,
+                resonatingAttack);
+
+            if (target != null)
+            {
+                var offset = AttackTargeting.GetAimPoint(target, origin) - origin;
+                if (offset.sqrMagnitude > 0.0001f)
+                {
+                    return offset.normalized;
+                }
+            }
+
+            return Movement != null ? Movement.FacingDirection : Vector3.forward;
         }
 
         private void OnDisable()

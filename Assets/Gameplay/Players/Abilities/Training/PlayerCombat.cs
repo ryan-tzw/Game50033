@@ -42,6 +42,9 @@ namespace Game50033
 
         public override bool TryUsePrimary()
         {
+            var actions = GetComponent<PlayerInput>().actions;
+            if (_attackAction == null || _attackAction.actionMap.asset != actions)
+                _attackAction = actions.FindAction("Player/Primary", true);
             if (Time.frameCount == _enabledFrame) return false;
             if (!_attackAction.WasPressedThisFrame() || Time.time < _nextAttackTime) return false;
 
@@ -57,11 +60,11 @@ namespace Game50033
 
         private Vector3 AttackCenter =>
             transform.position + Vector3.up * attackHeight
-            + (Player.Movement != null ? Player.Movement.FacingDirection : Vector3.forward) * attackReach;
+            + Player.AimDirection * attackReach;
 
         private void Attack()
         {
-            var facing = Player.Movement.FacingDirection;
+            var facing = Player.AimDirection;
             var count = Physics.OverlapSphereNonAlloc(AttackCenter, attackRadius, HitBuffer, hitMask, QueryTriggerInteraction.Ignore);
 
             _hitThisSwing.Clear();
