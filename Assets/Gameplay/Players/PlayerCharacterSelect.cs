@@ -28,8 +28,9 @@ namespace Game50033
 
         private PlayerInput _playerInput;
         private Player _controller;
-        private PlayerCombat _combat;
+        private PlayerAbilities _abilities;
         private CharacterController _characterController;
+        private InputActionAsset _boundActions;
         private InputAction _moveAction;
         private InputAction _confirmAction;
         private InputAction _backAction;
@@ -51,16 +52,25 @@ namespace Game50033
         // and before this component's Awake has run, so BeginSelection must be able to init us itself.
         private void CacheComponents()
         {
-            if (_playerInput) return;
+            if (!_playerInput)
+            {
+                _playerInput = GetComponent<PlayerInput>();
+                _controller = GetComponent<Player>();
+                _controller.Initialize();
+                _abilities = GetComponent<PlayerAbilities>();
+                _characterController = GetComponent<CharacterController>();
+            }
 
-            _playerInput = GetComponent<PlayerInput>();
-            _controller = GetComponent<Player>();
-            _controller.Initialize();
-            _combat = GetComponent<PlayerCombat>();
-            _characterController = GetComponent<CharacterController>();
-            _moveAction = _playerInput.actions.FindAction("Player/Move", true);
-            _confirmAction = _playerInput.actions.FindAction("Player/Special", true); // E / bottom face button
-            _backAction = _playerInput.actions.FindAction("Player/Defensive", true);
+            // Rebind when the keyboard demo swaps this player's runtime actions.
+            if (_boundActions == _playerInput.actions)
+            {
+                return;
+            }
+
+            _boundActions = _playerInput.actions;
+            _moveAction = _boundActions.FindAction("Player/Move", true);
+            _confirmAction = _boundActions.FindAction("Player/Special", true); // E / bottom face button
+            _backAction = _boundActions.FindAction("Player/Defensive", true);
         }
 
         public void BeginSelection(LobbyManager lobby)
@@ -80,6 +90,8 @@ namespace Game50033
         private void Update()
         {
             if (State != SelectState.Selecting || _lobby == null) return;
+
+            CacheComponents();
 
             var x = _moveAction.ReadValue<Vector2>().x;
             if (!_navigateHeld && Mathf.Abs(x) >= navigateThreshold)
@@ -131,13 +143,46 @@ namespace Game50033
             var character = _lobby.Roster[_highlightIndex];
             if (!_lobby.TryClaim(character, this)) return; // someone else already has it
 
+            var lobby = _lobby;
+            if (character.PlayerPrefab != null)
+            {
+                if (!lobby.TrySpawnSelectedCharacter(this, character))
+                {
+                    lobby.Release(this);
+                }
+
+                return;
+            }
+
+            CompleteSelection(lobby, character);
+        }
+
+        internal void CompleteSelection(LobbyManager lobby, CharacterDefinition character)
+        {
+            CacheComponents();
+            if (_lobby != null)
+            {
+                _lobby.SelectionChanged -= RefreshPanel;
+            }
+
+            _lobby = lobby;
             Character = character;
             State = SelectState.Spawned;
-            _lobby.SelectionChanged -= RefreshPanel;
 
             _controller.ApplyCharacter(character);
             SetAvatarActive(true);
             _lobby.NotifyPlayerSpawned(this);
+        }
+
+        internal void DetachFromLobby()
+        {
+            if (_lobby != null)
+            {
+                _lobby.SelectionChanged -= RefreshPanel;
+            }
+
+            _lobby = null;
+            State = SelectState.NotInLobby;
         }
 
         private void RefreshPanel()
@@ -159,7 +204,7 @@ namespace Game50033
             if (avatarVisual) avatarVisual.SetActive(active);
             _characterController.enabled = active;
             _controller.enabled = active;
-            if (_combat) _combat.enabled = active;
+            if (_abilities) _abilities.enabled = active;
         }
 
         private void OnDestroy()

@@ -9,6 +9,9 @@ namespace Game50033
     {
         [SerializeField, Min(0f)] private float spawnSpacing = 2f;
 
+        [Tooltip("Optional prefab overrides by player index: element 0 is Player 1. Empty entries use PlayerInputManager's original player prefab.")]
+        [SerializeField] private Player[] playerPrefabsByIndex = System.Array.Empty<Player>();
+
         [Tooltip("Only these buttons let a new device join. Empty = any button on an unpaired device joins.")]
         [SerializeField] private string[] joinBindings =
         {
@@ -18,9 +21,14 @@ namespace Game50033
 
         private PlayerInputManager _playerInputManager;
         private GameSession _session;
+        private GameObject _defaultPlayerPrefab;
 
         private void Awake()
         {
+            _playerInputManager = GetComponent<PlayerInputManager>();
+            _defaultPlayerPrefab = _playerInputManager.playerPrefab;
+            SelectNextPlayerPrefab();
+
             if (joinBindings == null || joinBindings.Length == 0) return;
 
             var joinAction = new InputAction("Join", InputActionType.Button);
@@ -48,12 +56,14 @@ namespace Game50033
             }
 
             foreach (var playerInput in PlayerInput.all) HandlePlayerJoined(playerInput);
+            SelectNextPlayerPrefab();
         }
 
         private void Start()
         {
             // reconcile players enabled before the input manager sent its joining notifications.
             foreach (var playerInput in PlayerInput.all) HandlePlayerJoined(playerInput);
+            SelectNextPlayerPrefab();
         }
 
         private void OnDisable()
@@ -96,12 +106,55 @@ namespace Game50033
                 $"Player {playerInput.playerIndex + 1} joined with " +
                 $"{playerInput.currentControlScheme ?? "an unknown control scheme"}.",
                 playerInput);
+            SelectNextPlayerPrefab();
         }
 
         private void HandlePlayerLeft(PlayerInput playerInput)
         {
             if (playerInput.TryGetComponent(out Player player)) _session.UnregisterPlayer(player);
+            SelectNextPlayerPrefab();
             Debug.Log($"Player {playerInput.playerIndex + 1} left.", playerInput);
+        }
+
+        internal PlayerInput JoinPlayerWithPrefab(
+            Player prefab,
+            int playerIndex,
+            int splitScreenIndex,
+            string controlScheme,
+            InputDevice[] devices)
+        {
+            var previousPrefab = _playerInputManager.playerPrefab;
+
+            try
+            {
+                _playerInputManager.playerPrefab = prefab.gameObject;
+                return _playerInputManager.JoinPlayer(playerIndex, splitScreenIndex, controlScheme, devices);
+            }
+            finally
+            {
+                // Restore the usual prefab after spawning the selected character.
+                _playerInputManager.playerPrefab = previousPrefab;
+                SelectNextPlayerPrefab();
+            }
+        }
+
+        private void SelectNextPlayerPrefab()
+        {
+            if (playerPrefabsByIndex == null || playerPrefabsByIndex.Length == 0)
+            {
+                return;
+            }
+
+            var nextIndex = 0;
+            while (PlayerInput.GetPlayerByIndex(nextIndex) != null)
+            {
+                nextIndex++;
+            }
+
+            var prefab = nextIndex < playerPrefabsByIndex.Length
+                ? playerPrefabsByIndex[nextIndex]
+                : null;
+            _playerInputManager.playerPrefab = prefab != null ? prefab.gameObject : _defaultPlayerPrefab;
         }
     }
 }

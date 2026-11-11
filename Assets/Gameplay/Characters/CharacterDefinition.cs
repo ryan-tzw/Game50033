@@ -16,8 +16,12 @@ namespace Game50033
         [Tooltip("Tint applied to the character's sprite (via the _PlayerTint shader property).")]
         [SerializeField] private Color tint = Color.white;
 
+        [Tooltip("Optional playable prefab spawned when this character is confirmed in the Lobby.")]
+        [SerializeField] private Player playerPrefab;
+
         public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
         public Sprite Sprite => sprite;
         public Color Tint => tint;
+        public Player PlayerPrefab => playerPrefab;
     }
 }
