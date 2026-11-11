@@ -21,6 +21,12 @@ namespace Game50033
         private CharacterController _characterController;
         private InputAction _moveAction;
 
+        /// <summary>Last non-zero movement direction on the XZ plane (starts facing the camera).</summary>
+        public Vector3 Facing { get; private set; } = Vector3.back;
+
+        /// <summary>The character this player picked in the lobby, if any.</summary>
+        public CharacterDefinition Character { get; private set; }
+
         private void Awake()
         {
             _characterController = GetComponent<CharacterController>();
@@ -32,19 +38,40 @@ namespace Game50033
         {
             var input = Vector2.ClampMagnitude(_moveAction.ReadValue<Vector2>(), 1f);
             var velocity = new Vector3(input.x, 0f, input.y) * moveSpeed;
+            if (input.sqrMagnitude > 0.01f) Facing = new Vector3(input.x, 0f, input.y).normalized;
             _characterController.SimpleMove(velocity);
         }
 
         public void ConfigurePlayer(int playerIndex)
         {
             gameObject.name = $"Player {playerIndex + 1}";
-            var playerColor = PlayerColors[playerIndex % PlayerColors.Length];
+            SetTint(PlayerColors[playerIndex % PlayerColors.Length]);
+        }
+
+        public void ApplyCharacter(CharacterDefinition character)
+        {
+            Character = character;
+            if (character == null) return;
+
+            if (character.Sprite != null)
+            {
+                foreach (var spriteRenderer in GetComponentsInChildren<SpriteRenderer>(true))
+                {
+                    spriteRenderer.sprite = character.Sprite;
+                }
+            }
+
+            SetTint(character.Tint);
+        }
+
+        private void SetTint(Color color)
+        {
             var materialProperties = new MaterialPropertyBlock();
 
             foreach (var childRenderer in GetComponentsInChildren<Renderer>(true))
             {
                 childRenderer.GetPropertyBlock(materialProperties);
-                materialProperties.SetColor(PlayerTintId, playerColor);
+                materialProperties.SetColor(PlayerTintId, color);
                 childRenderer.SetPropertyBlock(materialProperties);
                 materialProperties.Clear();
             }

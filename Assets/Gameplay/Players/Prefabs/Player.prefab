@@ -103,6 +103,8 @@ GameObject:
   - component: {fileID: 5018917414402032851}
   - component: {fileID: 1068252045767462188}
   - component: {fileID: 1544443953293736949}
+  - component: {fileID: 2439631078986181378}
+  - component: {fileID: 5036130649280889951}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -194,3 +196,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.LocalPlayerController
   moveSpeed: 5
+--- !u!114 &2439631078986181378
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb7649b7d876c584d974f353c3ceef26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerCombat
+  attackReach: 0.3
+  attackRadius: 0.35
+  attackHeight: 0.2
+  cooldown: 0.3
+  damage: 1
+  hitMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!114 &5036130649280889951
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c11a58669ff4ea043bf94e20010de78a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerCharacterSelect
+  avatarVisual: {fileID: 3231995453142075047}
+  navigateThreshold: 0.6

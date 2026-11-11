@@ -1,0 +1,81 @@
+namespace Game50033
+{
+    using System.Collections.Generic;
+    using UnityEngine;
+    using UnityEngine.InputSystem;
+
+    /// <summary>
+    /// PLACEHOLDER so the lobby dummy can be hit before the real character abilities exist.
+    /// A single melee swing on the Primary action that hits every <see cref="IHittable"/>
+    /// in a small sphere in front of the player.
+    ///
+    /// Replace with the per-character ability system (Primary / Secondary / Special / Defensive,
+    /// Reverberation / Resonance, see the GDD) and remove this component from the Player prefab.
+    /// </summary>
+    [RequireComponent(typeof(PlayerInput), typeof(PlayerController))]
+    public sealed class PlayerCombat : MonoBehaviour
+    {
+        [SerializeField, Min(0f)] private float attackReach = 0.3f;
+        [SerializeField, Min(0.01f)] private float attackRadius = 0.35f;
+        [SerializeField, Min(0f)] private float attackHeight = 0.2f;
+        [SerializeField, Min(0f)] private float cooldown = 0.3f;
+        [SerializeField, Min(0f)] private float damage = 1f;
+        [SerializeField] private LayerMask hitMask = ~0;
+
+        private static readonly Collider[] HitBuffer = new Collider[16];
+        private readonly HashSet<IHittable> _hitThisSwing = new();
+
+        private PlayerController _controller;
+        private InputAction _attackAction;
+        private float _nextAttackTime;
+        private int _enabledFrame;
+
+        private void Awake()
+        {
+            _controller = GetComponent<PlayerController>();
+            _attackAction = GetComponent<PlayerInput>().actions.FindAction("Player/Primary", true);
+        }
+
+        private void OnEnable()
+        {
+            // the button press that confirmed the character shouldn't also swing
+            _enabledFrame = Time.frameCount;
+        }
+
+        private void Update()
+        {
+            if (Time.frameCount == _enabledFrame) return;
+            if (!_attackAction.WasPressedThisFrame() || Time.time < _nextAttackTime) return;
+
+            _nextAttackTime = Time.time + cooldown;
+            Attack();
+        }
+
+        private Vector3 AttackCenter =>
+            transform.position + Vector3.up * attackHeight + (_controller ? _controller.Facing : Vector3.back) * attackReach;
+
+        private void Attack()
+        {
+            var facing = _controller.Facing;
+            var count = Physics.OverlapSphereNonAlloc(AttackCenter, attackRadius, HitBuffer, hitMask, QueryTriggerInteraction.Ignore);
+
+            _hitThisSwing.Clear();
+            for (var i = 0; i < count; i++)
+            {
+                var hitCollider = HitBuffer[i];
+                if (hitCollider.transform.IsChildOf(transform)) continue;
+
+                var hittable = hitCollider.GetComponentInParent<IHittable>();
+                if (hittable == null || !_hitThisSwing.Add(hittable)) continue;
+
+                hittable.TakeHit(new HitInfo(gameObject, damage, facing));
+            }
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(AttackCenter, attackRadius);
+        }
+    }
+}
