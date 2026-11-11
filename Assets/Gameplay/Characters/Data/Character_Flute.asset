@@ -15,3 +15,4 @@ MonoBehaviour:
   displayName: Flute
   sprite: {fileID: 5395042229362328217, guid: f4aa2dc303f9da7669b91fe830b83084, type: 3}
   tint: {r: 0.95, g: 0.85, b: 0.55, a: 1}
+  playerPrefab: {fileID: 8127240988580949929, guid: 52493c21ef8314aaba0c76990588f7bb, type: 3}
