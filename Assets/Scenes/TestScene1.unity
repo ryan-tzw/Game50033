@@ -577,7 +577,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8108986738537790486, guid: ff3b50050c9e43dfdb723bcfed88e34b, type: 3}
       propertyPath: m_Name
-      value: LocalPlayerJoinManager
+      value: PlayerJoinManager
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
