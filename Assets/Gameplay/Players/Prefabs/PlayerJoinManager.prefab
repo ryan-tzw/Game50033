@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 219191624887296151}
   - component: {fileID: 3231623736893719659}
   - component: {fileID: 7157861504769892536}
+  - component: {fileID: 7157861504769892537}
   m_Layer: 0
   m_Name: PlayerJoinManager
   m_TagString: Untagged
@@ -89,5 +90,17 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e8e7bc7b763cd76d08b1fedca7e421b4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Game50033.LocalPlayerJoinCoordinator
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerJoinManager
   spawnSpacing: 2
+--- !u!114 &7157861504769892537
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8108986738537790486}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568178962569e67ae4ac7bada81ada57, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.GameSession

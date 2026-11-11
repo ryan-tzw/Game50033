@@ -103,6 +103,9 @@ GameObject:
   - component: {fileID: 5018917414402032851}
   - component: {fileID: 1068252045767462188}
   - component: {fileID: 1544443953293736949}
+  - component: {fileID: 1544443953293736950}
+  - component: {fileID: 1544443953293736951}
+  - component: {fileID: 1544443953293736952}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -149,7 +152,7 @@ CharacterController:
   m_SlopeLimit: 45
   m_StepOffset: 0
   m_SkinWidth: 0.01
-  m_MinMoveDistance: 0.001
+  m_MinMoveDistance: 0
   m_Center: {x: 0, y: 0.2, z: 0}
 --- !u!114 &1068252045767462188
 MonoBehaviour:
@@ -176,7 +179,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_ActionEvents: []
-  m_NeverAutoSwitchControlSchemes: 0
+  m_NeverAutoSwitchControlSchemes: 1
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
@@ -192,5 +195,54 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 066ec035c6c1431c3a352198077b0c38, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Game50033.LocalPlayerController
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.Player
+--- !u!114 &1544443953293736950
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24b493a548b3863c2bf46d9bab41b2b9, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerMovement
   moveSpeed: 5
+  dodgeDistance: 1
+  dodgeDuration: 0.2
+  maxDodgeCharges: 2
+  dodgeRechargeTime: 7
+--- !u!114 &1544443953293736951
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 591db355528a998a03d30a9f6d119291, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHealth
+  maxHealth: 5
+  downedDuration: 15
+  reviveHealth: 1
+  revivalImmunityDuration: 1
+--- !u!114 &1544443953293736952
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66450077a6eabc4ba9da21dad6058f13, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.Examples.ExamplePlayerAbilities
+  primaryCooldown: 0.5
+  secondaryCooldown: 1
+  defensiveCooldown: 2
+  specialCooldown: 3
+  actionDuration: 0.25
