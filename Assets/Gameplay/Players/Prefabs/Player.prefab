@@ -105,7 +105,7 @@ GameObject:
   - component: {fileID: 1544443953293736949}
   - component: {fileID: 1544443953293736950}
   - component: {fileID: 1544443953293736951}
-  - component: {fileID: 1544443953293736952}
+  - component: {fileID: -2570218193996952752}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -206,7 +206,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 24b493a548b3863c2bf46d9bab41b2b9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerMovement
   moveSpeed: 5
   dodgeDistance: 1
@@ -223,13 +223,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 591db355528a998a03d30a9f6d119291, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHealth
   maxHealth: 5
   downedDuration: 15
   reviveHealth: 1
   revivalImmunityDuration: 1
---- !u!114 &1544443953293736952
+--- !u!114 &-2570218193996952752
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -238,11 +238,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 3885672621503035260}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 66450077a6eabc4ba9da21dad6058f13, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::Game50033.Examples.ExamplePlayerAbilities
-  primaryCooldown: 0.5
-  secondaryCooldown: 1
-  defensiveCooldown: 2
-  specialCooldown: 3
-  actionDuration: 0.25
+  m_Script: {fileID: 11500000, guid: c7445a6fc64f186429492a663d6a53a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.TromboneAbilities
+  trombonePrimaryCooldown: 0.5
+  tromboneSecondaryCooldown: 1
+  tromboneDefensiveCooldown: 2
+  tromboneSpecialCooldown: 3
+  tromboneActionDuration: 0.25
+  tromboneCommandZone: {fileID: 6468572833640993516, guid: c09bb9f647c664e4d8a551896fb86bf3, type: 3}
