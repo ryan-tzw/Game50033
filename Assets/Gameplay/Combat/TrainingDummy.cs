@@ -49,7 +49,8 @@ namespace Game50033
             visual.SetPropertyBlock(_properties);
 
             var shake = Mathf.Clamp01(1f - elapsed / shakeDuration);
-            var wobble = Mathf.Sin(elapsed * 60f) * shake * shakeDistance;
+            // Skip the shake calculation before the first hit to avoid NaN positions
+            var wobble = shake > 0f ? Mathf.Sin(elapsed * 60f) * shake * shakeDistance : 0f;
             visual.transform.localPosition = _visualRestPosition + _shakeDirection * wobble;
         }
     }
