@@ -8,10 +8,7 @@ public class BaseBoss : MonoBehaviour
 {
     [SerializeField] protected float BossMovementSpeed = 5f;
     [SerializeField] protected float BossHealthPoints = 20000f;
-    [SerializeField] private float BossArriveThreshold = 0.6f;
-
     [SerializeField] protected float BossStopDistance = 2f;
-
     [SerializeField] protected float attackDuration = 1f;
 
     protected float BossCurrentHealth;
@@ -70,11 +67,12 @@ public class BaseBoss : MonoBehaviour
         }
 
         var playerPosition = TargetedPlayer.transform.position;
-        float side = _rb.position.x < playerPosition.x ? -1f : 1f;
-        float dx = Mathf.Abs(playerPosition.x - _rb.position.x);  
-        float dz = Mathf.Abs(playerPosition.z - _rb.position.z);   
+        Vector3 toPlayer = playerPosition - _rb.position;
+        toPlayer.y = 0f;
 
-        InRange = dx <= BossStopDistance + BossArriveThreshold && dz <= BossArriveThreshold;
+        InRange = toPlayer.sqrMagnitude <= BossStopDistance * BossStopDistance;
+
+        FaceDirection(toPlayer.x);
 
         FaceDirection(playerPosition.x - _rb.position.x);
 
@@ -89,18 +87,8 @@ public class BaseBoss : MonoBehaviour
             return;
         }
 
-        float targetX = dx > BossStopDistance
-            ? playerPosition.x + side * BossStopDistance
-            : _rb.position.x;
-
-        var standPoint = new Vector3(targetX, _rb.position.y, playerPosition.z);
-        var toStand = standPoint - _rb.position;
-        toStand.y = 0f;
-
-        var moveDir = toStand.normalized;
+        var moveDir = toPlayer.normalized;
         _rb.linearVelocity = new Vector3(moveDir.x * BossMovementSpeed, _rb.linearVelocity.y, moveDir.z * BossMovementSpeed);
-
-
     }
 
    
@@ -155,12 +143,11 @@ public class BaseBoss : MonoBehaviour
 
     private void FaceDirection(float x)
     {
+        if (IsAttacking) return;
         if (Mathf.Abs(x) < 0.01f) return;
 
-        var t = _sr.transform;
-        var scale = t.localScale;
-        scale.x = Mathf.Abs(scale.x) * (x < 0f ? -1f : 1f);
-        t.localScale = scale;
+        bool faceLeft = x < 0f;
+        _sr.flipX = !faceLeft;
     }
 
 

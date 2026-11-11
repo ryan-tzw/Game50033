@@ -18,6 +18,7 @@ namespace Game50033
         public void FlyTo(Vector3 target)
         {
             _start = transform.position;
+            _start.y = 1f;
             _target = target;
 
             float distance = Vector3.Distance(_start, _target);
