@@ -51,12 +51,12 @@ Gamepad buttons are bound by **position**, not by the letter printed on them. Sw
 | Action | Keyboard & mouse | Gamepad position | Xbox | PlayStation | Switch Pro | Status |
 |---|---|---|---|---|---|---|
 | Move | WASD / arrow keys | Left stick | Left stick | Left stick | Left stick | ✅ Working |
-| Aim | Mouse position | Right stick | Right stick | Right stick | Right stick | Not implemented |
+| Aim | Mouse position | Right stick | Right stick | Right stick | Right stick | Aim direction computed, training melee uses movement facing |
 | Primary attack | Left click | Left face button | X | □ | Y | Placeholder attack (lobby dummy) |
 | Secondary attack | Right click | Top face button | Y | △ | X | Not implemented |
 | Special attack | E | Bottom face button | A | ✕ | B | Not implemented (used as **join / pick** in the lobby) |
 | Defensive | Q | Right face button | B | ○ | A | Not implemented (used as **back** in the lobby) |
-| Dash | Space | Right trigger | RT | R2 | ZR | Not implemented |
+| Dash | Space | Right trigger | RT | R2 | ZR | Existing dodge: two charges, invulnerability, timed recharge |
 
 The D-pad is not bound to anything yet.
 
@@ -96,7 +96,9 @@ Each character can only be picked by one player. Characters taken by someone els
 
 | Folder | Contents |
 |---|---|
-| `Assets/Gameplay/Players` | Player prefab, movement (`PlayerController`), joining (`PlayerJoinManager`), lobby character select (`PlayerCharacterSelect`) |
+| `Assets/Gameplay/Players` | Player prefab, input/aim (`Player`), movement/dodge (`PlayerMovement`), health/revival (`PlayerHealth`), ability contract (`PlayerAbilities`), joining (`PlayerJoinManager`), lobby character select (`PlayerCharacterSelect`) |
+| `Assets/Gameplay` | Persistent player registry (`GameSession`) |
+| `Assets/Gameplay/Bosses` | Boss movement/targeting prototype (`BaseBoss`) and animated bone projectile (`Bone`); damage/phases unfinished |
 | `Assets/Gameplay/Lobby` | Lobby state, select panels, start zone, lobby → cutscene handoff (`StartGameSequence`) |
 | `Assets/Gameplay/Characters` | `CharacterDefinition` / `CharacterRoster` and their data assets (`Data/`) |
 | `Assets/Gameplay/Combat` | `IHittable` (shared "can be hit" interface), mic training dummy, placeholder `PlayerCombat` |
