@@ -35,6 +35,7 @@ namespace Game50033
         public GameSession Session { get; internal set; }
         public int PlayerIndex { get; private set; } = -1;
         public Color PlayerColor { get; private set; } = Color.white;
+        public CharacterDefinition Character { get; private set; }
         public Vector3 AimDirection { get; private set; } = Vector3.forward;
 
         public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDowned
@@ -151,12 +152,31 @@ namespace Game50033
             gameObject.name = $"Player {playerIndex + 1}";
             PlayerIndex = playerIndex;
             PlayerColor = PlayerColors[playerIndex % PlayerColors.Length];
+            SetTint(Character != null ? Character.Tint : PlayerColor);
+        }
+
+        public void ApplyCharacter(CharacterDefinition character)
+        {
+            Character = character;
+            if (character == null) return;
+
+            if (character.Sprite != null)
+            {
+                foreach (var spriteRenderer in GetComponentsInChildren<SpriteRenderer>(true))
+                    spriteRenderer.sprite = character.Sprite;
+            }
+
+            SetTint(character.Tint);
+        }
+
+        private void SetTint(Color color)
+        {
             var materialProperties = new MaterialPropertyBlock();
 
             foreach (var childRenderer in GetComponentsInChildren<Renderer>(true))
             {
                 childRenderer.GetPropertyBlock(materialProperties);
-                materialProperties.SetColor(PlayerTintId, PlayerColor);
+                materialProperties.SetColor(PlayerTintId, color);
                 childRenderer.SetPropertyBlock(materialProperties);
                 materialProperties.Clear();
             }
