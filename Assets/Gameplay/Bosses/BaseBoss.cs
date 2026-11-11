@@ -1,15 +1,18 @@
 using Game50033;
 using UnityEngine;
+using UnityEngine.UI;
 using System.Collections.Generic;
 
-public class BaseBoss : MonoBehaviour
+public class BaseBoss : MonoBehaviour, IHittable
 {
     [SerializeField] protected float BossMovementSpeed = 5f;
-    [SerializeField] protected float BossHealthPoints = 20000f;
+    [SerializeField, Min(0.01f)] protected float BossHealthPoints = 20000f;
     [SerializeField] protected float BossStopDistance = 2f;
     [SerializeField] protected float attackDuration = 1f;
 
-    protected float BossCurrentHealth;
+    [SerializeField, Min(-1f)]
+    [Tooltip("Use -1 to start at full HP. Shows current HP during Play.")]
+    protected float BossCurrentHealth = -1f;
     protected int BossTotalPhases = 3;
     protected int BossCurrentPhase = 1;
     protected float BossTargetClearTime = 120f;
@@ -27,11 +30,32 @@ public class BaseBoss : MonoBehaviour
 
     [SerializeField] private GameObject BoneProjectile;
 
+    [SerializeField] private Image healthBarFill;
+    [SerializeField, Min(0.01f)] private float hitFlashDuration = 0.15f;
+
+    private static readonly int FlashAmountId = Shader.PropertyToID("_FlashAmount");
+    private MaterialPropertyBlock _hitProperties;
+    private float _lastHitTime = float.NegativeInfinity;
+
+    public float MaxHealth => BossHealthPoints;
+    public float CurrentHealth => BossCurrentHealth;
+    public bool IsDead => BossCurrentHealth <= 0f;
+
     protected void Awake()
     {
         _sr = GetComponentInChildren<SpriteRenderer>();
         _rb = GetComponent<Rigidbody>();
-        BossCurrentHealth = BossHealthPoints;
+        _hitProperties = new MaterialPropertyBlock();
+        BossHealthPoints = Mathf.Max(0.01f, BossHealthPoints);
+        BossCurrentHealth = BossCurrentHealth < 0f
+            ? BossHealthPoints
+            : Mathf.Clamp(BossCurrentHealth, 0f, BossHealthPoints);
+        UpdateHealthBar();
+
+        if (IsDead)
+        {
+            Die();
+        }
     }
 
     protected virtual void FixedUpdate()
@@ -45,6 +69,56 @@ public class BaseBoss : MonoBehaviour
         {
             bossAttackIntervalTimer -= Time.deltaTime;
         }
+
+        var elapsed = Time.time - _lastHitTime;
+        SetHitFlash(Mathf.Clamp01(1f - elapsed / Mathf.Max(0.01f, hitFlashDuration)));
+    }
+
+    public void TakeHit(in HitInfo hit)
+    {
+        if (!isActiveAndEnabled || IsDead || hit.Damage <= 0f
+            || float.IsNaN(hit.Damage) || float.IsInfinity(hit.Damage))
+        {
+            return;
+        }
+
+        BossCurrentHealth = Mathf.Max(0f, BossCurrentHealth - hit.Damage);
+        UpdateHealthBar();
+        _lastHitTime = Time.time;
+        SetHitFlash(1f);
+
+        if (IsDead)
+        {
+            Die();
+        }
+    }
+
+    private void UpdateHealthBar()
+    {
+        if (healthBarFill != null)
+        {
+            healthBarFill.fillAmount = BossCurrentHealth / BossHealthPoints;
+        }
+    }
+
+    private void SetHitFlash(float amount)
+    {
+        if (_sr == null)
+        {
+            return;
+        }
+
+        _sr.GetPropertyBlock(_hitProperties);
+        _hitProperties.SetFloat(FlashAmountId, amount);
+        _sr.SetPropertyBlock(_hitProperties);
+    }
+
+    private void Die()
+    {
+        CancelInvoke();
+        _rb.linearVelocity = Vector3.zero;
+        _rb.angularVelocity = Vector3.zero;
+        gameObject.SetActive(false);
     }
 
     protected virtual void TargetPlayer()
