@@ -9,8 +9,6 @@ namespace Game50033
     public class TromboneCommandZone : MonoBehaviour
     {
         [SerializeField, Min(0.01f)] private float radius = 1f;
-        [SerializeField, Min(1f)] private float pressureAccumulationMultiplier = 1.5f;
-        [SerializeField, Range(0f, 1f)] private float pressureDecayMultiplier = 0.5f;
         [SerializeField] private Reverberation sustainReverberationPrefab;
         [Tooltip("Optional child GameObject displaying the Command Zone area.")]
         [SerializeField] private GameObject visualRoot;
@@ -37,9 +35,6 @@ namespace Game50033
                 return offset.sqrMagnitude <= radius * radius;
             }
         }
-
-        public float PressureAccumulationMultiplier => IsOwnerInside ? pressureAccumulationMultiplier : 1f;
-        public float PressureDecayMultiplier => IsOwnerInside ? pressureDecayMultiplier : 1f;
 
         private bool OwnerCanPlay()
         {
@@ -97,6 +92,11 @@ namespace Game50033
                 return;
             }
 
+            ConsumeZone();
+        }
+
+        public void ConsumeZone()
+        {
             // Prevent owner removal or scene cleanup from creating Sustain REV.
             var createReverberation = OwnerCanPlay();
             CancelZone();

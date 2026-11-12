@@ -23,6 +23,7 @@ namespace Game50033
         public Vector3 MoveDirection { get; private set; }
         public Vector3 FacingDirection { get; private set; } = Vector3.forward;
         public bool IsDodging { get; private set; }
+        public bool IsMoving { get; private set; }
         public bool IsInvulnerable => IsDodging && isActiveAndEnabled && _controller != null && _controller.enabled;
         public bool CanDodge => isActiveAndEnabled && _controller != null && _controller.enabled
             && !IsDodging && DodgeCharges > 0;
@@ -105,7 +106,12 @@ namespace Game50033
             }
             else if (canMove)
             {
+                IsMoving = true;
                 displacement = MoveDirection * (moveSpeed * deltaTime);
+            }
+            if (displacement == Vector3.zero)
+            {
+                IsMoving = false;
             }
 
             // retain grounding while horizontal actions are blocked, including while downed.

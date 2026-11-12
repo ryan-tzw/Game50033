@@ -197,6 +197,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 066ec035c6c1431c3a352198077b0c38, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.Player
+  autoAimRange: 14
+  enemyTargetMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!114 &1544443953293736950
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -207,7 +211,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 24b493a548b3863c2bf46d9bab41b2b9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerMovement
   moveSpeed: 5
   dodgeDistance: 1
@@ -224,12 +228,41 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 591db355528a998a03d30a9f6d119291, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHealth
   maxHealth: 5
   downedDuration: 15
   reviveHealth: 1
   revivalImmunityDuration: 1
+--- !u!114 &-2570218193996952752
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7445a6fc64f186429492a663d6a53a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.TromboneAbilities
+  Movement: {fileID: 1544443953293736950}
+  projectileOrigin: {fileID: 0}
+  primaryProjectilePrefab: {fileID: -3744925585312438481, guid: 4b0d4e5e99556fe469aa1b1595727ae9, type: 3}
+  specialProjectilePrefab: {fileID: 6545077532654094786, guid: 172792b3283e51743ae9089355a1e964, type: 3}
+  specialReverberationPrefab: {fileID: 0}
+  trombonePrimaryCooldown: 0.5
+  tromboneMinPrimaryDamage: 1
+  tromboneMaxPrimaryDamage: 5
+  tromboneSecondaryCooldown: 1
+  tromboneDefensiveCooldown: 2
+  tromboneSpecialCooldown: 3
+  tromboneMinSpecialDamage: 2
+  tromboneMaxSpecialDamage: 10
+  tromboneActionDuration: 0.25
+  tromboneCommandZone: {fileID: 6468572833640993516, guid: c09bb9f647c664e4d8a551896fb86bf3, type: 3}
+  maxPressure: 100
+  consecutiveAttackInterval: 1
 --- !u!114 &5036130649280889951
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -244,21 +277,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerCharacterSelect
   avatarVisual: {fileID: 3231995453142075047}
   navigateThreshold: 0.6
---- !u!114 &-2570218193996952752
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3885672621503035260}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c7445a6fc64f186429492a663d6a53a1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Game50033.TromboneAbilities
-  trombonePrimaryCooldown: 0.5
-  tromboneSecondaryCooldown: 1
-  tromboneDefensiveCooldown: 2
-  tromboneSpecialCooldown: 3
-  tromboneActionDuration: 0.25
-  tromboneCommandZone: {fileID: 6468572833640993516, guid: c09bb9f647c664e4d8a551896fb86bf3, type: 3}
