@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90e11f870ec34f1bbd1d88034ba38c0f, type: 3}
+  m_Name: SustainEffect
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.SustainEffect
+  explosionRadius: 0.6
+  explosionDamage: 0.5
+  explosionHitMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  lingeringFieldPrefab: {fileID: 8505181581004611551, guid: bb7fa7bbf6ca94d12808344b6da199ce, type: 3}
+  explosionVisualPrefab: {fileID: 614000000000000001, guid: c599cbe4c6684c629e8016167482b238, type: 3}
+  explosionVisualLifetime: 0.2

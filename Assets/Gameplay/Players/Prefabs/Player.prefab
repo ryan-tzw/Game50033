@@ -103,6 +103,10 @@ GameObject:
   - component: {fileID: 5018917414402032851}
   - component: {fileID: 1068252045767462188}
   - component: {fileID: 1544443953293736949}
+  - component: {fileID: 1544443953293736950}
+  - component: {fileID: 1544443953293736951}
+  - component: {fileID: 2439631078986181378}
+  - component: {fileID: 5036130649280889951}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -149,7 +153,7 @@ CharacterController:
   m_SlopeLimit: 45
   m_StepOffset: 0
   m_SkinWidth: 0.01
-  m_MinMoveDistance: 0.001
+  m_MinMoveDistance: 0
   m_Center: {x: 0, y: 0.2, z: 0}
 --- !u!114 &1068252045767462188
 MonoBehaviour:
@@ -176,7 +180,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_ActionEvents: []
-  m_NeverAutoSwitchControlSchemes: 0
+  m_NeverAutoSwitchControlSchemes: 1
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
@@ -192,5 +196,71 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 066ec035c6c1431c3a352198077b0c38, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Game50033.LocalPlayerController
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.Player
+--- !u!114 &1544443953293736950
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24b493a548b3863c2bf46d9bab41b2b9, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerMovement
   moveSpeed: 5
+  dodgeDistance: 1
+  dodgeDuration: 0.2
+  maxDodgeCharges: 2
+  dodgeRechargeTime: 7
+--- !u!114 &1544443953293736951
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 591db355528a998a03d30a9f6d119291, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHealth
+  maxHealth: 5
+  downedDuration: 15
+  reviveHealth: 1
+  revivalImmunityDuration: 1
+--- !u!114 &2439631078986181378
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb7649b7d876c584d974f353c3ceef26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerCombat
+  attackReach: 0.3
+  attackRadius: 0.35
+  attackHeight: 0.2
+  cooldown: 0.3
+  damage: 1
+  hitMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!114 &5036130649280889951
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c11a58669ff4ea043bf94e20010de78a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerCharacterSelect
+  avatarVisual: {fileID: 3231995453142075047}
+  navigateThreshold: 0.6
