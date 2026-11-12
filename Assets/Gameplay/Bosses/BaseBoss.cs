@@ -25,12 +25,15 @@ public class BaseBoss : MonoBehaviour, IHittable
 
     protected Player TargetedPlayer;
 
+    // TODO: Add Player Runtime Set so that player positions...etc can be easily accessed by boss!
     private readonly List<Player> _players = new();
     protected bool IsAttacking; //Will probably change to states later on
 
     [SerializeField] private GameObject BoneProjectile;
 
-    [SerializeField] private Image healthBarFill;
+    [SerializeField] private string bossName;
+    [SerializeField] private Slider healthBarFill;
+    [SerializeField] private Text bossText;
     [SerializeField, Min(0.01f)] private float hitFlashDuration = 0.15f;
 
     private static readonly int FlashAmountId = Shader.PropertyToID("_FlashAmount");
@@ -48,6 +51,7 @@ public class BaseBoss : MonoBehaviour, IHittable
     {
         _sr = GetComponentInChildren<SpriteRenderer>();
         _rb = GetComponent<Rigidbody>();
+
         if (_sr != null)
         {
             _attackAnimator = _sr.GetComponent<Animator>();
@@ -61,6 +65,7 @@ public class BaseBoss : MonoBehaviour, IHittable
             ? BossHealthPoints
             : Mathf.Clamp(BossCurrentHealth, 0f, BossHealthPoints);
         UpdateHealthBar();
+        UpdateBossText();
 
         if (IsDead)
         {
@@ -75,7 +80,7 @@ public class BaseBoss : MonoBehaviour, IHittable
 
     protected virtual void Update()
     {
-        if(bossAttackIntervalTimer > 0f)
+        if (bossAttackIntervalTimer > 0f)
         {
             bossAttackIntervalTimer -= Time.deltaTime;
         }
@@ -111,6 +116,7 @@ public class BaseBoss : MonoBehaviour, IHittable
 
         BossCurrentHealth = Mathf.Max(0f, BossCurrentHealth - hit.Damage);
         UpdateHealthBar();
+        UpdateBossText();
         _lastHitTime = Time.time;
         SetHitFlash(1f);
 
@@ -124,8 +130,13 @@ public class BaseBoss : MonoBehaviour, IHittable
     {
         if (healthBarFill != null)
         {
-            healthBarFill.fillAmount = BossCurrentHealth / BossHealthPoints;
+            healthBarFill.value = BossCurrentHealth / BossHealthPoints;
         }
+    }
+
+    private void UpdateBossText()
+    {
+        bossText.text = $"{bossName}: {BossCurrentHealth}/{MaxHealth}";
     }
 
     private void SetHitFlash(float amount)
@@ -199,7 +210,7 @@ public class BaseBoss : MonoBehaviour, IHittable
         _rb.linearVelocity = new Vector3(moveDir.x * BossMovementSpeed, _rb.linearVelocity.y, moveDir.z * BossMovementSpeed);
     }
 
-   
+
     //Will clean up and use a new script for boss1 later on, this is temporary for checkoff
     private void BasicAttack()
     {
@@ -210,10 +221,10 @@ public class BaseBoss : MonoBehaviour, IHittable
         }
 
         int numberOfProjectiles = 2;
-        foreach(var player in _players)
+        foreach (var player in _players)
         {
             var currentPosition = player.transform.position;
-            for(int i = 0; i < numberOfProjectiles; i++)
+            for (int i = 0; i < numberOfProjectiles; i++)
             {
                 Vector2 spread = Random.insideUnitCircle * 1.5f;
                 var target = currentPosition + new Vector3(spread.x, 0f, spread.y);
@@ -262,6 +273,5 @@ public class BaseBoss : MonoBehaviour, IHittable
         bool faceLeft = x < 0f;
         _sr.flipX = !faceLeft;
     }
-
 
 }
