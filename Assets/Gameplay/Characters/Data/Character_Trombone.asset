@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd718221aa1402c4684ea1215e67f732, type: 3}
+  m_Name: Character_Trombone
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.CharacterDefinition
+  displayName: Trombone
+  sprite: {fileID: 5395042229362328217, guid: f4aa2dc303f9da7669b91fe830b83084, type: 3}
+  tint: {r: 0.7, g: 0.5, b: 0.9, a: 1}
+  playerPrefab: {fileID: 1544443953293736949, guid: 9809b69c4a4e4bcdaa097d8a01654d0e, type: 3}
