@@ -1,0 +1,289 @@
+# Crescendo — Architecture and Collaboration Contract
+
+**Status:** team baseline (v1)  
+**Applies to:** Unity 6000.3.24f1 / URP, `Game50033`  
+**Purpose:** a shared, practical architecture for six developers and their coding agents. This document describes both the desired long-lived design and how to adopt it from the existing project without a disruptive rewrite.
+
+> **Principle:** stable responsibilities and contracts matter more than the number of classes. Build vertical slices, keep ownership localized, and introduce abstractions only when at least two concrete features need them.
+
+## 1. Non-goals and invariants
+
+- This is a **local** 2–4 player co-op boss-rush game. Do not design networking/replication infrastructure unless the scope changes.
+- Shared player mechanics use **composition**. Instrument classes derive from `PlayerAbilities`; they do **not** derive from `Player`.
+- The game is played on the **XZ plane** with a fixed, angled camera. Character/weapon sprites may be oriented in XZ. Do not silently switch to 2D physics or XY-space assumptions.
+- The current player input behaviour (held abilities can retry, movement-facing fallback, dodge invulnerability through active dodge) is intentional until a design task changes it.
+- Character animation is intentionally light. **Every instrument has a floating visual weapon component**, with instrument-specific motion carrying much of the attack readability. Keep the shared `Player` independent of the weapon animation implementation.
+- Four people may attack simultaneously. Prioritize legible attack areas, target feedback, and restrained ambient VFX.
+- **Not every architectural box needs a MonoBehaviour or manager.** Do not create empty systems just to match a diagram.
+
+## 2. Responsibilities and dependencies
+
+```mermaid
+flowchart TB
+    Inputs[Unity PlayerInput / PlayerJoinManager] --> Player[Player: input & shared action gates]
+    Join[PlayerJoinManager] --> Session[GameSession: persistent player roster]
+    Player --> Move[PlayerMovement]
+    Player --> Health[PlayerHealth]
+    Player --> Abilities[PlayerAbilities]
+    Abilities --> Specific[Flute / Trombone / Guitar / other instrument abilities]
+    Specific --> Hits[IHittable / HitInfo + attack-specific hit volumes]
+    Specific --> Resonance[Reverberation / ResonatingAttack / ResonanceResolver]
+    Specific -. presentation signals .-> Visuals[Instrument weapon visuals / VFX / SFX]
+    Entry[Scene-local encounter entry / controller] --> Session
+    Entry --> Boss[Boss-specific behaviour]
+    Boss --> Health
+    Hits --> Boss
+```
+
+**Dependency rules:**
+
+- **Player:** orchestrates per-player input, common action permissions, aim/target direction, and references to shared player components. No Guitar/Trombone/Flute conditionals.
+- **PlayerMovement:** the sole authority for *physical player movement* via `CharacterController` (walking, dodge, and future skill-driven displacement). Ability scripts request motion; they must not move the player via `transform.position`.
+- **PlayerHealth:** owns HP, damage acceptance/invulnerability, downed timer, automatic revival, and health-related notifications. Reviving needs no teammate input.
+- **PlayerAbilities:** abstract contract (`TryUsePrimary`, `TryUseSecondary`, `TryUseDefensive`, `TryUseSpecial`, `Cancel`) and class-controlled restrictions (`BlocksMovement`, `BlocksDodge`, `BlocksAbilities`). Restrictions may change during individual attacks.
+- **Instrument implementation:** owns attack timings, cooldowns, hitboxes/projectiles, class resources, and its own weapon visual implementation (e.g. `GuitarWeaponVisual : FloatingWeaponVisual`). It should depend on the shared player API and shared combat contracts, not other instruments' internals.
+- **GameSession:** persistent roster of participating `Player` objects, with registration/unregistration and roster notifications. It is not responsible for boss AI, lobby selection, or camera effects.
+- **PlayerJoinManager:** creates/configures player instances and owns joins, leaves, and device pairing. Other gameplay code should **not** depend on this class merely to find players.
+- **LobbyManager / character selection:** controls lobby selection and spawning of the chosen prefab. It owns lobby-only state; runtime player identity belongs to the surviving player instance.
+- **Encounter entry/controller (when added):** scene-local encounter setup, spawn points, fight start/end and win/loss conditions. Boss AI should be independent of lobby/scene transition implementation.
+- **Boss-specific scripts:** targeting, movement, attack patterns and phase behaviour. Read active players from `GameSession` or context supplied by the scene entry; avoid hardcoded player GameObjects and `PlayerJoinManager` dependencies.
+- **Presentation:** animation, floating weapons, VFX, SFX, HUD. Presentation listens to gameplay events or explicit calls. It must not define authoritative damage, cooldown, or hit outcomes.
+
+Coupling to a fitting owner (e.g., boss → roster, Guitar → PlayerMovement) is acceptable. Do **not** add interfaces or an event bus just to eliminate every reference.
+
+## 3. Scene and object lifetime
+
+### Recommended baseline — multiple encounter scenes, persistent players
+
+Use **one scene per independently developed boss encounter**. Maintain the current lobby-to-game flow while extending it to more encounter scenes:
+
+```text
+Lobby.unity -> Cutscene1.unity -> Game.unity (current first playable encounter)
+                                      |
+                                      +-> later Encounter_Boss02.unity, ...
+```
+
+- The existing `GameSession` plus `PlayerJoinManager` live on a persistent manager root. Joined player roots (with `PlayerInput`) also survive scene transitions. This retains device pairing, player indices, and selected instrument instances.
+- **Current implementation uses `DontDestroyOnLoad` and ordinary scene loading.** Keep it for now. Separate boss scenes do **not** require a new `Core.unity` scene or mandatory additive loading. Additive loading is an option later for persistent shared environments or simultaneous streamed scenes, not a prerequisite.
+- Bosses, arena geometry, hazards, scene lighting, arena-specific UI, and encounter scripts are **scene-local** and get destroyed when their encounter is unloaded.
+- An encounter scene has one entry point (currently `GameSceneEntry` for `Game.unity`) that positions surviving players, restores input, and supplies encounter-specific references as needed. Don't repeat a `FindObject...` lookup every boss update.
+- Do not serialize cross-scene references from encounter assets to persistent roots; resolve/inject them at runtime. Boss code can receive the roster/session via encounter initialization or a one-time lookup through the current player. No global singleton required.
+- Define reset rules explicitly before a second fight exists: HP, cooldowns, active projectiles/REV entities, attack restrictions, and boss state must start in a known condition. Preserve device pairing and selected instrument.
+- Keep existing `SceneNames` / Build Profiles accurate whenever a scene is renamed or added. If a boss scene is meant to work standalone in the Editor, provide test initialization rather than duplicating persistent managers in production prefabs.
+- The team-wipe/defeat condition is a *game-design decision* and intentionally not prescribed here; downed players currently auto-revive on a timer.
+
+### Lifecycle ownership reference
+
+| State | Owner | Survives encounter scene change? |
+|---|---|---|
+| Device pairing, player index | `PlayerInput` / persistent player | Yes |
+| Selected instrument / character identity | Player + character selection data | Yes |
+| Player roster | `GameSession` | Yes |
+| HP/cooldowns | Player components; reset at encounter boundary | Object persists; values reset by policy |
+| Boss AI, phases, projectiles, arena hazards | Encounter scene | No |
+| Lobby selection UI | Lobby scene | No |
+| Weapon visuals | Instrument/player prefab | Yes; visuals reset with player |
+
+## 4. Shared gameplay and combat contracts
+
+### Player API
+
+Prefer these existing public boundaries over inspecting private state or finding objects:
+
+- `Player.Movement`, `.Health`, `.Abilities`, `.Session`, `.Character`, `.PlayerIndex`, `.AimDirection`, `.GetAttackDirection(...)`.
+- `Player.CanMove`, `.CanDodge`, `.CanUseAbilities` are the shared action gates; instruments determine their own temporary restrictions via `PlayerAbilities`.
+- `PlayerMovement` owns dodge charges, the active dodge, and physical movement; extend it with a **small, explicit displacement request API** if attacks need lunges/backsteps.
+- `PlayerHealth` owns damage/downing/revival. Do not implement alternative HP fields inside instrument classes.
+- `PlayerAbilities` methods are invoked while held where applicable. Individual abilities own whether a press, hold, charge, or release is meaningful. Extend input exposure through `Player` only when needed; do not read other players' global input assets.
+
+### Hits and damage
+
+- Reuse existing `IHittable.TakeHit(in HitInfo)` for world entities that accept player attacks. `HitInfo` presently carries attacker, damage and direction. `BaseBoss` and `TrainingDummy` provide current examples.
+- `PlayerHealth.TryTakeDamage(int)` is currently the authoritative player damage API. Boss attacks should go through it or a **small adapter**, not subtract health privately. If richer hit data becomes necessary for players, evolve the shared contract deliberately instead of creating another parallel damage system.
+- Each attack owns its spatial query/collider and **deduplicates targets within one swing/projectile**. An attack can hit multiple valid targets where the move requires it.
+- Gameplay determines hit success, damage and timing. Hitstop, knockback, camera shake and hit flash are *consequences* triggered after an accepted hit; visuals must not determine whether a hit occurred.
+- A shared hit resolver is warranted **only if** repeated cross-cutting rules (hitstop, hit immunity, knockback, reactions) are otherwise duplicated across several attacks. Do not create a generic combat framework preemptively.
+- Use layers and collision masks deliberately. A visual arc is not the source of truth for the hitbox; it should communicate the authoritative attack area.
+
+### Reverberation / Resonance
+
+The existing implementation already has useful contracts; preserve and build on them:
+
+- `Reverberation`: temporary world entity with creator, effect, strength, availability and expiry.
+- `ReverberationEffect`: effect definition; effects determine the outcome when consumed.
+- `ResonatingAttack`: a compatible attack volume linked to its owning player.
+- `ResonanceResolver`: validates and consumes a compatible REV, executes the effect, emits a notification.
+- `AttackTargeting`: currently supports player attack targeting, including Reverberation selection. Its target-priority policy is **prototype behaviour**, not an architectural invariant.
+- A player should not consume their own REV under the current design. Instruments create/exploit REV through these shared systems rather than hardcoding teammate class checks.
+- Adding a new instrument should normally mean adding instrument-local attacks/effect assets and using the existing shared contracts; not editing `ResonanceResolver` for every new skill.
+
+### Bosses
+
+`BaseBoss` is currently a checkoff prototype; it combines targeting, health, visuals and a bone-projectile attack. **That is not the long-term shared boss API.** When implementing the next substantive boss feature:
+
+1. Move Bone-specific attacks/graphics into a `Bone` boss feature directory.
+2. Keep minimal common boss damage/health behaviour (possibly `BossHealth`) only if at least two bosses need it.
+3. Have encounter setup supply the roster, or obtain it once from `GameSession`. Do not base the canonical roster on an arena detection trigger.
+4. Separate boss attack behaviour from boss VFX, and keep each boss's balancing/configuration local.
+
+Do this incrementally; do not break the existing checkoff demo just to reorganize code.
+
+## 5. Feature-first folder structure
+
+**Target structure, with `(new)` marking not-yet-required directories.** Existing paths are listed where important. Prefer moving feature-local assets together once ownership is clear; **do not move all assets at once.**
+
+```text
+AGENTS.md                            # Codex entrypoint (repository root)
+README.md
+docs/
+  architecture_overview.md             # team-facing quick read
+  agents/
+    ARCHITECTURE.md                    # detailed reference for coding agents
+Assets/
+  Gameplay/
+    GameSession.cs                      # existing; persistent player roster
+    Players/
+      Player.cs                         # shared player/input coordinator
+      PlayerMovement.cs                 # walking/dodge/displacement
+      PlayerHealth.cs                   # downed/revive/health
+      PlayerAbilities.cs                # abstract instrument contract
+      FloatingWeaponVisual.cs          # (planned) common abstract visual contract
+      PlayerJoinManager.cs              # join/leave/device pairing
+      PlayerCharacterSelect.cs          # lobby-side player selection (existing)
+      KeyboardGamepadBridge.cs          # existing input bridge
+      Prefabs/
+        Player.prefab                   # shared base prefab, owned centrally
+        PlayerJoinManager.prefab        # persistent session root
+      Abilities/
+        Guitar/                         # (new) GuitarAbilities, weapon visual, VFX,
+          Prefabs/                      #       sprites, VFX assets and prefab variant
+        Flute/                          # existing Flute abilities, projectiles, flows
+          Prefabs/
+        Trombone/                       # target; currently Players/Trombone/
+          Prefabs/
+        Training/                       # temporary/testing abilities
+    Combat/
+      IHittable.cs                      # contains HitInfo today
+      AttackTargeting.cs
+      TrainingDummy.cs
+      Resonance/
+        Reverberation.cs
+        ReverberationEffect.cs
+        ResonatingAttack.cs
+        ResonanceResolver.cs
+        ...                             # specific effect types + prefabs
+    Bosses/
+      Shared/                           # (new if useful) cross-boss components
+      Bone/                             # target for current Bone/BoneProjectile/assets
+      <OtherBoss>/                      # one independently owned folder per boss
+    Characters/
+      CharacterDefinition.cs
+      CharacterRoster.cs
+      Data/                             # immutable-ish authored character definitions
+    Lobby/                              # lobby UI, ready/start and selection rules
+    Flow/                               # scene names, cutscene/transition utilities
+    Game/                               # encounter entry / player spawn handoff
+    UI/                                 # (new as needed) shared HUD and game UI
+  Scenes/
+    Lobby.unity                         # current path
+    CutScenes/                          # current intro/placeholder cutscene
+    Game.unity                          # current first playable encounter
+    Encounters/                        # (new) later independent boss scenes
+    TestScenes/                        # isolated integration/prototype scenes
+  Art/                                  # shared art; per-feature art lives with feature
+  Rendering/                            # global render features and shared shaders
+  Settings/                             # Input Actions, URP and settings assets
+  Examples/                             # temporary examples, not production dependencies
+```
+
+**Folder conventions:**
+
+- Keep **feature-owned code, prefabs, ScriptableObjects, art, and VFX close together**. Reusable cross-feature code lives under `Combat`, `Players`, `Rendering`, etc. Don't build a top-level `Scripts/` dumping ground.
+- One primary C# type per file, matching filename. Use the existing `Game50033` namespace; nested namespaces are optional when they add clarity. Namespace is **not required** to mirror folders.
+- Name gameplay scripts by responsibility (`GuitarAbilities`, `GuitarWeaponVisual`, `GuitarVFX`), not by arbitrary `Manager`/`Helper` suffixes.
+- **Base player prefab** contains only player-common components. **Every instrument prefab variant has a concrete floating weapon visual component** (e.g. `GuitarWeaponVisual : FloatingWeaponVisual`), and its own effects. The common abstract base is a script contract, not a component attached directly to the base prefab.
+- Data assets (`CharacterDefinition`, `ReverberationEffect`, balancing configs) describe configuration. Avoid mutable global state in shared ScriptableObject assets.
+- Shared art/shaders belong in `Art`/`Rendering`; a one-off Guitar effect belongs in Guitar's feature folder.
+- Keep test scenes separate from the scene used for integration/demo. Test features independently without re-saving the team-owned gameplay scene unnecessarily.
+
+## 6. Integration and ownership for six people
+
+Assign a **human owner for each shared surface**; the names can change, the boundaries shouldn't. Multiple people can implement features inside their own directories simultaneously.
+
+| Workstream | Primary modification area | Shared touchpoints requiring coordination |
+|---|---|---|
+| Player foundation & Guitar | `Players` shared code, `Abilities/Guitar` | `Player.prefab`, input actions, `GameSession` |
+| Other instrument 1 | `Abilities/Flute` | shared combat contracts only when necessary |
+| Other instrument 2 | `Abilities/Trombone` | shared combat contracts only when necessary |
+| Bosses & arenas | `Bosses/<Boss>` and its encounter scene | `IHittable`, encounter entry |
+| Combat synergy & VFX | `Combat/Resonance`, shared effects | `ResonanceResolver`, hit contracts |
+| Lobby, UI & integration | `Lobby`, `Flow`, `Game`, `UI`, integration scene | `PlayerJoinManager`, build profiles, scene transitions |
+
+These are **workstream suggestions, not assignments of specific teammates**. One integrator should own the integration branch/demo scene and take responsibility for detecting conflicts early.
+
+### Cross-system change protocol
+
+1. Describe the required change in terms of an API/behaviour, identifying who consumes it.
+2. Have the owner of the shared component update it in a small PR/commit; provide a stub or adapter if needed to unblock others.
+3. Each feature author integrates against that API in their own files.
+4. If the change alters an established boundary, update this document in the same PR.
+5. Integrate small, playable increments frequently. Do not leave weeks of unrelated feature branches diverging.
+
+### Unity Git conventions
+
+- Commit `.meta` alongside its asset, preserving GUIDs during moves. Never rely on another developer recreating an untracked folder or asset.
+- Set up UnityYAMLMerge locally as described in `README.md`. It reduces, but does not eliminate, conflicts.
+- Coordinate edits to the same `.unity`, base `.prefab`, `.inputactions`, shared `.shadergraph`, and Build Profiles. Prefer feature-specific prefabs and individual test scenes.
+- Keep code reviews focused on architecture and behaviour rather than unsolicited wholesale formatting.
+- Don't move or rename files while a teammate is actively modifying those same assets. Separate organization-only changes from gameplay changes where practical.
+
+## 7. Implementation plan — adopt without stopping development
+
+This is a **migration order**, not a required single giant refactor:
+
+**Now (same day):**
+
+1. Commit `AGENTS.md` and this document so agents and developers share the rules.
+2. Designate ownership of `Player.prefab`, `PlayerJoinManager.prefab`, input actions, the shared combat contract, and the integration scene.
+3. Keep the current `Lobby → Cutscene1 → Game` checkoff/demo flow running. Identify a minimal integration/playtest scene as the reference build.
+4. New Guitar work goes straight into `Players/Abilities/Guitar` and its own variant/VFX assets. Use `IHittable`, `HitInfo`, and the existing Resonance APIs.
+
+**As the next feature touches each area:**
+
+5. Move `Players/Trombone/` into `Players/Abilities/Trombone/` with metadata intact, coordinated with the Trombone owner.
+6. Move Bone-specific scripts, prefabs and animations under `Bosses/Bone/`; trim concrete attack logic out of `BaseBoss` only if the second boss exposes genuine duplication.
+7. Add `Scenes/Encounters/` and a scene-local encounter entry/controller when a second boss scene is created. Preserve persistent players and device pairing across scenes; reset encounter-specific state explicitly.
+8. Separate any presentation code that currently decides hits/damage, as it is encountered during VFX work.
+9. Replace prototype class-specific exceptions in shared targeting with stable abstractions **only when** multiple instruments/bosses need them.
+
+**Do not do:** immediate global folder migrations, a new custom framework, duplicate skill/damage systems, or cosmetic refactors on every file. The goal is a durable direction that keeps the playable game moving forward.
+
+## 8. Completion checklist for any feature
+
+Before considering an agent-produced feature ready for the team:
+
+- [ ] The feature's scripts/assets are in its owned folder; shared edits are justified.
+- [ ] `.meta` files are included and prefab/scene references are valid.
+- [ ] The relevant public contract is unchanged, or has been updated/documented and coordinated.
+- [ ] It works in an isolated test scene **and** the integration scene where applicable.
+- [ ] Multiplayer device pairing/input isolation still works when relevant.
+- [ ] Encounter entry/exit, downing/reviving, cancellation, and re-entry do not leave stale objects or state where relevant.
+- [ ] Visuals reflect the real hitbox and attack timing; SFX/VFX are not required for damage to happen.
+- [ ] The developer reports exactly what was tested and any remaining Editor-only checks.
+- [ ] `README.md` and this document are updated if controls, setup, public APIs, or architecture changed.
+
+## 9. Architecture decision log
+
+Keep this section short. When changing a rule, record *decision, reason, consequence*; do not silently let agent-generated code redefine the architecture.
+
+| Decision | Reason / consequence |
+|---|---|
+| Composition for player; inheritance only for `PlayerAbilities` | Shared movement/HP remain stable; instrument work stays feature-local. |
+| `GameSession` owns persistent player roster | Boss and UI don't depend on input-join mechanics. |
+| One encounter scene per boss, persistent player objects | Reduces scene merge conflicts while preserving controller pairing. |
+| Keep current DDOL-based transitions initially; additive is optional | Avoids a `Core.unity` rewrite during active integration. |
+| Use existing `IHittable`/`HitInfo` and REV APIs | Prevents parallel implementations of combat and cooperation mechanics. |
+| Every instrument has a floating weapon visual | `FloatingWeaponVisual` can define the shared contract; each class implements distinct movement/animation without instrument-specific code in `Player`. |
+| Feature-first folders and prefab variants | Six developers/agents can work concurrently with fewer conflicting assets. |
+
+**Document ownership:** project-wide architectural changes should be reviewed by the integration owner and affected feature owners before merging.
