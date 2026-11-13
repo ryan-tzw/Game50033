@@ -7,6 +7,7 @@ namespace Game50033
     [RequireComponent(typeof(PlayerInput), typeof(PlayerMovement), typeof(PlayerHealth))]
     public sealed class Player : MonoBehaviour
     {
+        [SerializeField] private SpriteRenderer avatarRenderer;
         [SerializeField, Min(0.01f)] private float autoAimRange = 14f;
         [Tooltip("Non-player IHittable targets and boss prototypes on these layers can be selected automatically.")]
         [SerializeField] private LayerMask enemyTargetMask = ~0;
@@ -65,6 +66,7 @@ namespace Game50033
             Movement = GetComponent<PlayerMovement>();
             Health = GetComponent<PlayerHealth>();
             Abilities = GetComponent<PlayerAbilities>();
+            if (avatarRenderer == null) avatarRenderer = GetComponentInChildren<SpriteRenderer>(true);
             Movement.Initialize();
             Health.Initialize();
             Health.Downed += HandleDowned;
@@ -152,6 +154,7 @@ namespace Game50033
         private void OnDisable()
         {
             Movement.CancelDodge();
+            Movement.CancelDisplacement();
             Movement.ReadInput(Vector2.zero);
             if (Abilities != null) Abilities.Cancel();
         }
@@ -165,6 +168,7 @@ namespace Game50033
         private void HandleDowned()
         {
             Movement.CancelDodge();
+            Movement.CancelDisplacement();
             Movement.ReadInput(Vector2.zero);
             if (Abilities != null) Abilities.Cancel();
         }
@@ -182,26 +186,19 @@ namespace Game50033
             Character = character;
             if (character == null) return;
 
-            if (character.Sprite != null)
-            {
-                foreach (var spriteRenderer in GetComponentsInChildren<SpriteRenderer>(true))
-                    spriteRenderer.sprite = character.Sprite;
-            }
+            if (avatarRenderer != null && character.Sprite != null) avatarRenderer.sprite = character.Sprite;
 
             SetTint(character.Tint);
         }
 
         private void SetTint(Color color)
         {
-            var materialProperties = new MaterialPropertyBlock();
+            if (avatarRenderer == null) return;
 
-            foreach (var childRenderer in GetComponentsInChildren<Renderer>(true))
-            {
-                childRenderer.GetPropertyBlock(materialProperties);
-                materialProperties.SetColor(PlayerTintId, color);
-                childRenderer.SetPropertyBlock(materialProperties);
-                materialProperties.Clear();
-            }
+            var materialProperties = new MaterialPropertyBlock();
+            avatarRenderer.GetPropertyBlock(materialProperties);
+            materialProperties.SetColor(PlayerTintId, color);
+            avatarRenderer.SetPropertyBlock(materialProperties);
         }
     }
 }

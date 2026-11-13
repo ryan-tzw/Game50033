@@ -92,9 +92,26 @@ Prefer these existing public boundaries over inspecting private state or finding
 
 - `Player.Movement`, `.Health`, `.Abilities`, `.Session`, `.Character`, `.PlayerIndex`, `.AimDirection`, `.GetAttackDirection(...)`.
 - `Player.CanMove`, `.CanDodge`, `.CanUseAbilities` are the shared action gates; instruments determine their own temporary restrictions via `PlayerAbilities`.
-- `PlayerMovement` owns dodge charges, the active dodge, and physical movement; extend it with a **small, explicit displacement request API** if attacks need lunges/backsteps.
+- `PlayerMovement` owns dodge charges, the active dodge, and physical movement. `TryStartDisplacement(direction, distance, duration, easing, delay = 0)` requests one XZ displacement; it returns false if movement/controller is unavailable or another dodge/displacement is active. The optional delay aligns a lunge with an attack windup. `CancelDisplacement()` stops pending or active motion. Downing, disabling the player/movement, or disabling the controller cancels it. A displacement does not grant invulnerability.
 - `PlayerHealth` owns damage/downing/revival. Do not implement alternative HP fields inside instrument classes.
 - `PlayerAbilities` methods are invoked while held where applicable. Individual abilities own whether a press, hold, charge, or release is meaningful. Extend input exposure through `Player` only when needed; do not read other players' global input assets.
+- `Player` applies character art/tint only to its serialized avatar renderer. Instrument weapon renderers retain their own art and materials. Older standalone prefabs without that reference fall back to their first child sprite renderer.
+
+### Guitar Primary and floating weapon presentation
+
+- `FloatingWeaponVisual` defines only `Cancel()`. Pose APIs stay instrument-specific until a second weapon needs the same operations.
+- `GuitarAbilities` owns a three-strike Primary string. Each held-input retry can start the next strike after recovery; a pause resets the string and finishing the third strike adds the combo cooldown. Each strike snapshots the existing auto-targeted `Player.AimDirection` on activation, locks walking/dodge/other abilities, and requests a delayed lunge from `PlayerMovement`.
+- Damage uses swept XZ blade capsules through the active phase, including player travel between queries. The same angles/progress drive `GuitarWeaponVisual`. Targets are deduplicated per strike, so one target can take three hits across a full string. Each strike has a reach multiplier (defaults 1 / 1 / 1.4); reach and the sweet-spot radius scale together. Hit queries, sweet-spot damage, gizmos and VFX use those same snapshotted radii. The outer radial region applies a configurable sweet-spot damage multiplier. `IHittable`/`HitInfo` remain unchanged; Primary has no REV/RES interaction.
+- `GuitarWeaponVisual` handles a wielded shoulder pose, anticipation, swing and recovery. The resting guitar body points behind movement facing. Its grip anchor sits near the player, outside the sprite via a configurable sprite-local grip point. Follow-through is retained between combo strikes and blends back to the shoulder pose when the string finishes, times out or is cancelled. The sprite faces the camera and rotates in that plane; sweep angles still come from XZ gameplay. A view-direction depth offset keeps downward-pointing artwork above the floor while preserving its screen position under the fixed orthographic camera. It uses the standard URP unlit sprite material because the shared avatar billboard shader deliberately discards Transform rotation. The weapon sprite stays on the full-resolution `SpriteVisual` layer.
+- `GuitarVFX` snapshots the full attack arc into a world-space smear, with a configurable onset delay and four timed, held poses: broad slash, follow-through, broken crescent and remaining streaks. Pose durations use seconds independently of rendering FPS; weapon motion and damage sampling remain continuous. `GuitarSmear.shader` uses hard body/sweet-spot color bands and clipped breakup rather than interpolated colors or alpha fading. The shader measures world-space distance from each smear's center against the actual sweet-spot radius, independently of its pose shape or configurable visual-only outer extension. Pose 3 has a flat leading edge and a torn trailing edge in either swing direction. Each swing carries its own pose data, allowing independent overlapping effects. `GuitarVFX` owns/releases the runtime mesh; cancellation/disable clears it. Both it and the test dummy restore their native-backed property blocks in `OnEnable` so Play-mode script reloads cannot leave null blocks and flood the Console. Scene-local impact particles remain independent, and gameplay works with presentation disabled or absent.
+- `Abilities/Guitar/Prefabs/GuitarPlayer.prefab` is a variant of the shared Player prefab with the placeholder `PlayerCombat` removed. `Character_Guitar.asset` selects it through the existing lobby flow. `Scenes/TestScenes/GuitarPrimaryTest.unity` provides three damage dummies and Guitar/Flute prefab overrides for local testing. `GuitarDamageDummy` is a feature-local test target, not a new combat contract.
+
+### Pixel-art world effects
+
+- `PixelArtRendererFeature` renders opaque world geometry and its outlines first, then selected transparent effects into the same low-resolution color target before nearest-neighbour upscaling. Transparent effects retain their materials and alpha blending, sort back-to-front, and test against opaque depth with depth writes disabled. They do not contribute to the outline calculation.
+- `PixelWorldVFX` (GameObject layer 12) is the explicit opt-in layer for transparent effects that should pixelate. Assign an effect's renderer child to this layer; keep gameplay colliders on their existing layers. The Guitar `SlashSmear` is the initial user of this policy. Its impact particles have not been opted in.
+- `PC_Renderer.asset` sets the feature's `transparentWorldLayers` to `PixelWorldVFX` and excludes that layer from URP's regular Transparent Layer Mask. Both masks must stay in sync so these effects render exactly once. Existing `Default` transparencies retain their full-resolution path.
+- `SpriteVisual` (layer 11), other full-resolution transparencies and UI remain in their existing paths. Full-resolution transparent sprites draw after low-resolution effects; these two groups do not share one global transparent sorting order. Test their overlap when authoring new effects.
 
 ### Hits and damage
 
@@ -147,7 +164,7 @@ Assets/
       PlayerMovement.cs                 # walking/dodge/displacement
       PlayerHealth.cs                   # downed/revive/health
       PlayerAbilities.cs                # abstract instrument contract
-      FloatingWeaponVisual.cs          # (planned) common abstract visual contract
+      FloatingWeaponVisual.cs          # common cancellation contract; concrete motion is instrument-specific
       PlayerJoinManager.cs              # join/leave/device pairing
       PlayerCharacterSelect.cs          # lobby-side player selection (existing)
       KeyboardGamepadBridge.cs          # existing input bridge
@@ -155,8 +172,9 @@ Assets/
         Player.prefab                   # shared base prefab, owned centrally
         PlayerJoinManager.prefab        # persistent session root
       Abilities/
-        Guitar/                         # (new) GuitarAbilities, weapon visual, VFX,
-          Prefabs/                      #       sprites, VFX assets and prefab variant
+        Guitar/                         # GuitarAbilities, GuitarWeaponVisual, GuitarVFX, test target
+          Art/                          # guitar sprite and trail material
+          Prefabs/                      # Guitar player variant and impact particles
         Flute/                          # existing Flute abilities, projectiles, flows
           Prefabs/
         Trombone/                       # target; currently Players/Trombone/

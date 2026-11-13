@@ -197,6 +197,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 066ec035c6c1431c3a352198077b0c38, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.Player
+  avatarRenderer: {fileID: 1627041761190954647}
 --- !u!114 &1544443953293736950
 MonoBehaviour:
   m_ObjectHideFlags: 0
