@@ -301,7 +301,7 @@ MonoBehaviour:
   weapon:
     gripOffset: {x: 0.04, y: 0.18, z: 0}
     spriteGripPoint: {x: 0, y: 0.45}
-    shoulderLift: 0.65
+    restingAngleOffset: 20
     followSharpness: 22
     rotationSharpness: 28
     spriteScale: 1

@@ -74,7 +74,7 @@ namespace Game50033
             var facing = _player.Movement.FacingDirection;
             if (_camera == null) return;
 
-            var handSide = Vector3.Dot(facing, _camera.transform.right) >= 0f ? 1f : -1f;
+            var handSide = Vector3.Dot(facing, _camera.transform.right) >= -0.0001f ? 1f : -1f;
             var position = transform.position + Vector3.up * weapon.gripOffset.y
                 + _camera.transform.right * (weapon.gripOffset.x * handSide) + facing * weapon.gripOffset.z;
             var radial = Quaternion.AngleAxis(_angle, Vector3.up) * _direction;
@@ -88,19 +88,29 @@ namespace Game50033
             weaponSprite.transform.localPosition = -(Vector3)weapon.spriteGripPoint * scale;
             weaponSprite.transform.localRotation = Quaternion.identity;
 
-            // resting body points behind the facing direction and lifts over the shoulder.
+            // tilt the backward direction by a fixed screen-space angle, mirrored when facing left.
             var screenDirection = _posing
                 ? new Vector2(Vector3.Dot(radial, _camera.transform.right), Vector3.Dot(radial, _camera.transform.up))
-                : new Vector2(-Vector3.Dot(facing, _camera.transform.right), -Vector3.Dot(facing, _camera.transform.up) + weapon.shoulderLift);
+                : new Vector2(-Vector3.Dot(facing, _camera.transform.right), -Vector3.Dot(facing, _camera.transform.up));
             var spriteAngle = Mathf.Atan2(screenDirection.y, screenDirection.x) * Mathf.Rad2Deg - weapon.spriteOutwardAngle;
+            if (!_posing) spriteAngle -= weapon.restingAngleOffset * handSide;
             var rotationBlend = !_placed || _active ? 1f : 1f - Mathf.Exp(-weapon.rotationSharpness * Time.deltaTime);
             _visualAngle = Mathf.LerpAngle(_visualAngle, spriteAngle, rotationBlend);
 
             // the original flat geometry supplies depth; the shader supplies the camera-facing image.
             var worldDirection = _posing ? radial : -facing;
+            if (!_posing && Mathf.Abs(_camera.transform.forward.y) > 0.001f)
+            {
+                // project the already-smoothed visible direction onto XZ along the camera's view rays.
+                // this keeps the idle depth geometry on the same axis instead of smoothing it a second time.
+                var visibleAngle = (_visualAngle + weapon.spriteOutwardAngle) * Mathf.Deg2Rad;
+                worldDirection = _camera.transform.right * Mathf.Cos(visibleAngle) + _camera.transform.up * Mathf.Sin(visibleAngle);
+                worldDirection -= _camera.transform.forward * (worldDirection.y / _camera.transform.forward.y);
+                worldDirection.y = 0f;
+            }
             var yaw = weapon.spriteOutwardAngle - Mathf.Atan2(worldDirection.z, worldDirection.x) * Mathf.Rad2Deg;
             var rotation = Quaternion.AngleAxis(yaw, Vector3.up) * Quaternion.Euler(90f, 0f, 0f);
-            weaponPivot.rotation = Quaternion.Slerp(weaponPivot.rotation, rotation, rotationBlend);
+            weaponPivot.rotation = _posing ? Quaternion.Slerp(weaponPivot.rotation, rotation, rotationBlend) : rotation;
             weaponSprite.GetPropertyBlock(_properties);
             _properties.SetFloat(SpriteFlatDepthId, 1f);
             _properties.SetFloat(SpriteRotationId, _visualAngle);
