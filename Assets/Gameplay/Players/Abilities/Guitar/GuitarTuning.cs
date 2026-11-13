@@ -49,6 +49,8 @@ namespace Game50033
             public LayerMask hitMask = ~0;
             public AnimationCurve swingEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
             public AnimationCurve lungeEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+            [Tooltip("Normal movement speed throughout Primary's windup, active and recovery phases. The forward lunge is added independently.")]
+            [Range(0f, 1f)] public float movementSpeedMultiplier = 0.2f;
             public AnimationCurve windupEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
             public AnimationCurve recoveryEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
             public float anticipationAngle = 22f;
@@ -60,6 +62,8 @@ namespace Game50033
         public sealed class SecondarySettings
         {
             public GuitarStrum wavePrefab;
+            [Tooltip("Normal movement speed throughout Secondary's windup, active and recovery phases. Its backstep is added independently.")]
+            [Range(0f, 1f)] public float movementSpeedMultiplier = 0.2f;
             [Min(0.001f)] public float windup = 0.2f;
             [Min(0.001f)] public float active = 0.12f;
             [Min(0.001f)] public float recovery = 0.08f;

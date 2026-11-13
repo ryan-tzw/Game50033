@@ -120,7 +120,9 @@ namespace Game50033
             }
 
             // continue grounding and charge recovery while action input is blocked.
-            Movement.Tick(Time.deltaTime, CanMove);
+            var movementSpeedMultiplier = Abilities != null && Abilities.isActiveAndEnabled
+                ? Abilities.MovementSpeedMultiplier : 1f;
+            Movement.Tick(Time.deltaTime, CanMove, movementSpeedMultiplier);
         }
 
         public Vector3 GetAttackDirection(

@@ -41,6 +41,8 @@ namespace Game50033
 
         public bool IsAttacking { get; private set; }
         public bool IsStrumming => _strumming;
+        public override float MovementSpeedMultiplier => !IsAttacking ? 1f
+            : _strumming ? tuning.secondary.movementSpeedMultiplier : tuning.attack.movementSpeedMultiplier;
         public bool HasEmpoweredPrimary { get; private set; }
         public float SecondaryCooldownRemaining => Mathf.Max(0f, _secondaryReadyAt - Time.time);
         public int ComboStep { get; private set; }
@@ -102,7 +104,7 @@ namespace Game50033
             _impactResolved = false;
             _hitThisSwing.Clear();
             IsAttacking = true;
-            BlocksMovement = true;
+            BlocksMovement = false;
             BlocksDodge = true;
             BlocksAbilities = true;
             return true;
@@ -355,7 +357,7 @@ namespace Game50033
             _strumming = true;
             ComboStep = 0;
             IsAttacking = true;
-            BlocksMovement = true;
+            BlocksMovement = false;
             BlocksDodge = true;
             BlocksAbilities = true;
             return true;

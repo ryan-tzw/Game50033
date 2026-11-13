@@ -108,7 +108,7 @@ namespace Game50033
             IsDisplacing = false;
         }
 
-        internal void Tick(float deltaTime, bool canMove)
+        internal void Tick(float deltaTime, bool canMove, float movementSpeedMultiplier = 1f)
         {
             if (!isActiveAndEnabled) return;
 
@@ -127,7 +127,8 @@ namespace Game50033
             }
 
             var displacement = Vector3.zero;
-            if (IsDodging)
+            var dodging = IsDodging;
+            if (dodging)
             {
                 var previousProgress = Mathf.Clamp01(_dodgeElapsed / dodgeDuration);
                 _dodgeElapsed += deltaTime;
@@ -155,9 +156,11 @@ namespace Game50033
                 displacement = _displacementDirection * (_displacementDistance * (currentDistance - previousDistance));
                 if (progress >= 1f) IsDisplacing = false;
             }
-            else if (canMove)
+            // walking can be slowed independently of a skill's fixed displacement, even during its delay.
+            // use the dodge state from this tick's start so its final frame cannot also add walking.
+            if (canMove && !dodging)
             {
-                displacement = MoveDirection * (moveSpeed * deltaTime);
+                displacement += MoveDirection * (moveSpeed * Mathf.Max(0f, movementSpeedMultiplier) * deltaTime);
             }
 
             // retain grounding while horizontal actions are blocked, including while downed.
