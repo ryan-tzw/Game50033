@@ -198,6 +198,9 @@ GameObject:
   - component: {fileID: 151642640}
   - component: {fileID: 151642639}
   - component: {fileID: 151642638}
+  - component: {fileID: 151642643}
+  - component: {fileID: 151642642}
+  - component: {fileID: 151642644}
   m_Layer: 0
   m_Name: BossOne
   m_TagString: Untagged
@@ -217,17 +220,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb990c2a94a77cf4ebd87f221e8c5fa8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseBoss
-  BossMovementSpeed: 5
-  BossHealthPoints: 10
-  BossStopDistance: 6
-  attackDuration: 1.2
-  BossCurrentHealth: -1
-  BossAttackInterval: 3
-  BoneProjectile: {fileID: 333596568652972358, guid: bcafc2289682cb84e966226852bd2771, type: 3}
-  bossName: Black Bolt
-  healthBarFill: {fileID: 383435039}
-  bossText: {fileID: 456509626}
-  hitFlashDuration: 0.15
+  players: []
+  _bossName: Black Bolt
+  _healthBar: {fileID: 383435039}
+  _bossText: {fileID: 456509626}
 --- !u!54 &151642639
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -275,7 +271,7 @@ SphereCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 10
-  m_Center: {x: 0, y: -1.5, z: 0}
+  m_Center: {x: 0, y: 0.5, z: 0}
 --- !u!4 &151642641
 Transform:
   m_ObjectHideFlags: 0
@@ -285,7 +281,7 @@ Transform:
   m_GameObject: {fileID: 151642637}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4, y: 1, z: 2}
+  m_LocalPosition: {x: -4, y: 0, z: 2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -293,6 +289,54 @@ Transform:
   - {fileID: 1610892212}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &151642642
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 151642637}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7ad55b7403cc204e98482e473b1d0bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.BossMovement
+  BossMovementSpeed: 5
+  BossStopDistance: 2
+  InRange: 0
+--- !u!114 &151642643
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 151642637}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11e56eb6d105c2e498fe7c7e56ac0478, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.BossHealth
+  _bossHealthPoints: 20000
+  _bossCurrentHealth: -1
+  hitFlashDuration: 0.15
+--- !u!114 &151642644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 151642637}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd2471a47b4f97d469bc3a4d1dd1588e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.BossAttacks
+  p1Attacks:
+  - {fileID: 785287634830322638, guid: 0ecd8e78b463c49449d7c3225cb42a6c, type: 3}
+  p2Attacks: []
+  p3Attacks: []
+  _currentAttackIdx: 0
+  BossAttackInterval: 3
 --- !u!1 &227765071
 GameObject:
   m_ObjectHideFlags: 0
@@ -432,7 +476,7 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
-  m_Interactable: 1
+  m_Interactable: 0
   m_TargetGraphic: {fileID: 0}
   m_FillRect: {fileID: 1574843114}
   m_HandleRect: {fileID: 0}
@@ -1905,7 +1949,7 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
-  m_Interactable: 1
+  m_Interactable: 0
   m_TargetGraphic: {fileID: 0}
   m_FillRect: {fileID: 850865237}
   m_HandleRect: {fileID: 0}
@@ -2154,7 +2198,7 @@ CapsuleCollider:
   m_Radius: 0.5
   m_Height: 1.3
   m_Direction: 0
-  m_Center: {x: -0.1, y: -0.4, z: 0}
+  m_Center: {x: -0.1, y: 0.5, z: 0}
 --- !u!23 &1610892214
 MeshRenderer:
   m_ObjectHideFlags: 0
