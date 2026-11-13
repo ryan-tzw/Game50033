@@ -4,6 +4,7 @@ namespace Game50033
     using UnityEngine;
     using UnityEngine.UI;
     using System.Collections.Generic;
+    using NUnit.Framework;
 
     /// <summary>
     /// Handles Animations & Consolidates all Boss Scripts
@@ -41,7 +42,7 @@ namespace Game50033
 
         protected Player TargetedPlayer;
 
-        protected bool IsAttacking; //Will probably change to states later on
+        // protected bool IsAttacking; //Will probably change to states later on
 
         // [SerializeField] private GameObject BoneProjectile;
 
@@ -51,7 +52,7 @@ namespace Game50033
         // [SerializeField, Min(0.01f)] private float hitFlashDuration = 0.15f;
 
         // private static readonly int FlashAmountId = Shader.PropertyToID("_FlashAmount");
-        private static readonly int BoneAttackId = Animator.StringToHash("BoneAttack");
+        private static readonly int AttackId = Animator.StringToHash("Attack");
         private static readonly int IsWalkingId = Animator.StringToHash("IsWalking");
         // private MaterialPropertyBlock _hitProperties;
         // private float _lastHitTime = float.NegativeInfinity;
@@ -62,24 +63,28 @@ namespace Game50033
         // public bool IsDead => BossCurrentHealth <= 0f;
 
         public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDead && !Attacks.IsAttacking;
-        public bool CanTryAttacking => isActiveAndEnabled && !Health.IsDead && !Attacks.IsAttacking;
+        public bool CanTryAttacking => isActiveAndEnabled && Movement.InRange && !Health.IsDead && !Attacks.IsAttacking;
 
         protected void Awake()
         {
             Initialize();
             _sr = GetComponentInChildren<SpriteRenderer>();
             _rb = GetComponent<Rigidbody>();
+            _rb.constraints |= RigidbodyConstraints.FreezePositionY;
 
             if (_sr != null)
             {
                 _attackAnimator = _sr.GetComponent<Animator>();
             }
 
+            _bossText = GameObject.Find("BossText").GetComponent<Text>();
+            _healthBar = GameObject.Find("BossHealthBar").GetComponent<Slider>();
+            HandleHealthChange(Health.CurrentHealth, Health.MaxHealth);
+
             // _session = FindFirstObjectByType<GameSession>();
             // _players = new(_session.Players);
 
             // Keep the boss at its arena height when players collide with it.
-            _rb.constraints |= RigidbodyConstraints.FreezePositionY;
             // _hitProperties = new MaterialPropertyBlock();
             // BossHealthPoints = Mathf.Max(0.01f, BossHealthPoints);
             // BossCurrentHealth = BossCurrentHealth < 0f
@@ -110,8 +115,6 @@ namespace Game50033
             Health.HealthChanged += HandleHealthChange;
             Health.Dead += Die;
 
-            HandleHealthChange(Health.CurrentHealth, Health.MaxHealth);
-
             _initialized = true;
         }
 
@@ -119,7 +122,7 @@ namespace Game50033
         {
             _session.PlayerRegistered += UpdatePlayers;
             _session.PlayerUnregistered += UpdatePlayers;
-            Attacks.StartedAttack += () => { _attackAnimator.SetTrigger(BoneAttackId); };
+            Attacks.StartedAttack += () => { _attackAnimator.SetTrigger(AttackId); };
         }
 
         private void OnDisable()
@@ -158,7 +161,7 @@ namespace Game50033
                 _attackAnimator.SetBool(IsWalkingId, Movement.IsMoving);
             }
 
-            Movement.StopMovement(CanMove);
+            Movement.StopMovement(!CanMove);
             if (CanTryAttacking && (players.Count != 0)) { Attacks.TryAttacking(); }
         }
 

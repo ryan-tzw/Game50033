@@ -48,7 +48,7 @@ MonoBehaviour:
   activeTime: 0.3
   recoveryTime: 0.5
   _projectile: {fileID: 6759275388771745837, guid: c197b35afe9946c4798bb58b898713b1, type: 3}
-  _numberOfProjectiles: 1
+  _numberOfProjectiles: 3
   _numberOfTargets: 4
   TriggerAttack: 0
   _targetedPlayers: []

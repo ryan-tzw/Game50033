@@ -1,7 +1,6 @@
 namespace Game50033
 {
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Linq;
     using UnityEngine;
     /// <summary>
@@ -36,7 +35,6 @@ namespace Game50033
             _rb = GetComponent<Rigidbody>();
             _sr = GetComponentInChildren<SpriteRenderer>();
             _players = GetComponent<BaseBoss>().players;
-            _followTarget = null;
             _initialized = true;
         }
 
@@ -55,17 +53,17 @@ namespace Game50033
             TargetPlayer();
         }
 
-        public void StopMovement(bool canMove = true)
+        public void StopMovement(bool lockMovement = true)
         {
             _rb.linearVelocity = Vector3.zero;
             _rb.angularVelocity = Vector3.zero;
-            _canMove = canMove;
+            _canMove = !lockMovement;
         }
 
         protected virtual void TargetPlayer()
         {
             // _players may leave or be destroyed during a scene transition without a trigger exit.
-            _players.RemoveAll(player => player == null);
+            // _players.RemoveAll(player => player == null);
             if (_players.Count == 0)
             {
                 _followTarget = null;
@@ -76,7 +74,9 @@ namespace Game50033
             // Keep the current target while it remains in detection range.
             if (_followTarget == null || !_players.Contains(_followTarget))
             {
+                Debug.Log("Adding Player as follow target!");
                 _followTarget = _players[Random.Range(0, _players.Count)];
+                StopMovement(false);
             }
             FollowPlayer();
         }
@@ -93,6 +93,7 @@ namespace Game50033
 
             if (_canMove)
             {
+                // Debug.Log("Starting to Follow Player!");
                 var playerPosition = _followTarget.transform.position;
                 Vector3 toPlayer = playerPosition - _rb.position;
                 toPlayer.y = 0f;
@@ -100,10 +101,10 @@ namespace Game50033
                 InRange = toPlayer.sqrMagnitude <= BossStopDistance * BossStopDistance;
 
                 FaceDirection(toPlayer.x);
-
                 if (InRange)
                 {
-                    StopMovement(false);
+                    // Debug.Log("Player in range, stopping follow.");
+                    StopMovement(true);
                     // _rb.linearVelocity = new Vector3(0f, _rb.linearVelocity.y, 0f);
 
                     // if (bossAttackIntervalTimer <= 0f)
@@ -113,6 +114,7 @@ namespace Game50033
                     return;
                 }
 
+                // Debug.Log("Player not in range, proceeding to continue to follow!");
                 var moveDir = toPlayer.normalized;
                 _rb.linearVelocity = new Vector3(moveDir.x * BossMovementSpeed, _rb.linearVelocity.y, moveDir.z * BossMovementSpeed);
             }
