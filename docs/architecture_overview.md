@@ -52,7 +52,7 @@ Player input → Instrument ability → Hit detection → IHittable / Resonance
 
 The current flow is `Lobby → Cutscene1 → Game`. Players and their device assignments persist across transitions; bosses, arena objects and hazards belong to the encounter scene. Future bosses can have separate scenes.
 
-Use **feature-oriented folders**. Keep instrument/boss scripts, prefabs and effects together, with shared code in shared folders:
+Use **feature-oriented folders**. Keep instrument/boss scripts, prefabs and effects together, with shared code in shared folders. Keep tuning assets together in the top-level `Assets/Tuning/` folder:
 
 ```text
 Assets/
@@ -66,7 +66,8 @@ Assets/
 │   └── Characters/          Character data
 ├── Scenes/                 Playable and test scenes
 ├── Rendering/              Shared shaders/rendering
-└── Settings/               Input and URP settings
+├── Settings/               Input and URP settings
+└── Tuning/                 Shared tuning assets, grouped by player/instrument/boss
 ```
 
 This is the **target layout**; we can move existing files gradually rather than reorganising everything at once.
@@ -78,6 +79,7 @@ This is the **target layout**; we can move existing files gradually rather than 
 3. **Prefer local edits.** Use feature prefabs and test scenes; coordinate before changing the shared player prefab, input actions, combat API or main gameplay scene.
 4. **Preserve Unity references.** Commit `.meta` files and move them with their assets.
 5. **Don't over-engineer.** Add a manager, base class or event abstraction only when it solves a real shared problem.
-6. **Integrate and test.** A feature is not finished until it works with the actual game, including multiplayer when relevant.
+6. **Centralize tuning.** Put gameplay and presentation tweaks in ScriptableObject assets under `Assets/Tuning/`, grouped by feature. Keep the settings classes with their feature code. Related components can share one asset with clearly named sections, so tuning does not require searching prefabs. Prefabs retain object references; components retain runtime state such as HP and cooldown timers. Do not duplicate tuning values on both the asset and prefab. Migrate existing features in separate, scoped changes.
+7. **Integrate and test.** A feature is not finished until it works with the actual game, including multiplayer when relevant.
 
 For agents and implementation details, see [`ARCHITECTURE.md`](agents/ARCHITECTURE.md) and the repository-root [`AGENTS.md`](../AGENTS.md). See [`README.md`](../README.md) for controls and setup.

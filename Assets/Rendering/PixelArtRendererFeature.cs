@@ -1,6 +1,7 @@
 namespace Game50033
 {
     using System.Collections.Generic;
+    using Unity.Collections;
     using UnityEngine;
     using UnityEngine.Rendering;
     using UnityEngine.Rendering.RenderGraphModule;
@@ -13,6 +14,8 @@ namespace Game50033
         [SerializeField] private LayerMask worldLayers = ~0;
         [SerializeField] private LayerMask toonLayers;
         [SerializeField] private LayerMask spriteLayers;
+        [Tooltip("Transparent world effects drawn before upscale. Exclude these layers from the renderer's Transparent Layer Mask.")]
+        [SerializeField] private LayerMask transparentWorldLayers;
         [SerializeField] private Shader toonOverrideShader;
         [SerializeField] private Material edgeDetectMat;
 
@@ -28,7 +31,7 @@ namespace Game50033
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            _pass.Setup(resolution, worldLayers, toonLayers, spriteLayers, toonOverrideShader, edgeDetectMat);
+            _pass.Setup(resolution, worldLayers, toonLayers, spriteLayers, transparentWorldLayers, toonOverrideShader, edgeDetectMat);
             renderer.EnqueuePass(_pass);
         }
         
@@ -42,6 +45,7 @@ namespace Game50033
             private LayerMask _worldLayers;
             private LayerMask _toonLayers;
             private LayerMask _spriteLayers;
+            private LayerMask _transparentWorldLayers;
             private Shader _toonOverrideShader;
             private Material _edgeDetectMat;
             
@@ -96,7 +100,7 @@ namespace Game50033
                 internal Vector2Int Resolution;
             }
 
-            private sealed class SpritePassData
+            private sealed class RendererPassData
             {
                 internal RendererListHandle Renderers;
             }
@@ -105,13 +109,14 @@ namespace Game50033
             // Setup
             // ================================================== 
 
-            public void Setup(Vector2Int resolution, LayerMask worldLayers, LayerMask toonLayers, LayerMask spriteLayers, Shader toonOverrideShader, Material edgeDetectMat)
+            public void Setup(Vector2Int resolution, LayerMask worldLayers, LayerMask toonLayers, LayerMask spriteLayers, LayerMask transparentWorldLayers, Shader toonOverrideShader, Material edgeDetectMat)
             {
                 _resolution.x = Mathf.Max(1, resolution.x);
                 _resolution.y = Mathf.Max(1, resolution.y);
                 _worldLayers = worldLayers;
                 _toonLayers = toonLayers;
                 _spriteLayers = spriteLayers;
+                _transparentWorldLayers = transparentWorldLayers;
                 _toonOverrideShader = toonOverrideShader;
                 _edgeDetectMat = edgeDetectMat;
                 requiresIntermediateTexture = true;
@@ -317,6 +322,44 @@ namespace Game50033
                 }
                 
                 // ================================================== 
+                // low-res transparent world effects
+                // ==================================================
+
+                if (_transparentWorldLayers.value != 0)
+                {
+                    using var builder = renderGraph.AddRasterRenderPass<RendererPassData>("Pixel Art Low-Resolution Transparencies", out var passData);
+                    var drawingSettings = RenderingUtils.CreateDrawingSettings(
+                        ForwardShaderTags, renderingData, cameraData, lightData, SortingCriteria.CommonTransparent);
+                    var filteringSettings = new FilteringSettings(RenderQueueRange.transparent, _transparentWorldLayers.value);
+
+                    // match urp's renderer-list state override; temp arrays stay alive until graph execution this frame.
+                    var tagValues = new NativeArray<ShaderTagId>(1, Allocator.Temp);
+                    tagValues[0] = ShaderTagId.none;
+                    var stateBlocks = new NativeArray<RenderStateBlock>(1, Allocator.Temp);
+                    stateBlocks[0] = new RenderStateBlock(RenderStateMask.Depth)
+                    {
+                        depthState = new DepthState(false, CompareFunction.LessEqual)
+                    };
+                    var rendererListParams = new RendererListParams(renderingData.cullResults, drawingSettings, filteringSettings)
+                    {
+                        tagValues = tagValues,
+                        stateBlocks = stateBlocks,
+                        isPassTagName = false
+                    };
+                    passData.Renderers = renderGraph.CreateRendererList(rendererListParams);
+
+                    builder.UseAllGlobalTextures(true);
+                    builder.UseRendererList(passData.Renderers);
+                    // retain the outlined image for blending and test against opaque depth without changing it.
+                    builder.SetRenderAttachment(outlinedColor, 0, AccessFlags.ReadWrite);
+                    builder.SetRenderAttachmentDepth(lowResDepth, AccessFlags.Read);
+                    builder.SetRenderFunc(static (RendererPassData data, RasterGraphContext context) =>
+                    {
+                        context.cmd.DrawRendererList(data.Renderers);
+                    });
+                }
+
+                // ==================================================
                 // upscale low-res depth to use for sprite occlusion
                 // ================================================== 
                 
@@ -360,7 +403,7 @@ namespace Game50033
                     passName: "Pixel Art Upscale"
                 );
 
-                using (var builder = renderGraph.AddRasterRenderPass<SpritePassData>("Pixel Art Full-Resolution Sprites", out var passData))
+                using (var builder = renderGraph.AddRasterRenderPass<RendererPassData>("Pixel Art Full-Resolution Sprites", out var passData))
                 {
                     passData.Renderers = CreateRendererList(renderGraph, renderingData, cameraData, lightData, _spriteLayers.value);
 
@@ -369,7 +412,7 @@ namespace Game50033
                     builder.SetRenderAttachment(fullRes, 0, AccessFlags.ReadWrite);
                     builder.SetRenderAttachmentDepth(fullResDepth, AccessFlags.ReadWrite);
 
-                    builder.SetRenderFunc(static (SpritePassData data, RasterGraphContext context) =>
+                    builder.SetRenderFunc(static (RendererPassData data, RasterGraphContext context) =>
                     {
                         context.cmd.DrawRendererList(data.Renderers);
                     });

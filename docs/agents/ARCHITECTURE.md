@@ -92,9 +92,37 @@ Prefer these existing public boundaries over inspecting private state or finding
 
 - `Player.Movement`, `.Health`, `.Abilities`, `.Session`, `.Character`, `.PlayerIndex`, `.AimDirection`, `.GetAttackDirection(...)`.
 - `Player.CanMove`, `.CanDodge`, `.CanUseAbilities` are the shared action gates; instruments determine their own temporary restrictions via `PlayerAbilities`.
-- `PlayerMovement` owns dodge charges, the active dodge, and physical movement; extend it with a **small, explicit displacement request API** if attacks need lunges/backsteps.
+- `PlayerMovement` owns dodge charges, the active dodge, and physical movement. `TryStartDisplacement(direction, distance, duration, easing, delay = 0)` requests one XZ displacement; it returns false if movement/controller is unavailable or another dodge/displacement is active. The optional delay aligns a lunge with an attack windup. `CancelDisplacement()` stops pending or active motion. Downing, disabling the player/movement, or disabling the controller cancels it. A displacement does not grant invulnerability.
 - `PlayerHealth` owns damage/downing/revival. Do not implement alternative HP fields inside instrument classes.
 - `PlayerAbilities` methods are invoked while held where applicable. Individual abilities own whether a press, hold, charge, or release is meaningful. Extend input exposure through `Player` only when needed; do not read other players' global input assets.
+- `Player` applies character art/tint only to its serialized avatar renderer. Instrument weapon renderers retain their own art and materials. Older standalone prefabs without that reference fall back to their first child sprite renderer.
+
+### Guitar Primary and floating weapon presentation
+
+- `GuitarTuning` holds Attack, Weapon and VFX sections in the single shared asset `Assets/Tuning/Instruments/Guitar/GuitarTuning.asset`. `GuitarAbilities`, `GuitarWeaponVisual` and `GuitarVFX` each reference it directly. The asset contains configuration only, including the impact prefab asset; per-instance renderer/transform wiring and runtime state remain on components. Missing tuning is reported once when a component enables, and that component disables instead of silently using fallback values.
+- `FloatingWeaponVisual` defines only `Cancel()`. Pose APIs stay instrument-specific until a second weapon needs the same operations.
+- `GuitarAbilities` owns a three-strike Primary string. Each held-input retry can start the next strike after recovery; a pause resets the string and finishing the third strike adds the combo cooldown. Each strike snapshots the existing auto-targeted `Player.AimDirection` on activation, locks walking/dodge/other abilities, and requests a delayed lunge from `PlayerMovement`.
+- Damage resolves once across the complete XZ annular sector at a configurable impact delay after the active phase starts. `GuitarAbilities` snapshots the current player position after movement, aim, full angles, inner/outer radii and sweet-spot radius, and passes that same data to presentation. Overlapping radial capsule queries cover the sector; contact filtering prevents capsule thickness from extending its XZ boundaries. Targets are deduplicated per strike, so one target can take three hits across a full string. There is no dependency on the sprite transform, VFX mesh or physics trigger callbacks. Later lunge travel and afterimages do not move or repeat the damage area. Each strike has a reach multiplier (defaults 1 / 1 / 1.4); reach and sweet-spot radius scale together. The outer radial region applies a configurable sweet-spot damage multiplier. `IHittable`/`HitInfo` remain unchanged; Primary has no REV/RES interaction.
+- `GuitarWeaponVisual` handles a wielded shoulder pose, anticipation, swing and recovery. The resting guitar body points behind movement facing. Its grip anchor sits near the player, outside the sprite via a configurable sprite-local grip point. Follow-through is retained between combo strikes and blends back to the shoulder pose when the string finishes, times out or is cancelled. The sprite faces the camera and rotates in that plane; sweep angles still come from XZ gameplay. A view-direction depth offset keeps downward-pointing artwork above the floor while preserving its screen position under the fixed orthographic camera. It uses `2DSpriteMat`: `_SpriteRotation` and `_SpritePivot` rotate the visible camera-facing image about the grip, while `_SpriteFlatDepth` projects depth onto the geometry's horizontal plane. All three properties default to zero, preserving existing avatar projection and depth. The weapon no longer faces its transform toward the camera or applies a camera-depth lift. The weapon sprite stays on the full-resolution `SpriteVisual` layer.
+- `GuitarVFX` receives the impact snapshot and immediately displays its full sector, followed by four timed, held poses: broad slash, follow-through, broken crescent and remaining streaks. Pose durations use seconds independently of rendering FPS; weapon motion remains continuous, while damage occurs only at the initial pose. `GuitarSmear.shader` uses hard body/sweet-spot color bands and clipped breakup rather than interpolated colors or alpha fading. The shader measures world-space distance from each smear's center against the actual sweet-spot radius, using the same fixed impact origin as damage. The initial mesh has no separate reach, inner-radius or onset overrides; decorative edge clipping and subsequent afterimage shapes are presentation only. Pose 3 has a flat leading edge and a torn trailing edge in either swing direction. Each swing carries its own pose data, allowing independent overlapping effects. `GuitarVFX` owns/releases the runtime mesh; cancellation/disable clears it. Both it and the test dummy restore their native-backed property blocks in `OnEnable` so Play-mode script reloads cannot leave null blocks and flood the Console. Scene-local impact particles remain independent, and gameplay works with presentation disabled or absent.
+- `Abilities/Guitar/Prefabs/GuitarPlayer.prefab` is a variant of the shared Player prefab with the placeholder `PlayerCombat` removed. `Character_Guitar.asset` selects it through the existing lobby flow. `Scenes/TestScenes/GuitarPrimaryTest.unity` provides three damage dummies and Guitar/Flute prefab overrides for local testing. `GuitarDamageDummy` is a feature-local test target, not a new combat contract.
+
+### Pixel-art world effects
+
+- `PixelArtRendererFeature` renders opaque world geometry and its outlines first, then selected transparent effects into the same low-resolution color target before nearest-neighbour upscaling. Transparent effects retain their materials and alpha blending, sort back-to-front, and test against opaque depth with depth writes disabled. They do not contribute to the outline calculation.
+- `PixelWorldVFX` (GameObject layer 12) is the explicit opt-in layer for transparent effects that should pixelate. Assign an effect's renderer child to this layer; keep gameplay colliders on their existing layers. The Guitar `SlashSmear` is the initial user of this policy. Its impact particles have not been opted in.
+- `PC_Renderer.asset` sets the feature's `transparentWorldLayers` to `PixelWorldVFX` and excludes that layer from URP's regular Transparent Layer Mask. Both masks must stay in sync so these effects render exactly once. Existing `Default` transparencies retain their full-resolution path.
+- `SpriteVisual` (layer 11), other full-resolution transparencies and UI remain in their existing paths. Full-resolution transparent sprites draw after low-resolution effects; these two groups do not share one global transparent sorting order. Test their overlap when authoring new effects.
+
+### Centralized tuning
+
+- **All authored feature tweaks belong in ScriptableObject assets under the top-level `Assets/Tuning/` folder.** This includes gameplay values (damage, reach, timings, cooldowns, movement and health settings) and presentation values (weapon offsets, animation curves, smear pose durations, colors and effect sizes). Designers should not have to search prefab variants or scene instances to adjust these values.
+- Group assets by ownership, for example `Assets/Tuning/Players/PlayerTuning.asset`, `Assets/Tuning/Instruments/Guitar/GuitarTuning.asset` and `Assets/Tuning/Bosses/Bone/BoneTuning.asset`. The Guitar asset exists; the Player and Bone paths are placement examples for future scoped migrations. Use separate assets for independently owned features to limit merge conflicts. A feature's related components can share one asset with clearly named serializable sections; do not require one asset per component or combine the entire game's settings into one asset.
+- Keep the ScriptableObject C# type beside its owning feature code. Each consuming component holds a serialized reference to the appropriate asset. Avoid a global settings singleton, runtime asset searches or a generic configuration framework.
+- The asset is the single source for each tuning value. Do not retain parallel prefab/scene values or silent fallback configurations that make it unclear which setting is in use. Preserve the current authored values when migrating a feature, including any intentional variant differences through explicitly assigned assets.
+- Prefabs/scenes retain per-instance wiring such as renderers, transforms, colliders and scene object references. Runtime state such as HP, cooldown countdowns, combo progress and active effects stays on component instances; gameplay must not write that state into a shared tuning asset.
+- Sharing configuration does not change responsibility: gameplay owns the authoritative hit area and timing, while presentation reads the supplied attack data. A VFX tuning section must not become an independent source for damage reach or sweet-spot thresholds.
+- This is the convention for new work and explicitly scoped migrations. Guitar has been migrated; other existing components still store tuning on prefabs until migrated; this documentation does not authorize a project-wide rewrite or creation of placeholder tuning assets.
 
 ### Hits and damage
 
@@ -147,7 +175,7 @@ Assets/
       PlayerMovement.cs                 # walking/dodge/displacement
       PlayerHealth.cs                   # downed/revive/health
       PlayerAbilities.cs                # abstract instrument contract
-      FloatingWeaponVisual.cs          # (planned) common abstract visual contract
+      FloatingWeaponVisual.cs          # common cancellation contract; concrete motion is instrument-specific
       PlayerJoinManager.cs              # join/leave/device pairing
       PlayerCharacterSelect.cs          # lobby-side player selection (existing)
       KeyboardGamepadBridge.cs          # existing input bridge
@@ -155,8 +183,9 @@ Assets/
         Player.prefab                   # shared base prefab, owned centrally
         PlayerJoinManager.prefab        # persistent session root
       Abilities/
-        Guitar/                         # (new) GuitarAbilities, weapon visual, VFX,
-          Prefabs/                      #       sprites, VFX assets and prefab variant
+        Guitar/                         # GuitarAbilities, GuitarWeaponVisual, GuitarVFX, test target
+          Art/                          # guitar sprite and trail material
+          Prefabs/                      # Guitar player variant and impact particles
         Flute/                          # existing Flute abilities, projectiles, flows
           Prefabs/
         Trombone/                       # target; currently Players/Trombone/
@@ -193,12 +222,16 @@ Assets/
   Art/                                  # shared art; per-feature art lives with feature
   Rendering/                            # global render features and shared shaders
   Settings/                             # Input Actions, URP and settings assets
+  Tuning/                               # (new) central home for authored feature tuning assets
+    Players/                            # shared movement, dodge and health tuning
+    Instruments/                        # Guitar/, Flute/, Trombone/ tuning
+    Bosses/                             # one subfolder per boss
   Examples/                             # temporary examples, not production dependencies
 ```
 
 **Folder conventions:**
 
-- Keep **feature-owned code, prefabs, ScriptableObjects, art, and VFX close together**. Reusable cross-feature code lives under `Combat`, `Players`, `Rendering`, etc. Don't build a top-level `Scripts/` dumping ground.
+- Keep **feature-owned code, prefabs, art, VFX and non-tuning data assets close together**. Tuning ScriptableObject assets are the deliberate exception: collect them under `Assets/Tuning/` while keeping their C# types with the owning feature. Reusable cross-feature code lives under `Combat`, `Players`, `Rendering`, etc. Don't build a top-level `Scripts/` dumping ground.
 - One primary C# type per file, matching filename. Use the existing `Game50033` namespace; nested namespaces are optional when they add clarity. Namespace is **not required** to mirror folders.
 - Name gameplay scripts by responsibility (`GuitarAbilities`, `GuitarWeaponVisual`, `GuitarVFX`), not by arbitrary `Manager`/`Helper` suffixes.
 - **Base player prefab** contains only player-common components. **Every instrument prefab variant has a concrete floating weapon visual component** (e.g. `GuitarWeaponVisual : FloatingWeaponVisual`), and its own effects. The common abstract base is a script contract, not a component attached directly to the base prefab.

@@ -51,8 +51,8 @@ Gamepad buttons are bound by **position**, not by the letter printed on them. Sw
 | Action | Keyboard & mouse | Gamepad position | Xbox | PlayStation | Switch Pro | Status |
 |---|---|---|---|---|---|---|
 | Move | WASD / arrow keys | Left stick | Left stick | Left stick | Left stick | ✅ Working |
-| Aim | Mouse position | Right stick | Right stick | Right stick | Right stick | Aim direction computed, training melee uses movement facing |
-| Primary attack | Left click | Left face button | X | □ | Y | Placeholder attack (lobby dummy) |
+| Aim | Automatic | Automatic | — | — | — | Auto-targeting, with movement-facing fallback; Guitar snapshots this direction per strike |
+| Primary attack | Left click | Left face button | X | □ | Y | Guitar: three-hit sweeping combo; hold to continue/repeat. Other characters retain their current abilities/placeholders. |
 | Secondary attack | Right click | Top face button | Y | △ | X | Not implemented |
 | Special attack | E | Bottom face button | A | ✕ | B | Not implemented (used as **join / pick** in the lobby) |
 | Defensive | Q | Right face button | B | ○ | A | Not implemented (used as **back** in the lobby) |
@@ -101,8 +101,25 @@ Each character can only be picked by one player. Characters taken by someone els
 | `Assets/Gameplay/Bosses` | Boss movement/targeting prototype (`BaseBoss`) and animated bone projectile (`Bone`); damage/phases unfinished |
 | `Assets/Gameplay/Lobby` | Lobby state, select panels, start zone, lobby → cutscene handoff (`StartGameSequence`) |
 | `Assets/Gameplay/Characters` | `CharacterDefinition` / `CharacterRoster` and their data assets (`Data/`) |
-| `Assets/Gameplay/Combat` | `IHittable` (shared "can be hit" interface), mic training dummy, placeholder `PlayerCombat` |
+| `Assets/Gameplay/Combat` | `IHittable` (shared "can be hit" interface), mic training dummy, shared REV/RES mechanics |
+| `Assets/Gameplay/Players/Abilities/Guitar` | Guitar Primary combo, floating weapon motion, smear/impact feedback, prefab variant and art |
 | `Assets/Gameplay/Flow` | Scene names, placeholder cutscene (`PlaceholderCutscene`) |
 | `Assets/Gameplay/Game` | Game scene entry: puts carried-over players on spawn points and gives them control |
 | `Assets/Rendering` | Pixel-art renderer feature and sprite / toon / dissolve shaders |
 | `Assets/Settings` | URP assets and the input actions |
+
+## 5. Testing Guitar Primary
+
+Open `Assets/Scenes/TestScenes/GuitarPrimaryTest.unity` and press Play. Join with E or the bottom gamepad face button. The first/third player uses Guitar; the second/fourth uses Flute. Move toward a dummy and hold Primary to cycle through the three sweeps. The swing locks normal movement and dodge, then releases them after recovery. Moving closer gives normal hits; placing the target toward the outer part of the arc gives sweet-spot damage. Default damage is 2 normally and 3 in the sweet spot; dummies display the latest hit and total damage. The wall on the right can be used to check lunge collision.
+
+For integration, open `Lobby`, select Guitar, and attack the mic dummy. The same selected Guitar player and controller pairing continue through the cutscene into `Game`.
+
+Tune Guitar in **`Assets/Tuning/Instruments/Guitar/GuitarTuning.asset`**. Its three foldout sections contain the shared configuration used by every Guitar player:
+
+- **Attack**: the three windup/active/recovery timings, sweep angles, lunges, per-strike reach multipliers, combo reset/cooldown, base reach/inner radius, hit thickness, sweet-spot radius, damage, impact delay and easing curves. Impact Delay is measured from the active phase starting; at that instant the full crescent hits once and appears. Its centre stays at that impact position despite the remaining lunge. The third strike defaults to 1.4× reach; its sweet-spot radius scales by the same multiplier.
+- **Weapon**: grip offset, sprite-local grip point, shoulder lift, position/rotation response, sprite angle and scale. The resting body points behind movement facing; the grip point can sit outside the sprite. The weapon keeps its follow-through between combo strikes, then blends back to the shoulder pose. The weapon geometry stays flat on XZ for depth testing. `2DSpriteMat` projects the image toward the camera and rotates it around the configured grip; no camera-facing transform or camera-depth lift is applied.
+- **VFX**: four pose durations (X broad slash, Y follow-through, Z broken crescent, W endpoint streaks), body/sweet-spot colors and impact colors/sizes. The `SlashSmear` child renders a flat XZ mesh with four held shapes and hard color bands. Pose 3 has a flat leading edge and torn trailing edge; the final pose keeps streaks in the latter half of the swing. The initial pose uses the exact impact centre, inner/outer radii, angles and sweet-spot radius supplied by GuitarAbilities; later poses are cosmetic afterimages and cannot hit. The shader measures world-space distance against that same sweet-spot radius. Decorative edge clipping does not change the underlying sector.
+
+The `GuitarPlayer` prefab assigns the same tuning asset to `GuitarAbilities`, `GuitarWeaponVisual` and `GuitarVFX`. Those components keep their own runtime state; tuning the asset affects all users, while cancelling one player does not affect another. Renderer/transform wiring stays on the prefab. Create additional Guitar tuning assets through **Assets > Create > Game50033 > Tuning > Guitar** when an intentional configuration variant is needed.
+
+The weapon sprite is imported directly from the unpadded 20×39 `Abilities/Guitar/Art/guitar2.aseprite` source at 50 pixels per unit with a centred import pivot. `GuitarWeaponVisual` places its external grip three pixels above the artwork (`Sprite Grip Point = (0, 0.45)`) and uses an outward angle of −90° for the upright image. Sprite Scale defaults to 1; 50 PPU matches the test scene’s 360-pixel reference height and ortho size 3.6 before deliberate animation scaling. Secondary, Defensive and Special return false for Guitar. This Primary does not yet create or consume Reverberations.
