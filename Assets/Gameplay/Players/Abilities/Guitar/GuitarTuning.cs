@@ -97,8 +97,11 @@ namespace Game50033
         {
             [Tooltip("Resting offset: camera-right shoulder offset, world height, then movement-facing offset.")]
             public Vector3 gripOffset = new Vector3(0.04f, 0.18f, 0f);
-            [Tooltip("Grip in sprite-local units before scaling. Put it outside the sprite bounds to move the pivot beyond the artwork.")]
+            [InspectorName("Attack Grip Point")]
+            [Tooltip("Attack grip in sprite-local units before scaling. Put it outside the sprite bounds for the swing pivot.")]
             public Vector2 spriteGripPoint = new Vector2(0f, 0.45f);
+            [Tooltip("Grip in sprite-local units while resting. Position it inside the grey neck.")]
+            public Vector2 restingGripPoint = new Vector2(0f, 0.1f);
             [Tooltip("Clockwise screen-space tilt from the backward direction at rest. Mirrored counterclockwise when facing left; straight up/down use clockwise.")]
             [Range(0f, 90f)] public float restingAngleOffset = 20f;
             [Min(0.01f)] public float followSharpness = 22f;

@@ -8,6 +8,8 @@ namespace Game50033
     {
         [SerializeField] private Transform weaponPivot;
         [SerializeField] private SpriteRenderer weaponSprite;
+        [SerializeField] private Material restingMaterial;
+        [SerializeField] private Material attackMaterial;
         [SerializeField] private GuitarTuning tuning;
 
         private Player _player;
@@ -20,6 +22,7 @@ namespace Game50033
         private float _height;
         private float _emphasis = 1f;
         private float _visualAngle;
+        private Vector2 _gripPoint;
         private MaterialPropertyBlock _properties;
         private static readonly int SpriteFlatDepthId = Shader.PropertyToID("_SpriteFlatDepth");
         private static readonly int SpriteRotationId = Shader.PropertyToID("_SpriteRotation");
@@ -32,9 +35,9 @@ namespace Game50033
 
         private void OnEnable()
         {
-            if (tuning == null)
+            if (tuning == null || restingMaterial == null || attackMaterial == null)
             {
-                Debug.LogError("GuitarWeaponVisual requires a GuitarTuning asset.", this);
+                Debug.LogError("GuitarWeaponVisual requires tuning and both resting/attack materials.", this);
                 enabled = false;
                 return;
             }
@@ -80,13 +83,17 @@ namespace Game50033
             var radial = Quaternion.AngleAxis(_angle, Vector3.up) * _direction;
             if (_posing) position = transform.position + Vector3.up * _height;
 
-            // the pivot stays near the player's grip; the sprite is offset entirely outside it.
+            // use the neck at rest, blending to the external swing pivot during windup.
             var blend = !_placed || _active ? 1f : 1f - Mathf.Exp(-weapon.followSharpness * Time.deltaTime);
             weaponPivot.position = Vector3.Lerp(weaponPivot.position, position, blend);
+            var targetGrip = _posing ? weapon.spriteGripPoint : weapon.restingGripPoint;
+            _gripPoint = Vector2.Lerp(_gripPoint, targetGrip, blend);
             var scale = weapon.spriteScale * (_posing ? _emphasis : 1f);
             weaponSprite.transform.localScale = Vector3.one * scale;
-            weaponSprite.transform.localPosition = -(Vector3)weapon.spriteGripPoint * scale;
+            weaponSprite.transform.localPosition = -(Vector3)_gripPoint * scale;
             weaponSprite.transform.localRotation = Quaternion.identity;
+            var material = _posing ? attackMaterial : restingMaterial;
+            if (weaponSprite.sharedMaterial != material) weaponSprite.sharedMaterial = material;
 
             // tilt the backward direction by a fixed screen-space angle, mirrored when facing left.
             var screenDirection = _posing
@@ -114,7 +121,7 @@ namespace Game50033
             weaponSprite.GetPropertyBlock(_properties);
             _properties.SetFloat(SpriteFlatDepthId, 1f);
             _properties.SetFloat(SpriteRotationId, _visualAngle);
-            _properties.SetVector(SpritePivotId, new Vector4(weapon.spriteGripPoint.x, weapon.spriteGripPoint.y, 0f, 0f));
+            _properties.SetVector(SpritePivotId, new Vector4(_gripPoint.x, _gripPoint.y, 0f, 0f));
             weaponSprite.SetPropertyBlock(_properties);
             _placed = true;
         }

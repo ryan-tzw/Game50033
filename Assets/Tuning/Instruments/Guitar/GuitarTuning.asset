@@ -35,7 +35,6 @@ MonoBehaviour:
     comboCooldown: 0.4
     comboResetDelay: 0.8
     impactDelay: 0.035
-    movementSpeedMultiplier: 0.2
     reach: 1.05
     stretchAxis: {x: 0, y: 1}
     depthStretch: 1.5
@@ -96,6 +95,7 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
+    movementSpeedMultiplier: 0.2
     windupEasing:
       serializedVersion: 2
       m_Curve:
@@ -148,8 +148,8 @@ MonoBehaviour:
     windupScale: 0.9
     swingScale: 1.05
   secondary:
-    movementSpeedMultiplier: 0.2
     wavePrefab: {fileID: 2152569088444530032, guid: 6f87678d3fb96af0499b0c431969f9cd, type: 3}
+    movementSpeedMultiplier: 0.2
     windup: 0.2
     active: 0.2
     recovery: 0.28
@@ -299,8 +299,9 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
   weapon:
-    gripOffset: {x: 0.04, y: 0.18, z: 0}
+    gripOffset: {x: -0.02, y: 0.3, z: 0}
     spriteGripPoint: {x: 0, y: 0.45}
+    restingGripPoint: {x: 0, y: 0.1}
     restingAngleOffset: 20
     followSharpness: 22
     rotationSharpness: 28
