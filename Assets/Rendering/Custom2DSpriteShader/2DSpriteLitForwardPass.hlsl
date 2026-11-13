@@ -181,13 +181,33 @@ Varyings LitPassVertex(Attributes input)
         length(TransformObjectToWorldDir(float3(0,1,0), false))
     );
     
-    // (0,0,0) here is the sprite's origin, we apply the world and camera transform to get the origin's location relative to the camera
-    float3 originVS = TransformWorldToView(TransformObjectToWorld(float3(0,0,0)));
-    
-    float3 billboardPositionVS = originVS + float3(input.positionOS.xy * scale, 0);
-    
+    // rotate the visible image about an optional grip point, independently of world geometry.
+    // zero rotation/pivot reproduce the existing avatar projection.
+    float3 pivotVS = TransformWorldToView(TransformObjectToWorld(float3(_SpritePivot.xy, 0)));
+    float2 offsetVS = (input.positionOS.xy - _SpritePivot.xy) * scale;
+    float sine, cosine;
+    sincos(radians(_SpriteRotation), sine, cosine);
+    offsetVS = float2(cosine * offsetVS.x - sine * offsetVS.y,
+                     sine * offsetVS.x + cosine * offsetVS.y);
+    float3 billboardPositionVS = pivotVS + float3(offsetVS, 0);
+
+    float3 billboardPositionWS = TransformViewToWorld(billboardPositionVS);
     float4 billboardPositionCS = TransformWViewToHClip(billboardPositionVS);
-    billboardPositionCS.z = vertexInput.positionCS.z / vertexInput.positionCS.w * billboardPositionCS.w;
+    float4 depthCS = vertexInput.positionCS;
+    if (_SpriteFlatDepth > 0.5)
+    {
+        // project the visible vertex back onto the weapon's horizontal plane for depth.
+        // otherwise a downward-rotated image can intersect the floor despite its mesh being above it.
+        float3 rayWS = unity_OrthoParams.w > 0.5
+            ? TransformViewToWorldDir(float3(0, 0, 1))
+            : billboardPositionWS - GetCameraPositionWS();
+        if (abs(rayWS.y) > 0.001)
+        {
+            float distance = (vertexInput.positionWS.y - billboardPositionWS.y) / rayWS.y;
+            depthCS = TransformWorldToHClip(billboardPositionWS + rayWS * distance);
+        }
+    }
+    billboardPositionCS.z = depthCS.z / depthCS.w * billboardPositionCS.w;
     
     // normalWS and tangentWS already normalize.
     // this is required to avoid skewing the direction during interpolation
@@ -197,7 +217,6 @@ Varyings LitPassVertex(Attributes input)
     
     // replace the above lighting calculation
     // lighting should treat sprite as rotated to face the camera too. (only shadows don't)
-    float3 billboardPositionWS = TransformViewToWorld(billboardPositionVS);
     half3 billboardNormalWS = TransformViewToWorldDir(float3(0,0,1), true); 
     half3 vertexLight = VertexLighting(billboardPositionWS, billboardNormalWS);
 

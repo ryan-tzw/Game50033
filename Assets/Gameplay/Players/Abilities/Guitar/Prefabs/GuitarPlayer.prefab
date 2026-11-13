@@ -148,7 +148,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
+  - {fileID: 2100000, guid: e39654694528a45dc8b49632520197a4, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -171,7 +171,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -2542338046436014965, guid: f96bd6ff52edda37489a27fe8d681ec3, type: 3}
+  m_Sprite: {fileID: 4751300937926204119, guid: 9cc4cdc54e67688c2b5f79618027ead6, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -331,6 +331,7 @@ MonoBehaviour:
     reachMultiplier: 1.4
   comboCooldown: 0.4
   comboResetDelay: 0.8
+  impactDelay: 0.035
   reach: 1.05
   innerRadius: 0.12
   sweetSpotRadius: 0.7
@@ -455,12 +456,12 @@ MonoBehaviour:
   weaponPivot: {fileID: 6119367394454523144}
   weaponSprite: {fileID: 1030246312269351953}
   gripOffset: {x: 0.04, y: 0.18, z: 0}
-  spriteGripPoint: {x: 0.55, y: 0.55}
+  spriteGripPoint: {x: 0, y: 0.45}
   shoulderLift: 0.65
   followSharpness: 22
   rotationSharpness: 28
-  spriteScale: 0.7
-  spriteOutwardAngle: -135
+  spriteScale: 1
+  spriteOutwardAngle: -90
 --- !u!114 &2202766225286466177
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -474,10 +475,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.GuitarVFX
   smearFilter: {fileID: 1466483713951560910}
-  smearDelay: 0.035
   frameDurations: {x: 0.045, y: 0.045, z: 0.055, w: 0.065}
-  innerRadiusFraction: 0.2
-  outerExtension: 0.35
   smearColor: {r: 0.9, g: 0.78, b: 0.57, a: 1}
   smearSweetSpotColor: {r: 1, g: 0.94, b: 0.72, a: 1}
   impactPrefab: {fileID: 2074926303834101690, guid: aa86c30c773b1675b8483ee43193dcbe, type: 3}

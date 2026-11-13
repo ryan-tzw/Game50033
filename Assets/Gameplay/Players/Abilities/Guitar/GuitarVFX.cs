@@ -14,13 +14,8 @@ namespace Game50033
         }
 
         [SerializeField] private MeshFilter smearFilter;
-        [Tooltip("Delay in seconds from the active swing starting to the first smear pose.")]
-        [SerializeField, Min(0f)] private float smearDelay = 0.035f;
         [Tooltip("Seconds per pose: X broad, Y follow-through, Z broken, W streaks. Independent of rendering FPS.")]
         [SerializeField] private Vector4 frameDurations = new(0.045f, 0.045f, 0.055f, 0.065f);
-        [SerializeField, Range(0f, 1f)] private float innerRadiusFraction = 0.2f;
-        [Tooltip("Visual extension beyond attack reach, in world units. Does not extend the damage area.")]
-        [SerializeField, Min(0f)] private float outerExtension = 0.35f;
         [SerializeField] private Color smearColor = new(0.9f, 0.78f, 0.57f, 1f);
         [SerializeField] private Color smearSweetSpotColor = new(1f, 0.94f, 0.72f, 1f);
         [SerializeField] private ParticleSystem impactPrefab;
@@ -60,13 +55,12 @@ namespace Game50033
         {
             if (!isActiveAndEnabled || smearFilter == null) return;
 
-            var inner = Mathf.Max(innerRadius, reach * innerRadiusFraction);
-            // snapshot the full arc, rather than growing a trail behind the moving weapon.
+            // gameplay supplies the complete impact snapshot; later poses are only afterimages.
             _smears.Add(new Smear
             {
                 origin = origin, direction = direction, startAngle = startAngle, endAngle = endAngle,
-                inner = inner, outer = Mathf.Max(inner + 0.01f, reach + outerExtension),
-                sweetSpot = sweetSpotRadius, startsAt = Time.time + Mathf.Max(0f, smearDelay)
+                inner = innerRadius, outer = reach,
+                sweetSpot = sweetSpotRadius, startsAt = Time.time
             });
         }
 

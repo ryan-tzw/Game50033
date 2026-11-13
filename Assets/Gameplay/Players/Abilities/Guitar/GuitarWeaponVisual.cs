@@ -11,13 +11,12 @@ namespace Game50033
         [Tooltip("Resting offset: camera-right shoulder offset, world height, then movement-facing offset.")]
         [SerializeField] private Vector3 gripOffset = new Vector3(0.04f, 0.18f, 0f);
         [Tooltip("Grip in sprite-local units before scaling. Put it outside the sprite bounds to move the pivot beyond the artwork.")]
-        [SerializeField] private Vector2 spriteGripPoint = new Vector2(0.55f, 0.55f);
+        [SerializeField] private Vector2 spriteGripPoint = new Vector2(0f, 0.45f);
         [SerializeField, Min(0f)] private float shoulderLift = 0.65f;
         [SerializeField, Min(0.01f)] private float followSharpness = 22f;
         [SerializeField, Min(0.01f)] private float rotationSharpness = 28f;
-        [SerializeField, Min(0.01f)] private float spriteScale = 0.7f;
-        [SerializeField, Min(0f)] private float surfaceClearance = 0.02f;
-        [SerializeField] private float spriteOutwardAngle = -135f;
+        [SerializeField, Min(0.01f)] private float spriteScale = 1f;
+        [SerializeField] private float spriteOutwardAngle = -90f;
 
         private Player _player;
         private Camera _camera;
@@ -28,10 +27,20 @@ namespace Game50033
         private float _angle;
         private float _height;
         private float _emphasis = 1f;
+        private float _visualAngle;
+        private MaterialPropertyBlock _properties;
+        private static readonly int SpriteFlatDepthId = Shader.PropertyToID("_SpriteFlatDepth");
+        private static readonly int SpriteRotationId = Shader.PropertyToID("_SpriteRotation");
+        private static readonly int SpritePivotId = Shader.PropertyToID("_SpritePivot");
 
         private void Awake()
         {
             _player = GetComponent<Player>();
+        }
+
+        private void OnEnable()
+        {
+            _properties ??= new MaterialPropertyBlock();
         }
 
         public void SetSwingPose(Vector3 direction, float angle, float height, bool active, float emphasis)
@@ -85,16 +94,20 @@ namespace Game50033
                 ? new Vector2(Vector3.Dot(radial, _camera.transform.right), Vector3.Dot(radial, _camera.transform.up))
                 : new Vector2(-Vector3.Dot(facing, _camera.transform.right), -Vector3.Dot(facing, _camera.transform.up) + shoulderLift);
             var spriteAngle = Mathf.Atan2(screenDirection.y, screenDirection.x) * Mathf.Rad2Deg - spriteOutwardAngle;
-            var rotation = _camera.transform.rotation * Quaternion.AngleAxis(spriteAngle, Vector3.forward);
             var rotationBlend = !_placed || _active ? 1f : 1f - Mathf.Exp(-rotationSharpness * Time.deltaTime);
-            weaponPivot.rotation = Quaternion.Slerp(weaponPivot.rotation, rotation, rotationBlend);
-            _placed = true;
+            _visualAngle = Mathf.LerpAngle(_visualAngle, spriteAngle, rotationBlend);
 
-            // depth-only lift keeps a downward-pointing billboard above the floor without shifting it on screen.
-            var belowSurface = transform.position.y + surfaceClearance - weaponSprite.bounds.min.y;
-            var viewDown = -_camera.transform.forward.y;
-            if (belowSurface > 0f && viewDown > 0.1f)
-                weaponSprite.transform.position -= _camera.transform.forward * (belowSurface / viewDown);
+            // the original flat geometry supplies depth; the shader supplies the camera-facing image.
+            var worldDirection = _posing ? radial : -facing;
+            var yaw = spriteOutwardAngle - Mathf.Atan2(worldDirection.z, worldDirection.x) * Mathf.Rad2Deg;
+            var rotation = Quaternion.AngleAxis(yaw, Vector3.up) * Quaternion.Euler(90f, 0f, 0f);
+            weaponPivot.rotation = Quaternion.Slerp(weaponPivot.rotation, rotation, rotationBlend);
+            weaponSprite.GetPropertyBlock(_properties);
+            _properties.SetFloat(SpriteFlatDepthId, 1f);
+            _properties.SetFloat(SpriteRotationId, _visualAngle);
+            _properties.SetVector(SpritePivotId, new Vector4(spriteGripPoint.x, spriteGripPoint.y, 0f, 0f));
+            weaponSprite.SetPropertyBlock(_properties);
+            _placed = true;
         }
 
         private void OnDisable()

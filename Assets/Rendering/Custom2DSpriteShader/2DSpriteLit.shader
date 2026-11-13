@@ -8,6 +8,9 @@ Shader "Experimental/2D Sprite Lit"
         [MainTexture] _BaseMap("Albedo", 2D) = "white" {}
         [MainColor] _BaseColor("Color", Color) = (1,1,1,1)
         _PlayerTint("Player Tint", Color) = (1,1,1,1)
+        [ToggleUI] _SpriteFlatDepth("Depth From XZ Plane", Float) = 0
+        _SpriteRotation("Visual Rotation (Degrees)", Float) = 0
+        _SpritePivot("Visual Rotation Pivot", Vector) = (0,0,0,0)
         
         // flash when entity gets hit
         _FlashAmount("Flash Amount", Range(0.0, 1.0)) = 0.0
@@ -192,6 +195,9 @@ Shader "Experimental/2D Sprite Lit"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
 
             half4 _PlayerTint;
+            float _SpriteFlatDepth;
+            float _SpriteRotation;
+            float4 _SpritePivot;
 
             // hlsl variables for flash
             half _FlashAmount;

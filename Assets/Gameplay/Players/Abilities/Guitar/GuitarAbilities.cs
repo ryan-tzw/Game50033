@@ -4,7 +4,7 @@ namespace Game50033
     using System.Collections.Generic;
     using UnityEngine;
 
-    // resolve hits after player movement; the weapon then renders the same pose in late update.
+    // snapshot the impact after player movement; presentation never determines hit coverage.
     [DefaultExecutionOrder(100)]
     [DisallowMultipleComponent]
     public sealed class GuitarAbilities : PlayerAbilities
@@ -30,6 +30,8 @@ namespace Game50033
         };
         [SerializeField, Min(0f)] private float comboCooldown = 0.4f;
         [SerializeField, Min(0f)] private float comboResetDelay = 0.8f;
+        [Tooltip("Seconds after the active phase begins until the whole crescent hits and appears.")]
+        [SerializeField, Min(0f)] private float impactDelay = 0.035f;
         [SerializeField, Min(0.01f)] private float reach = 1.05f;
         [SerializeField, Min(0f)] private float innerRadius = 0.12f;
         [SerializeField, Min(0f)] private float sweetSpotRadius = 0.7f;
@@ -50,8 +52,7 @@ namespace Game50033
         private Collider[] _hitBuffer = new Collider[32];
         private Swing _swing;
         private Vector3 _direction;
-        private Vector3 _previousOrigin;
-        private float _previousAngle;
+        private Vector3 _impactOrigin;
         private float _startedAt;
         private float _readyAt;
         private float _comboExpiresAt;
@@ -60,7 +61,7 @@ namespace Game50033
         private float _swingReach;
         private float _swingSweetSpotRadius;
         private bool _activeFinished;
-        private bool _smearStarted;
+        private bool _impactResolved;
 
         public bool IsAttacking { get; private set; }
         public int ComboStep { get; private set; }
@@ -97,12 +98,10 @@ namespace Game50033
 
             ComboStep = _nextComboIndex + 1;
             _swingSign = _nextComboIndex % 2 == 0 ? 1f : -1f;
-            _previousAngle = -_swing.angle * 0.5f * _swingSign;
-            _previousOrigin = transform.position + Vector3.up * attackHeight;
             _startedAt = Time.time;
             _readyAt = _startedAt + _swing.windup + _swing.active + _swing.recovery;
             _activeFinished = false;
-            _smearStarted = false;
+            _impactResolved = false;
             _hitThisSwing.Clear();
             IsAttacking = true;
             BlocksMovement = true;
@@ -141,34 +140,33 @@ namespace Game50033
                 var angle = startAngle - anticipationAngle * _swingSign * Mathf.Sin(progress * Mathf.PI);
                 if (weaponVisual != null)
                     weaponVisual.SetSwingPose(_direction, angle, attackHeight, false, windupScale);
-                _previousOrigin = origin;
                 return;
             }
 
             var activeProgress = Mathf.Clamp01((elapsed - _swing.windup) / _swing.active);
             var currentAngle = Mathf.LerpUnclamped(startAngle, -startAngle, swingEasing.Evaluate(activeProgress));
-            if (!_activeFinished)
-            {
-                if (vfx != null)
-                {
-                    if (!_smearStarted)
-                        vfx.BeginSwing(_previousOrigin, _direction, startAngle, -startAngle, innerRadius, _swingReach, _swingSweetSpotRadius);
-                }
-                _smearStarted = true;
-                if (weaponVisual != null)
-                    weaponVisual.SetSwingPose(_direction, currentAngle, attackHeight, true, swingScale);
+            if (!_activeFinished && weaponVisual != null)
+                weaponVisual.SetSwingPose(_direction, currentAngle, attackHeight, true, swingScale);
 
-                // sample the swept blade, including player travel, so low frame rates cannot skip targets.
-                var samples = Mathf.Max(1, Mathf.CeilToInt(Mathf.Abs(currentAngle - _previousAngle) / 5f),
-                    Mathf.CeilToInt(Vector3.Distance(origin, _previousOrigin) / 0.04f));
+            // the entire sector resolves once, even when a slow frame crosses the impact time.
+            // later lunging, weapon motion and smear poses cannot move or repeat this hit area.
+            if (!_impactResolved && elapsed >= _swing.windup + Mathf.Clamp(impactDelay, 0f, _swing.active))
+            {
+                _impactResolved = true;
+                _impactOrigin = origin;
+                if (vfx != null)
+                    vfx.BeginSwing(origin, _direction, startAngle, -startAngle, innerRadius, _swingReach, _swingSweetSpotRadius);
+
+                // overlapping radial capsules cover the sector without a physics-step-dependent trigger.
+                // clamp contacts to the sector itself so the capsule thickness does not add hidden reach.
+                var samples = Mathf.Max(1, Mathf.CeilToInt(_swing.angle / 4f),
+                    Mathf.CeilToInt(_swing.angle * Mathf.Deg2Rad * _swingReach / hitThickness));
                 for (var sample = 0; sample <= samples; sample++)
                 {
-                    var t = (float)sample / samples;
-                    var sampleOrigin = Vector3.Lerp(_previousOrigin, origin, t);
-                    var sampleAngle = Mathf.LerpUnclamped(_previousAngle, currentAngle, t);
+                    var sampleAngle = Mathf.Lerp(startAngle, -startAngle, (float)sample / samples);
                     var radial = Quaternion.AngleAxis(sampleAngle, Vector3.up) * _direction;
-                    var inside = sampleOrigin + radial * innerRadius;
-                    var outside = sampleOrigin + radial * _swingReach;
+                    var inside = origin + radial * innerRadius;
+                    var outside = origin + radial * _swingReach;
                     int count;
                     while (true)
                     {
@@ -181,38 +179,32 @@ namespace Game50033
                     for (var i = 0; i < count; i++)
                     {
                         var candidate = _hitBuffer[i];
-                        if (candidate.GetComponentInParent<Player>() != null) continue;
+                        if (candidate == null || candidate.GetComponentInParent<Player>() != null) continue;
                         var target = candidate.GetComponentInParent<IHittable>();
                         if (target == null || _hitThisSwing.Contains(target)
                             || target is Behaviour behaviour && !behaviour.isActiveAndEnabled) continue;
 
-                        var projection = Mathf.Clamp(Vector3.Dot(candidate.bounds.center - sampleOrigin, radial), innerRadius, _swingReach);
-                        var contact = candidate.ClosestPoint(sampleOrigin + radial * projection);
-                        var offset = contact - sampleOrigin;
+                        // classify the near surface, including targets whose centres lie beyond reach.
+                        var contact = candidate.ClosestPoint(inside);
+                        var offset = contact - origin;
                         offset.y = 0f;
                         var distance = offset.magnitude;
-                        var angle = Mathf.Abs(Vector3.SignedAngle(radial, offset, Vector3.up));
-                        var angularWidth = Mathf.Atan2(hitThickness, Mathf.Max(innerRadius, distance)) * Mathf.Rad2Deg;
-                        if (distance < innerRadius - hitThickness || distance > _swingReach + hitThickness
-                            || angle > angularWidth + 0.1f) continue;
+                        // allow only floating-point roundoff at the sector boundary.
+                        if (distance < innerRadius - 0.0001f || distance > _swingReach + 0.0001f
+                            || Mathf.Abs(Vector3.SignedAngle(_direction, offset, Vector3.up)) > _swing.angle * 0.5f + 0.001f)
+                            continue;
 
                         var sweetSpot = distance >= _swingSweetSpotRadius;
                         _hitThisSwing.Add(target);
                         target.TakeHit(new HitInfo(gameObject, damage * (sweetSpot ? sweetSpotMultiplier : 1f), radial));
-                        if (vfx != null) vfx.PlayImpact(contact, sweetSpot);
 
                         // a hit callback may down or disable the attacker; stop resolving immediately.
                         if (!IsAttacking || !isActiveAndEnabled) return;
+                        if (vfx != null) vfx.PlayImpact(contact, sweetSpot);
                     }
                 }
-
-                _previousAngle = currentAngle;
-                _previousOrigin = origin;
-                if (activeProgress >= 1f)
-                {
-                    _activeFinished = true;
-                }
             }
+            _activeFinished = activeProgress >= 1f;
 
             // -----------------------------
             // recovery and combo continuation
@@ -265,7 +257,7 @@ namespace Game50033
         private void OnDrawGizmosSelected()
         {
             var direction = IsAttacking ? _direction : Vector3.forward;
-            var origin = transform.position + Vector3.up * attackHeight;
+            var origin = IsAttacking && _impactResolved ? _impactOrigin : transform.position + Vector3.up * attackHeight;
             var angle = IsAttacking ? _swing.angle : combo != null && combo.Length > 0 ? combo[0].angle : 140f;
             var shownReach = IsAttacking ? _swingReach : reach;
             var shownSweetSpot = IsAttacking ? _swingSweetSpotRadius : sweetSpotRadius;
@@ -285,11 +277,6 @@ namespace Game50033
             var right = Quaternion.AngleAxis(angle * 0.5f, Vector3.up) * direction;
             Gizmos.DrawLine(origin + left * innerRadius, origin + left * shownReach);
             Gizmos.DrawLine(origin + right * innerRadius, origin + right * shownReach);
-            if (!IsAttacking) return;
-            var radial = Quaternion.AngleAxis(_previousAngle, Vector3.up) * direction;
-            Gizmos.color = Color.white;
-            Gizmos.DrawLine(origin + radial * innerRadius, origin + radial * shownReach);
-            Gizmos.DrawWireSphere(origin + radial * shownReach, hitThickness);
         }
     }
 }
