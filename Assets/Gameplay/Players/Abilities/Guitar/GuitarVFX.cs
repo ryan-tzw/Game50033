@@ -10,6 +10,8 @@ namespace Game50033
         {
             public Vector3 origin;
             public Vector3 direction;
+            public Vector3 stretchAxis;
+            public float depthStretch;
             public float startAngle, endAngle, inner, outer, sweetSpot, startsAt;
         }
 
@@ -20,6 +22,7 @@ namespace Game50033
         private readonly List<Vector3> _vertices = new();
         private readonly List<Vector2> _uvs = new();
         private readonly List<Vector4> _poseData = new();
+        private readonly List<Vector3> _shapeData = new();
         private readonly List<int> _triangles = new();
         private MaterialPropertyBlock _properties;
         private Mesh _mesh;
@@ -49,15 +52,17 @@ namespace Game50033
         }
 
         public void BeginSwing(Vector3 origin, Vector3 direction, float startAngle, float endAngle,
-            float innerRadius, float reach, float sweetSpotRadius)
+            float innerRadius, float reach, float sweetSpotRadius, Vector3 stretchAxis = default, float depthStretch = 1f)
         {
             if (!isActiveAndEnabled || smearFilter == null) return;
 
+            stretchAxis.y = 0f;
+            stretchAxis = stretchAxis.sqrMagnitude > 0.0001f ? stretchAxis.normalized : Vector3.forward;
             // gameplay supplies the complete impact snapshot; later poses are only afterimages.
             _smears.Add(new Smear
             {
                 origin = origin, direction = direction, startAngle = startAngle, endAngle = endAngle,
-                inner = innerRadius, outer = reach,
+                inner = innerRadius, outer = reach, stretchAxis = stretchAxis, depthStretch = Mathf.Max(1f, depthStretch),
                 sweetSpot = sweetSpotRadius, startsAt = Time.time
             });
         }
@@ -73,6 +78,7 @@ namespace Game50033
             _vertices.Clear();
             _uvs.Clear();
             _poseData.Clear();
+            _shapeData.Clear();
             _triangles.Clear();
 
             for (var i = 0; i < _smears.Count; i++)
@@ -96,18 +102,22 @@ namespace Game50033
                 var first = _vertices.Count;
                 var segments = Mathf.Max(2, Mathf.CeilToInt(Mathf.Abs(end - start) / 4f));
 
-                // uv1 carries each smear's world-space center, actual sweet-spot radius and pose.
-                // the shader measures radial distance, so changing the mesh size cannot shift the color boundary.
+                // uv1 carries origin, sweet radius and pose; uv2 carries the fixed axis and inverse stretch.
+                // inverse-transforming distance in the shader keeps the band on the gameplay ellipse.
+                var shapeData = new Vector3(smear.stretchAxis.x, smear.stretchAxis.z, 1f / smear.depthStretch);
                 for (var segment = 0; segment <= segments; segment++)
                 {
                     var t = (float)segment / segments;
                     var radial = Quaternion.AngleAxis(Mathf.Lerp(start, end, t), Vector3.up) * smear.direction;
+                    radial += smear.stretchAxis * (Vector3.Dot(radial, smear.stretchAxis) * (smear.depthStretch - 1f));
                     _vertices.Add(smearFilter.transform.InverseTransformPoint(smear.origin + radial * inner));
                     _vertices.Add(smearFilter.transform.InverseTransformPoint(smear.origin + radial * outer));
                     _uvs.Add(new Vector2(t, 0f));
                     _uvs.Add(new Vector2(t, 1f));
                     _poseData.Add(new Vector4(smear.origin.x, smear.origin.z, smear.sweetSpot, frame));
                     _poseData.Add(new Vector4(smear.origin.x, smear.origin.z, smear.sweetSpot, frame));
+                    _shapeData.Add(shapeData);
+                    _shapeData.Add(shapeData);
                     if (segment == 0) continue;
                     var a = first + (segment - 1) * 2;
                     _triangles.Add(a); _triangles.Add(a + 2); _triangles.Add(a + 1);
@@ -120,6 +130,7 @@ namespace Game50033
             _mesh.SetVertices(_vertices);
             _mesh.SetUVs(0, _uvs);
             _mesh.SetUVs(1, _poseData);
+            _mesh.SetUVs(2, _shapeData);
             _mesh.SetTriangles(_triangles, 0);
             if (_renderer == null) return;
             _renderer.GetPropertyBlock(_properties);

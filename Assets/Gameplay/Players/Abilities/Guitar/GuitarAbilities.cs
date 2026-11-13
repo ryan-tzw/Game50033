@@ -25,6 +25,8 @@ namespace Game50033
         private float _swingSign;
         private float _swingReach;
         private float _swingSweetSpotRadius;
+        private Vector3 _swingStretchAxis;
+        private float _swingDepthStretch;
         private bool _activeFinished;
         private bool _impactResolved;
 
@@ -65,6 +67,10 @@ namespace Game50033
             var reachScale = _swing.reachMultiplier > 0f ? _swing.reachMultiplier : 1f;
             _swingReach = attack.reach * reachScale;
             _swingSweetSpotRadius = attack.sweetSpotRadius * reachScale;
+            // author the shape in arena space; gameplay does not depend on the rendering camera.
+            _swingStretchAxis = new Vector3(attack.stretchAxis.x, 0f, attack.stretchAxis.y);
+            _swingStretchAxis = _swingStretchAxis.sqrMagnitude > 0.0001f ? _swingStretchAxis.normalized : Vector3.forward;
+            _swingDepthStretch = Mathf.Max(1f, attack.depthStretch);
             _direction = Player.AimDirection;
             _direction.y = 0f;
             _direction = _direction.sqrMagnitude > 0.0001f ? _direction.normalized : Player.Movement.FacingDirection;
@@ -133,16 +139,18 @@ namespace Game50033
                 _impactResolved = true;
                 _impactOrigin = origin;
                 if (vfx != null)
-                    vfx.BeginSwing(origin, _direction, startAngle, -startAngle, attack.innerRadius, _swingReach, _swingSweetSpotRadius);
+                    vfx.BeginSwing(origin, _direction, startAngle, -startAngle, attack.innerRadius, _swingReach,
+                        _swingSweetSpotRadius, _swingStretchAxis, _swingDepthStretch);
 
                 // overlapping radial capsules cover the sector without a physics-step-dependent trigger.
                 // clamp contacts to the sector itself so the capsule thickness does not add hidden reach.
                 var samples = Mathf.Max(1, Mathf.CeilToInt(_swing.angle / 4f),
-                    Mathf.CeilToInt(_swing.angle * Mathf.Deg2Rad * _swingReach / attack.hitThickness));
+                    Mathf.CeilToInt(_swing.angle * Mathf.Deg2Rad * _swingReach * _swingDepthStretch / attack.hitThickness));
                 for (var sample = 0; sample <= samples; sample++)
                 {
                     var sampleAngle = Mathf.Lerp(startAngle, -startAngle, (float)sample / samples);
                     var radial = Quaternion.AngleAxis(sampleAngle, Vector3.up) * _direction;
+                    radial += _swingStretchAxis * (Vector3.Dot(radial, _swingStretchAxis) * (_swingDepthStretch - 1f));
                     var inside = origin + radial * attack.innerRadius;
                     var outside = origin + radial * _swingReach;
                     int count;
@@ -166,6 +174,8 @@ namespace Game50033
                         var contact = candidate.ClosestPoint(inside);
                         var offset = contact - origin;
                         offset.y = 0f;
+                        // undo the same stretch before testing the sector and its sweet-spot radius.
+                        offset -= _swingStretchAxis * (Vector3.Dot(offset, _swingStretchAxis) * (1f - 1f / _swingDepthStretch));
                         var distance = offset.magnitude;
                         // allow only floating-point roundoff at the sector boundary.
                         if (distance < attack.innerRadius - 0.0001f || distance > _swingReach + 0.0001f
@@ -174,7 +184,7 @@ namespace Game50033
 
                         var sweetSpot = distance >= _swingSweetSpotRadius;
                         _hitThisSwing.Add(target);
-                        target.TakeHit(new HitInfo(gameObject, attack.damage * (sweetSpot ? attack.sweetSpotMultiplier : 1f), radial));
+                        target.TakeHit(new HitInfo(gameObject, attack.damage * (sweetSpot ? attack.sweetSpotMultiplier : 1f), radial.normalized));
 
                         // a hit callback may down or disable the attacker; stop resolving immediately.
                         if (!IsAttacking || !isActiveAndEnabled) return;
@@ -241,6 +251,9 @@ namespace Game50033
             var angle = IsAttacking ? _swing.angle : attack.combo != null && attack.combo.Length > 0 ? attack.combo[0].angle : 140f;
             var shownReach = IsAttacking ? _swingReach : attack.reach;
             var shownSweetSpot = IsAttacking ? _swingSweetSpotRadius : attack.sweetSpotRadius;
+            var stretchAxis = IsAttacking ? _swingStretchAxis : new Vector3(attack.stretchAxis.x, 0f, attack.stretchAxis.y);
+            stretchAxis = stretchAxis.sqrMagnitude > 0.0001f ? stretchAxis.normalized : Vector3.forward;
+            var depthStretch = IsAttacking ? _swingDepthStretch : Mathf.Max(1f, attack.depthStretch);
             for (var ring = 0; ring < 2; ring++)
             {
                 var radius = ring == 0 ? shownReach : shownSweetSpot;
@@ -249,12 +262,16 @@ namespace Game50033
                 {
                     var a = Quaternion.AngleAxis(-angle * 0.5f + angle * i / 40f, Vector3.up) * direction;
                     var b = Quaternion.AngleAxis(-angle * 0.5f + angle * (i + 1) / 40f, Vector3.up) * direction;
+                    a += stretchAxis * (Vector3.Dot(a, stretchAxis) * (depthStretch - 1f));
+                    b += stretchAxis * (Vector3.Dot(b, stretchAxis) * (depthStretch - 1f));
                     Gizmos.DrawLine(origin + a * radius, origin + b * radius);
                 }
             }
 
             var left = Quaternion.AngleAxis(-angle * 0.5f, Vector3.up) * direction;
             var right = Quaternion.AngleAxis(angle * 0.5f, Vector3.up) * direction;
+            left += stretchAxis * (Vector3.Dot(left, stretchAxis) * (depthStretch - 1f));
+            right += stretchAxis * (Vector3.Dot(right, stretchAxis) * (depthStretch - 1f));
             Gizmos.DrawLine(origin + left * attack.innerRadius, origin + left * shownReach);
             Gizmos.DrawLine(origin + right * attack.innerRadius, origin + right * shownReach);
         }

@@ -35,6 +35,10 @@ namespace Game50033
             [Tooltip("Seconds after the active phase begins until the whole crescent hits and appears.")]
             [Min(0f)] public float impactDelay = 0.035f;
             [Min(0.01f)] public float reach = 1.05f;
+            [Tooltip("Fixed world XZ axis to stretch. (0, 1) follows world Z, the current arena's depth direction.")]
+            public Vector2 stretchAxis = Vector2.up;
+            [Tooltip("Scales the attack, inner hole and sweet-spot boundary along Stretch Axis. 1 keeps a circular sector.")]
+            [Min(1f)] public float depthStretch = 1.5f;
             [Min(0f)] public float innerRadius = 0.12f;
             [Min(0f)] public float sweetSpotRadius = 0.7f;
             [Min(0.01f)] public float hitThickness = 0.08f;

@@ -36,6 +36,8 @@ MonoBehaviour:
     comboResetDelay: 0.8
     impactDelay: 0.035
     reach: 1.05
+    stretchAxis: {x: 0, y: 1}
+    depthStretch: 1.5
     innerRadius: 0.12
     sweetSpotRadius: 0.7
     hitThickness: 0.08
