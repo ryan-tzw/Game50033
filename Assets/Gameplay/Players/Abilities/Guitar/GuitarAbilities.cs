@@ -14,6 +14,7 @@ namespace Game50033
         [SerializeField] private GuitarTuning tuning;
 
         private readonly HashSet<IHittable> _hitThisSwing = new();
+        private readonly List<CombatHurtbox> _hurtboxBuffer = new();
         private Collider[] _hitBuffer = new Collider[32];
         private GuitarTuning.Swing _swing;
         private Vector3 _direction;
@@ -78,7 +79,7 @@ namespace Game50033
             var reachScale = _swing.reachMultiplier > 0f ? _swing.reachMultiplier : 1f;
             _swingReach = attack.reach * reachScale;
             _swingSweetSpotRadius = attack.sweetSpotRadius * reachScale;
-            // author the shape in arena space; gameplay does not depend on the rendering camera.
+            // the attack shape stays in arena space; opted-in hurtboxes are compared through the gameplay camera.
             _swingStretchAxis = new Vector3(attack.stretchAxis.x, 0f, attack.stretchAxis.y);
             _swingStretchAxis = _swingStretchAxis.sqrMagnitude > 0.0001f ? _swingStretchAxis.normalized : Vector3.forward;
             _swingDepthStretch = Mathf.Max(1f, attack.depthStretch);
@@ -217,6 +218,36 @@ namespace Game50033
                     vfx.BeginSwing(origin, _direction, startAngle, -startAngle, attack.innerRadius, _swingReach,
                         _swingSweetSpotRadius, _swingStretchAxis, _swingDepthStretch);
 
+                // snapshot the registry because a hit callback can disable or destroy another hurtbox.
+                _hurtboxBuffer.Clear();
+                foreach (var hurtbox in CombatHurtbox.Active) _hurtboxBuffer.Add(hurtbox);
+                var camera = Camera.main;
+                foreach (var hurtbox in _hurtboxBuffer)
+                {
+                    if (hurtbox == null || !hurtbox.isActiveAndEnabled
+                        || (attack.hitMask.value & (1 << hurtbox.gameObject.layer)) == 0
+                        || hurtbox.GetComponentInParent<Player>() != null) continue;
+                    var target = hurtbox.Target;
+                    if (target == null || _hitThisSwing.Contains(target)
+                        || target is Behaviour behaviour && !behaviour.isActiveAndEnabled) continue;
+
+                    // a hurtbox spanning both bands takes normal damage, matching near-surface classification.
+                    var boundary = Mathf.Clamp(_swingSweetSpotRadius, attack.innerRadius, _swingReach);
+                    var normalHit = hurtbox.TryOverlapSector(camera, origin, _direction, attack.innerRadius, boundary,
+                        _swing.angle, _swingStretchAxis, _swingDepthStretch, out var contact);
+                    if (!normalHit && !hurtbox.TryOverlapSector(camera, origin, _direction, boundary, _swingReach,
+                        _swing.angle, _swingStretchAxis, _swingDepthStretch, out contact)) continue;
+
+                    var hitDirection = contact - origin;
+                    hitDirection.y = 0f;
+                    hitDirection = hitDirection.sqrMagnitude > 0.0001f ? hitDirection.normalized : _direction;
+                    _hitThisSwing.Add(target);
+                    target.TakeHit(new HitInfo(gameObject, attack.damage * _primaryMultiplier
+                        * (normalHit ? 1f : attack.sweetSpotMultiplier), hitDirection));
+                    if (!IsAttacking || !isActiveAndEnabled) return;
+                    if (vfx != null) vfx.PlayImpact(contact, !normalHit);
+                }
+
                 // overlapping radial capsules cover the sector without a physics-step-dependent trigger.
                 // clamp contacts to the sector itself so the capsule thickness does not add hidden reach.
                 var samples = Mathf.Max(1, Mathf.CeilToInt(_swing.angle / 4f),
@@ -241,6 +272,8 @@ namespace Game50033
                     {
                         var candidate = _hitBuffer[i];
                         if (candidate == null || candidate.GetComponentInParent<Player>() != null) continue;
+                        // an opted-in target must never gain a second, world-space damage shape.
+                        if (candidate.GetComponentInParent<CombatHurtbox>() != null) continue;
                         var target = candidate.GetComponentInParent<IHittable>();
                         if (target == null || _hitThisSwing.Contains(target)
                             || target is Behaviour behaviour && !behaviour.isActiveAndEnabled) continue;

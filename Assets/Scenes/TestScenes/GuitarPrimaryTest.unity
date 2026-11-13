@@ -132,6 +132,7 @@ GameObject:
   - component: {fileID: 501189913}
   - component: {fileID: 501189912}
   - component: {fileID: 501189911}
+  - component: {fileID: 501189916}
   m_Layer: 10
   m_Name: Damage dummy 3
   m_TagString: Untagged
@@ -250,6 +251,20 @@ Transform:
   - {fileID: 1933765190}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &501189916
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 501189910}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d67538803fc187461b7182b1a7d2ef32, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.CombatHurtbox
+  tuning: {fileID: 11400000, guid: 74e8b477ae654412ba89dabd01b28a9e, type: 2}
+  anchor: {fileID: 501189915}
 --- !u!1 &588737746
 GameObject:
   m_ObjectHideFlags: 0
@@ -720,6 +735,7 @@ GameObject:
   - component: {fileID: 1350232356}
   - component: {fileID: 1350232355}
   - component: {fileID: 1350232354}
+  - component: {fileID: 1350232359}
   m_Layer: 10
   m_Name: Damage dummy 1
   m_TagString: Untagged
@@ -838,6 +854,20 @@ Transform:
   - {fileID: 873337250}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1350232359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1350232353}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d67538803fc187461b7182b1a7d2ef32, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.CombatHurtbox
+  tuning: {fileID: 11400000, guid: 74e8b477ae654412ba89dabd01b28a9e, type: 2}
+  anchor: {fileID: 1350232358}
 --- !u!1 &1384814094
 GameObject:
   m_ObjectHideFlags: 0
@@ -851,6 +881,7 @@ GameObject:
   - component: {fileID: 1384814097}
   - component: {fileID: 1384814096}
   - component: {fileID: 1384814095}
+  - component: {fileID: 1384814100}
   m_Layer: 10
   m_Name: Damage dummy 2
   m_TagString: Untagged
@@ -969,6 +1000,20 @@ Transform:
   - {fileID: 824993074}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1384814100
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1384814094}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d67538803fc187461b7182b1a7d2ef32, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.CombatHurtbox
+  tuning: {fileID: 11400000, guid: 74e8b477ae654412ba89dabd01b28a9e, type: 2}
+  anchor: {fileID: 1384814099}
 --- !u!1001 &1495751756
 PrefabInstance:
   m_ObjectHideFlags: 0

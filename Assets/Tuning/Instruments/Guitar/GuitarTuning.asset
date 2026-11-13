@@ -19,13 +19,13 @@ MonoBehaviour:
       recovery: 0.16
       angle: 140
       lungeDistance: 0.22
-      reachMultiplier: 1
+      reachMultiplier: 1.1
     - windup: 0.21
       active: 0.18
       recovery: 0.26
       angle: 140
       lungeDistance: 0.22
-      reachMultiplier: 1
+      reachMultiplier: 1.1
     - windup: 0.38
       active: 0.22
       recovery: 0.3
@@ -149,8 +149,8 @@ MonoBehaviour:
   secondary:
     wavePrefab: {fileID: 2152569088444530032, guid: 6f87678d3fb96af0499b0c431969f9cd, type: 3}
     windup: 0.2
-    active: 0.12
-    recovery: 0.08
+    active: 0.2
+    recovery: 0.28
     cooldown: 0.5
     damage: 1
     primaryMultiplier: 1.5
@@ -271,7 +271,7 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    backstepDistance: 0.15
+    backstepDistance: 0.3
     backstepEasing:
       serializedVersion: 2
       m_Curve:
