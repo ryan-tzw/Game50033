@@ -310,137 +310,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.GuitarAbilities
   weaponVisual: {fileID: 2546516862324853289}
   vfx: {fileID: 2202766225286466177}
-  combo:
-  - windup: 0.14
-    active: 0.18
-    recovery: 0.16
-    angle: 140
-    lungeDistance: 0.22
-    reachMultiplier: 1
-  - windup: 0.12
-    active: 0.18
-    recovery: 0.18
-    angle: 140
-    lungeDistance: 0.22
-    reachMultiplier: 1
-  - windup: 0.22
-    active: 0.22
-    recovery: 0.28
-    angle: 180
-    lungeDistance: 0.3
-    reachMultiplier: 1.4
-  comboCooldown: 0.4
-  comboResetDelay: 0.8
-  impactDelay: 0.035
-  reach: 1.05
-  innerRadius: 0.12
-  sweetSpotRadius: 0.7
-  hitThickness: 0.08
-  attackHeight: 0.25
-  damage: 2
-  sweetSpotMultiplier: 1.5
-  hitMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  swingEasing:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  lungeEasing:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  windupEasing:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  recoveryEasing:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  anticipationAngle: 22
-  windupScale: 0.9
-  swingScale: 1.05
+  tuning: {fileID: 11400000, guid: a4ecf3fee9186063897b77006eb91110, type: 2}
 --- !u!114 &2546516862324853289
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -455,13 +325,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.GuitarWeaponVisual
   weaponPivot: {fileID: 6119367394454523144}
   weaponSprite: {fileID: 1030246312269351953}
-  gripOffset: {x: 0.04, y: 0.18, z: 0}
-  spriteGripPoint: {x: 0, y: 0.45}
-  shoulderLift: 0.65
-  followSharpness: 22
-  rotationSharpness: 28
-  spriteScale: 1
-  spriteOutwardAngle: -90
+  tuning: {fileID: 11400000, guid: a4ecf3fee9186063897b77006eb91110, type: 2}
 --- !u!114 &2202766225286466177
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -475,11 +339,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.GuitarVFX
   smearFilter: {fileID: 1466483713951560910}
-  frameDurations: {x: 0.045, y: 0.045, z: 0.055, w: 0.065}
-  smearColor: {r: 0.9, g: 0.78, b: 0.57, a: 1}
-  smearSweetSpotColor: {r: 1, g: 0.94, b: 0.72, a: 1}
-  impactPrefab: {fileID: 2074926303834101690, guid: aa86c30c773b1675b8483ee43193dcbe, type: 3}
-  normalHitColor: {r: 0.65, g: 0.9, b: 1, a: 1}
-  sweetSpotColor: {r: 1, g: 0.8, b: 0.25, a: 1}
-  normalImpactSize: 0.06
-  sweetSpotImpactSize: 0.1
+  tuning: {fileID: 11400000, guid: a4ecf3fee9186063897b77006eb91110, type: 2}

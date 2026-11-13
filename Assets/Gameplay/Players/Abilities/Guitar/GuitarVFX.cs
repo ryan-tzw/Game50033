@@ -14,15 +14,7 @@ namespace Game50033
         }
 
         [SerializeField] private MeshFilter smearFilter;
-        [Tooltip("Seconds per pose: X broad, Y follow-through, Z broken, W streaks. Independent of rendering FPS.")]
-        [SerializeField] private Vector4 frameDurations = new(0.045f, 0.045f, 0.055f, 0.065f);
-        [SerializeField] private Color smearColor = new(0.9f, 0.78f, 0.57f, 1f);
-        [SerializeField] private Color smearSweetSpotColor = new(1f, 0.94f, 0.72f, 1f);
-        [SerializeField] private ParticleSystem impactPrefab;
-        [SerializeField] private Color normalHitColor = new(0.65f, 0.9f, 1f);
-        [SerializeField] private Color sweetSpotColor = new(1f, 0.8f, 0.25f);
-        [SerializeField, Min(0.01f)] private float normalImpactSize = 0.06f;
-        [SerializeField, Min(0.01f)] private float sweetSpotImpactSize = 0.1f;
+        [SerializeField] private GuitarTuning tuning;
 
         private readonly List<Smear> _smears = new();
         private readonly List<Vector3> _vertices = new();
@@ -46,6 +38,12 @@ namespace Game50033
 
         private void OnEnable()
         {
+            if (tuning == null)
+            {
+                Debug.LogError("GuitarVFX requires a GuitarTuning asset.", this);
+                enabled = false;
+                return;
+            }
             // native-backed blocks do not survive a play-mode script reload.
             _properties ??= new MaterialPropertyBlock();
         }
@@ -69,8 +67,9 @@ namespace Game50033
             if (_mesh == null || smearFilter == null) return;
             if (_smears.Count == 0 && _mesh.vertexCount == 0) return;
 
-            var durations = new Vector4(Mathf.Max(0.001f, frameDurations.x), Mathf.Max(0.001f, frameDurations.y),
-                Mathf.Max(0.001f, frameDurations.z), Mathf.Max(0.001f, frameDurations.w));
+            var vfx = tuning.vfx;
+            var durations = new Vector4(Mathf.Max(0.001f, vfx.frameDurations.x), Mathf.Max(0.001f, vfx.frameDurations.y),
+                Mathf.Max(0.001f, vfx.frameDurations.z), Mathf.Max(0.001f, vfx.frameDurations.w));
             _vertices.Clear();
             _uvs.Clear();
             _poseData.Clear();
@@ -124,19 +123,21 @@ namespace Game50033
             _mesh.SetTriangles(_triangles, 0);
             if (_renderer == null) return;
             _renderer.GetPropertyBlock(_properties);
-            _properties.SetColor(BodyColorId, smearColor);
-            _properties.SetColor(SweetSpotColorId, smearSweetSpotColor);
+            _properties.SetColor(BodyColorId, vfx.smearColor);
+            _properties.SetColor(SweetSpotColorId, vfx.smearSweetSpotColor);
             _renderer.SetPropertyBlock(_properties);
         }
 
         public void PlayImpact(Vector3 position, bool sweetSpot)
         {
-            if (!isActiveAndEnabled || impactPrefab == null) return;
+            if (!isActiveAndEnabled) return;
+            var vfx = tuning.vfx;
+            if (vfx.impactPrefab == null) return;
 
-            var impact = Instantiate(impactPrefab, position, Quaternion.identity);
+            var impact = Instantiate(vfx.impactPrefab, position, Quaternion.identity);
             var main = impact.main;
-            main.startColor = sweetSpot ? sweetSpotColor : normalHitColor;
-            main.startSizeMultiplier = sweetSpot ? sweetSpotImpactSize : normalImpactSize;
+            main.startColor = sweetSpot ? vfx.sweetSpotColor : vfx.normalHitColor;
+            main.startSizeMultiplier = sweetSpot ? vfx.sweetSpotImpactSize : vfx.normalImpactSize;
             impact.Play();
         }
 
