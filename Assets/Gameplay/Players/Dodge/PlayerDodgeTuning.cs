@@ -13,6 +13,19 @@ namespace Game50033
         public bool hitstopEnabled = true;
         [Min(0f)] public float hitstopDuration = 0.05f;
 
+        [Header("Directional Flash")]
+        public bool flashEnabled = true;
+        public GameObject flashPrefab;
+        [Min(0.01f)] public float flashDuration = 0.12f;
+        [Min(0.01f)] public float flashLength = 0.55f;
+        [Min(0.01f)] public float flashWidth = 0.18f;
+        public float flashHeight = 0.15f;
+        [Min(0f)] public float flashForwardDrift = 0.08f;
+        public Color flashColor = Color.white;
+        [Range(0f, 1f)] public float flashOpacity = 1f;
+        [Tooltip("Sampled once per held pose; the flash has four poses over its total duration.")]
+        public AnimationCurve flashFadeCurve = AnimationCurve.Linear(0f, 1f, 1f, 0f);
+
         [Header("Afterimage Emission")]
         public bool afterimagesEnabled = true;
         [Min(0)] public int maxAfterimages = 8;

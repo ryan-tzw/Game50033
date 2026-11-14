@@ -17,6 +17,14 @@ namespace Game50033
         private PlayerHitstop _hitstop;
         private GameObject _poolRoot;
         private Snapshot[] _pool;
+        private GameObject _flashObject;
+        private Renderer _flashRenderer;
+        private Camera _camera;
+        private Vector3 _flashOrigin, _flashDirection;
+        private float _flashStartedAt = -1f, _flashDuration;
+        private MaterialPropertyBlock _flashProperties;
+        private static readonly int FlashColorId = Shader.PropertyToID("_FlashColor");
+        private static readonly int FlashPoseId = Shader.PropertyToID("_FlashPose");
         private MaterialPropertyBlock _properties;
         private bool _emitting;
         private int _emitted, _nextSlot;
@@ -47,6 +55,7 @@ namespace Game50033
                 return;
             }
             _properties ??= new MaterialPropertyBlock();
+            _flashProperties ??= new MaterialPropertyBlock();
             _movement.DodgeStarted += HandleDodgeStarted;
             _movement.DodgeEnded += HandleDodgeEnded;
             SceneManager.activeSceneChanged += HandleSceneChanged;
@@ -56,6 +65,9 @@ namespace Game50033
         private void BuildPool()
         {
             _emitting = false;
+            _flashStartedAt = -1f;
+            _flashObject = null;
+            _flashRenderer = null;
             if (_poolRoot != null) { _poolRoot.SetActive(false); Destroy(_poolRoot); }
             // snapshots belong to the encounter scene, not the persistent moving player hierarchy.
             _poolRoot = new GameObject("Player Dodge Afterimages");
@@ -73,6 +85,12 @@ namespace Game50033
                 renderer.enabled = false;
                 _pool[i].renderer = renderer;
             }
+            if (tuning.flashPrefab != null)
+            {
+                _flashObject = Instantiate(tuning.flashPrefab, _poolRoot.transform);
+                _flashRenderer = _flashObject.GetComponent<Renderer>();
+                _flashObject.SetActive(false);
+            }
         }
 
         private void HandleSceneChanged(Scene previous, Scene current)
@@ -84,24 +102,70 @@ namespace Game50033
         {
             if (!isActiveAndEnabled) return;
             if (tuning.hitstopEnabled) _hitstop.Request(tuning.hitstopDuration);
-            if (_poolRoot == null || _pool.Length != Mathf.Max(1, tuning.maxAfterimages) * 2) BuildPool();
+            if (_poolRoot == null || _pool.Length != Mathf.Max(1, tuning.maxAfterimages) * 2
+                || _flashObject == null && tuning.flashPrefab != null) BuildPool();
             _emitting = tuning.afterimagesEnabled && tuning.maxAfterimages > 0;
             _emitted = 0;
             _distanceSinceSnapshot = 0f;
             _previousPosition = transform.position;
             _previousAvatarPosition = avatarRenderer.transform.position;
+            if (tuning.flashEnabled && _flashObject != null && _flashRenderer != null)
+            {
+                _flashOrigin = transform.position + Vector3.up * tuning.flashHeight;
+                _flashDirection = direction;
+                _flashStartedAt = _hitstop.ActionTime;
+                _flashDuration = Mathf.Max(0.01f, tuning.flashDuration);
+                _flashObject.SetActive(true);
+            }
         }
 
         private void HandleDodgeEnded(bool completed)
         {
             // completion is notified after the final collision-limited move; sample that segment in LateUpdate.
             // cancellation must not mistake subsequent walking or a teleport for dodge travel.
-            if (!completed) _emitting = false;
+            if (!completed)
+            {
+                _emitting = false;
+                _flashStartedAt = -1f;
+                if (_flashObject != null) _flashObject.SetActive(false);
+            }
         }
 
         private void LateUpdate()
         {
             if (_poolRoot == null) { _emitting = false; return; }
+            if (_flashObject != null && _flashStartedAt >= 0f)
+            {
+                var progress = Mathf.Clamp01((_hitstop.ActionTime - _flashStartedAt) / _flashDuration);
+                if (!tuning.flashEnabled || progress >= 1f || !_player.isActiveAndEnabled || _player.Health.IsDowned)
+                {
+                    _flashStartedAt = -1f;
+                    _flashObject.SetActive(false);
+                }
+                else
+                {
+                    if (_camera == null) _camera = Camera.main;
+                    if (_camera != null)
+                    {
+                        // the flash stays at activation's origin; its optional drift is independent of player travel.
+                        var direction = Vector3.ProjectOnPlane(_flashDirection, _camera.transform.forward);
+                        if (direction.sqrMagnitude < 0.000001f) direction = _camera.transform.right;
+                        direction.Normalize();
+                        _flashObject.transform.SetPositionAndRotation(_flashOrigin + _flashDirection * (tuning.flashForwardDrift * progress),
+                            Quaternion.LookRotation(_camera.transform.forward, Vector3.Cross(_camera.transform.forward, direction)));
+                        _flashObject.transform.localScale = new Vector3(tuning.flashLength, tuning.flashWidth, 1f);
+                        // use action time so pose zero is visible through startup hitstop, without affecting other players.
+                        var pose = Mathf.Min(3, Mathf.FloorToInt(progress * 4f));
+                        var color = tuning.flashColor;
+                        var fade = tuning.flashFadeCurve != null ? tuning.flashFadeCurve.Evaluate(pose * 0.25f) : 1f - pose * 0.25f;
+                        color.a *= tuning.flashOpacity * Mathf.Clamp01(fade);
+                        _flashProperties.SetColor(FlashColorId, color);
+                        _flashProperties.SetFloat(FlashPoseId, pose);
+                        _flashRenderer.SetPropertyBlock(_flashProperties);
+                    }
+                }
+            }
+
             var now = Time.time;
             for (var i = 0; i < _pool.Length; i++)
             {
@@ -181,6 +245,9 @@ namespace Game50033
             if (_poolRoot != null) { _poolRoot.SetActive(false); Destroy(_poolRoot); }
             _poolRoot = null;
             _pool = null;
+            _flashObject = null;
+            _flashRenderer = null;
+            _flashStartedAt = -1f;
         }
     }
 }
