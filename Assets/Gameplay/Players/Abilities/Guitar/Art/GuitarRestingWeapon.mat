@@ -13,6 +13,7 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _ALPHATEST_ON
+  - _RECEIVE_WEAPON_SHADOWS
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -111,10 +112,14 @@ Material:
     - _OcclusionStrength: 1
     - _Parallax: 0.005
     - _QueueOffset: 0
+    - _ReceivePlayerShadows: 0
     - _ReceiveShadows: 1
+    - _ReceiveWeaponShadows: 1
     - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
+    - _SpriteFlatDepth: 0
+    - _SpriteRotation: 0
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
     - _Surface: 0
@@ -130,5 +135,6 @@ Material:
     - _NoiseOffset: {r: 0, g: 0, b: 0, a: 0}
     - _PlayerTint: {r: 1, g: 1, b: 1, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+    - _SpritePivot: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

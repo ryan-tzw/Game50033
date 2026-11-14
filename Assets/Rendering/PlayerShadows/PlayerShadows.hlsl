@@ -3,6 +3,17 @@
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
 
+// both receivers share cascade selection/filtering; the weapon variant binds its environment-only atlas.
+#if defined(_RECEIVE_WEAPON_SHADOWS)
+    #define _PlayerShadowMap _WeaponShadowMap
+    #define _PlayerWorldToShadow _WeaponWorldToShadow
+    #define _PlayerShadowSplitSpheres _WeaponShadowSplitSpheres
+    #define _PlayerShadowSplitRadii _WeaponShadowSplitRadii
+    #define _PlayerShadowMapSize _WeaponShadowMapSize
+    #define _PlayerShadowCascadeCount _WeaponShadowCascadeCount
+    #define _PlayerShadowMapAvailable _WeaponShadowMapAvailable
+#endif
+
 TEXTURE2D_SHADOW(_PlayerShadowMap);
 float4x4 _PlayerWorldToShadow[5];
 float4 _PlayerShadowSplitSpheres[4];

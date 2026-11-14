@@ -16,3 +16,7 @@ MonoBehaviour:
   excludedCasterLayers:
     serializedVersion: 2
     m_Bits: 8192
+  weaponAtlasResolution: 1024
+  weaponExcludedCasterLayers:
+    serializedVersion: 2
+    m_Bits: 10240

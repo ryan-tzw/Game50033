@@ -419,7 +419,7 @@ MonoBehaviour:
   weaponPivot: {fileID: 6119367394454523144}
   weaponSprite: {fileID: 1030246312269351953}
   restingMaterial: {fileID: 2100000, guid: 4ace53cbfc197c9ab99c96dc34d83e18, type: 2}
-  attackMaterial: {fileID: 2100000, guid: e39654694528a45dc8b49632520197a4, type: 2}
+  attackMaterial: {fileID: 2100000, guid: 57646d5affd718cc486c4e2354325182, type: 2}
   tuning: {fileID: 11400000, guid: a4ecf3fee9186063897b77006eb91110, type: 2}
 --- !u!114 &2202766225286466177
 MonoBehaviour:

@@ -9,13 +9,13 @@ float3 AdjustSaturation(float3 color, float saturation)
     return luminance.xxx + saturation.xxx * (color - luminance.xxx);
 }
 
-#if defined(_RECEIVE_PLAYER_SHADOWS)
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
     // replace only the main-light shadow lookup used by URP lighting; retain its PBR and additional-light paths.
     #include "../PlayerShadows/PlayerShadows.hlsl"
     #define MainLightShadow PlayerMainLightShadow
 #endif
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-#if defined(_RECEIVE_PLAYER_SHADOWS)
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
     #undef MainLightShadow
 #endif
 
@@ -57,7 +57,7 @@ struct Varyings
     half4 tangentWS                : TEXCOORD3;    // xyz: tangent, w: sign
 #endif
 
-#if defined(_RECEIVE_PLAYER_SHADOWS)
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
     float3 casterPositionWS         : TEXCOORD4;
 #endif
 
@@ -118,7 +118,7 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
     inputData.normalWS = NormalizeNormalPerPixel(inputData.normalWS);
     inputData.viewDirectionWS = viewDirWS;
 
-#if defined(_RECEIVE_PLAYER_SHADOWS)
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
     // sample where the original mesh casts shadows; billboard lighting positions lie on a different surface.
     inputData.shadowCoord = PlayerWorldToShadowCoord(input.casterPositionWS);
 #elif defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
@@ -187,7 +187,7 @@ Varyings LitPassVertex(Attributes input)
     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
     VertexPositionInputs vertexInput = GetVertexPositionInputs(input.positionOS.xyz);
-#if defined(_RECEIVE_PLAYER_SHADOWS)
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
     output.casterPositionWS = vertexInput.positionWS;
 #endif
     

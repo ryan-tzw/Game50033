@@ -9,5 +9,11 @@ namespace Game50033
         [Min(256)] public int atlasResolution = 2048;
         [Tooltip("Excluded only from the player shadow map. These objects still cast normal world shadows.")]
         public LayerMask excludedCasterLayers;
+
+        [Header("Weapon Receivers")]
+        [Tooltip("Environment-only atlas for weapon receivers. Uses the same cascades as the player atlas.")]
+        [Min(256)] public int weaponAtlasResolution = 1024;
+        [Tooltip("Character and weapon visual layers excluded only from the weapon receiver map. World shadows are unchanged.")]
+        public LayerMask weaponExcludedCasterLayers = (1 << 11) | (1 << 13);
     }
 }

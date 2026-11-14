@@ -133,7 +133,8 @@ namespace Game50033
                 UniversalCameraData cameraData,
                 UniversalLightData lightData,
                 int layerMask,
-                Shader overrideShader = null)
+                Shader overrideShader = null,
+                RenderQueueRange? queueRange = null)
             {
                 DrawingSettings drawingSettings = RenderingUtils.CreateDrawingSettings(
                     ForwardShaderTags,
@@ -150,7 +151,7 @@ namespace Game50033
                 }
 
                 // restrict to just opaque materials and objects in the masked layers
-                FilteringSettings filteringSettings = new(RenderQueueRange.opaque, layerMask);
+                FilteringSettings filteringSettings = new(queueRange ?? RenderQueueRange.opaque, layerMask);
                 RendererListParams rendererListParams = new(renderingData.cullResults, drawingSettings, filteringSettings);
 
                 return renderGraph.CreateRendererList(rendererListParams);
@@ -380,6 +381,18 @@ namespace Game50033
                     passName: "Pixel Art Depth Upscale"
                 );
 
+                // characters keep their normal mutual depth; front weapons retain the untouched world depth.
+                fullResDepthDesc.name = "PixelWorld_CharacterDepth";
+                TextureHandle characterDepth = renderGraph.CreateTexture(fullResDepthDesc);
+                renderGraph.AddBlitPass(
+                    lowResDepth,
+                    characterDepth,
+                    Vector2.one,
+                    Vector2.zero,
+                    filterMode: RenderGraphUtils.BlitFilterMode.ClampNearest,
+                    passName: "Pixel Art Character Depth Upscale"
+                );
+
                 // ================================================== 
                 // upscale and full-res sprite pass
                 // ================================================== 
@@ -405,13 +418,35 @@ namespace Game50033
 
                 using (var builder = renderGraph.AddRasterRenderPass<RendererPassData>("Pixel Art Full-Resolution Sprites", out var passData))
                 {
-                    passData.Renderers = CreateRendererList(renderGraph, renderingData, cameraData, lightData, _spriteLayers.value);
+                    // queue 2500 explicitly opts full-resolution sprites into the front-weapon pass below.
+                    passData.Renderers = CreateRendererList(renderGraph, renderingData, cameraData, lightData, _spriteLayers.value,
+                        queueRange: new RenderQueueRange(0, 2499));
 
                     builder.UseAllGlobalTextures(true);
                     builder.UseRendererList(passData.Renderers);
                     builder.SetRenderAttachment(fullRes, 0, AccessFlags.ReadWrite);
-                    builder.SetRenderAttachmentDepth(fullResDepth, AccessFlags.ReadWrite);
+                    builder.SetRenderAttachmentDepth(characterDepth, AccessFlags.ReadWrite);
 
+                    builder.SetRenderFunc(static (RendererPassData data, RasterGraphContext context) =>
+                    {
+                        context.cmd.DrawRendererList(data.Renderers);
+                    });
+                }
+
+                // ==================================================
+                // front weapons: cover characters, retain world occlusion
+                // ==================================================
+
+                using (var builder = renderGraph.AddRasterRenderPass<RendererPassData>("Pixel Art Front Weapons", out var passData))
+                {
+                    passData.Renderers = CreateRendererList(renderGraph, renderingData, cameraData, lightData, _spriteLayers.value,
+                        queueRange: new RenderQueueRange(2500, 2500));
+
+                    // opted-in materials use ordinary depth testing with depth writes disabled.
+                    builder.UseAllGlobalTextures(true);
+                    builder.UseRendererList(passData.Renderers);
+                    builder.SetRenderAttachment(fullRes, 0, AccessFlags.ReadWrite);
+                    builder.SetRenderAttachmentDepth(fullResDepth, AccessFlags.Read);
                     builder.SetRenderFunc(static (RendererPassData data, RasterGraphContext context) =>
                     {
                         context.cmd.DrawRendererList(data.Renderers);
@@ -420,7 +455,7 @@ namespace Game50033
 
                 // all subsequent URP passes will use these
                 resourceData.cameraColor = fullRes;
-                resourceData.cameraDepth = fullResDepth;
+                resourceData.cameraDepth = characterDepth;
             }
         }
     }
