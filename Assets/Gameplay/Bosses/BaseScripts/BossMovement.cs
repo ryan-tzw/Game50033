@@ -23,11 +23,6 @@ namespace Game50033
         public bool IsMoving => (_rb.linearVelocity.sqrMagnitude > 0.01f) ? true : false;
         public bool InRange = false;
 
-        private void Awake()
-        {
-            Initialize();
-        }
-
         internal void Initialize()
         {
             if (_initialized) return;

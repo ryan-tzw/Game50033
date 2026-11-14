@@ -26,11 +26,6 @@ namespace Game50033
         public event Action<float, float> HealthChanged;
         public event Action Dead;
 
-        private void Awake()
-        {
-            Initialize();
-        }
-
         internal void Initialize()
         {
             if (_initialized) return;

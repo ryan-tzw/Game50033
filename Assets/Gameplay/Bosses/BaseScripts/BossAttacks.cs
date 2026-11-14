@@ -26,11 +26,6 @@ namespace Game50033
         [SerializeField] private float BossAttackInterval = 3f;
         protected float bossAttackIntervalTimer;
 
-        void Awake()
-        {
-            Initialize();
-        }
-
         internal void Initialize()
         {
             if (_initialized) return;
