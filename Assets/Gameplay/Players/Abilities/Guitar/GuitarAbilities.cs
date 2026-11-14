@@ -189,10 +189,9 @@ namespace Game50033
                         if (!hurtbox.TryOverlapSector(camera, centre, _direction, 0f, _specialRadius,
                                 360f, Vector3.forward, 1f, out var contact)) continue;
 
-                        // the inner band's bonus tests the authored centre, not the near surface used by Primary.
-                        // project onto the same impact plane used by the visible circles and outer overlap query.
+                        // sweet spots use the ground footprint; height must not shift the centre along the camera ray.
                         var targetCentre = hurtbox.WorldCenter;
-                        targetCentre -= camera.transform.forward * ((targetCentre.y - centre.y) / camera.transform.forward.y);
+                        targetCentre.y = centre.y;
                         var sweet = (targetCentre - centre).sqrMagnitude <= _specialSweetSpotRadius * _specialSweetSpotRadius + 0.000001f;
                         var direction = targetCentre - centre;
                         direction.y = 0f;
@@ -228,8 +227,6 @@ namespace Game50033
                         near.y = 0f;
                         if (near.sqrMagnitude > _specialRadius * _specialRadius + 0.000001f) continue;
                         var targetCentre = candidate.bounds.center;
-                        if (camera != null && camera.orthographic && Mathf.Abs(camera.transform.forward.y) > 0.0001f)
-                            targetCentre -= camera.transform.forward * ((targetCentre.y - centre.y) / camera.transform.forward.y);
                         var offset = targetCentre - centre;
                         offset.y = 0f;
                         var sweet = offset.sqrMagnitude <= _specialSweetSpotRadius * _specialSweetSpotRadius + 0.000001f;
