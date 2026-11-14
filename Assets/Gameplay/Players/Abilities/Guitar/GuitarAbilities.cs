@@ -41,6 +41,20 @@ namespace Game50033
 
         public bool IsAttacking { get; private set; }
         public bool IsStrumming => _strumming;
+        public override PlayerAttackPhase AnimationPhase
+        {
+            get
+            {
+                if (!IsAttacking) return PlayerAttackPhase.None;
+
+                var elapsed = Player.Hitstop.ActionTime - _startedAt;
+                var windup = _strumming ? _strumWindup : _swing.windup;
+                var active = _strumming ? _strumActive : _swing.active;
+                if (elapsed < windup) return PlayerAttackPhase.Windup;
+                return elapsed < windup + active ? PlayerAttackPhase.Active : PlayerAttackPhase.Recovery;
+            }
+        }
+
         public override float MovementSpeedMultiplier => !IsAttacking ? 1f
             : _strumming ? tuning.secondary.movementSpeedMultiplier : tuning.attack.movementSpeedMultiplier;
         public bool HasEmpoweredPrimary { get; private set; }

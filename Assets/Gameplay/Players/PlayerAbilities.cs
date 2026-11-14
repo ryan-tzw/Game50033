@@ -2,6 +2,14 @@ namespace Game50033
 {
     using UnityEngine;
 
+    public enum PlayerAttackPhase
+    {
+        None,
+        Windup,
+        Active,
+        Recovery,
+    }
+
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Player))]
     public abstract class PlayerAbilities : MonoBehaviour
@@ -21,6 +29,7 @@ namespace Game50033
         public bool BlocksDodge { get; protected set; }
         public bool BlocksAbilities { get; protected set; }
         public virtual float MovementSpeedMultiplier => 1f;
+        public virtual PlayerAttackPhase AnimationPhase => PlayerAttackPhase.None;
 
         protected virtual void OnDisable()
         {
