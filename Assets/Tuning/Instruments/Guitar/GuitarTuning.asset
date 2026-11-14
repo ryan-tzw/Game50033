@@ -254,7 +254,7 @@ MonoBehaviour:
       serializedVersion: 2
       m_Bits: 4294967295
     movementSpeedMultiplier: 0.15
-    backstepDistance: 0.2
+    backstepDistance: 0.15
     backstepEasing:
       serializedVersion: 2
       m_Curve:
@@ -305,14 +305,14 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
   special:
-    windup: 0.9
+    windup: 0.7
     active: 0.12
     recovery: 0.45
-    cooldown: 12
+    cooldown: 1
     impactFraction: 0.8
     distance: 1
-    radius: 0.75
-    sweetSpotRadius: 0.25
+    radius: 1
+    sweetSpotRadius: 0.35
     impactHeight: 0.025
     hitHeight: 1
     hitMask:
@@ -321,16 +321,16 @@ MonoBehaviour:
     damage: 8
     sweetSpotMultiplier: 2
     movementSpeedMultiplier: 0.2
-    hitstopDuration: 0.06
-    sweetSpotHitstopDuration: 0.1
+    hitstopDuration: 0.1
+    sweetSpotHitstopDuration: 0.15
     raiseFraction: 0.3
     backwardTilt: 15
     impactTilt: -25
     gripHeight: 0.3
-    raisedGripHeight: 0.28
+    raisedGripHeight: 0.45
     windupBackwardOffset: 0.18
-    windupShakeAngle: 2
-    windupShakeFrequency: 24
+    windupShakeAngle: 6
+    windupShakeFrequency: 20
     raiseEasing:
       serializedVersion: 2
       m_Curve:
