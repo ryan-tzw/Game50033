@@ -102,13 +102,19 @@ MonoBehaviour:
   resolution: {x: 640, y: 360}
   worldLayers:
     serializedVersion: 2
-    m_Bits: 1025
+    m_Bits: 17409
   toonLayers:
     serializedVersion: 2
-    m_Bits: 1024
+    m_Bits: 17408
   spriteLayers:
     serializedVersion: 2
     m_Bits: 10240
+  weaponLayers:
+    serializedVersion: 2
+    m_Bits: 8192
+  floorLayers:
+    serializedVersion: 2
+    m_Bits: 16384
   transparentWorldLayers:
     serializedVersion: 2
     m_Bits: 4096

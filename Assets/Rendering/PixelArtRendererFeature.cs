@@ -14,6 +14,10 @@ namespace Game50033
         [SerializeField] private LayerMask worldLayers = ~0;
         [SerializeField] private LayerMask toonLayers;
         [SerializeField] private LayerMask spriteLayers;
+        [Tooltip("Weapon sprite layers using obstacle-only depth. Keep these within Sprite Layers.")]
+        [SerializeField] private LayerMask weaponLayers;
+        [Tooltip("Visible world layers that never occlude weapon sprites.")]
+        [SerializeField] private LayerMask floorLayers;
         [Tooltip("Transparent world effects drawn before upscale. Exclude these layers from the renderer's Transparent Layer Mask.")]
         [SerializeField] private LayerMask transparentWorldLayers;
         [SerializeField] private Shader toonOverrideShader;
@@ -33,7 +37,7 @@ namespace Game50033
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            _pass.Setup(resolution, worldLayers, toonLayers, spriteLayers, transparentWorldLayers, toonOverrideShader, edgeDetectMat);
+            _pass.Setup(resolution, worldLayers, toonLayers, spriteLayers, weaponLayers, floorLayers, transparentWorldLayers, toonOverrideShader, edgeDetectMat);
             renderer.EnqueuePass(_pass);
         }
         
@@ -47,6 +51,8 @@ namespace Game50033
             private LayerMask _worldLayers;
             private LayerMask _toonLayers;
             private LayerMask _spriteLayers;
+            private LayerMask _weaponLayers;
+            private LayerMask _floorLayers;
             private LayerMask _transparentWorldLayers;
             private Shader _toonOverrideShader;
             private Material _edgeDetectMat;
@@ -111,13 +117,15 @@ namespace Game50033
             // Setup
             // ================================================== 
 
-            public void Setup(Vector2Int resolution, LayerMask worldLayers, LayerMask toonLayers, LayerMask spriteLayers, LayerMask transparentWorldLayers, Shader toonOverrideShader, Material edgeDetectMat)
+            public void Setup(Vector2Int resolution, LayerMask worldLayers, LayerMask toonLayers, LayerMask spriteLayers, LayerMask weaponLayers, LayerMask floorLayers, LayerMask transparentWorldLayers, Shader toonOverrideShader, Material edgeDetectMat)
             {
                 _resolution.x = Mathf.Max(1, resolution.x);
                 _resolution.y = Mathf.Max(1, resolution.y);
                 _worldLayers = worldLayers;
                 _toonLayers = toonLayers;
                 _spriteLayers = spriteLayers;
+                _weaponLayers = weaponLayers;
+                _floorLayers = floorLayers;
                 _transparentWorldLayers = transparentWorldLayers;
                 _toonOverrideShader = toonOverrideShader;
                 _edgeDetectMat = edgeDetectMat;
@@ -366,8 +374,32 @@ namespace Game50033
                 // upscale low-res depth to use for sprite occlusion
                 // ================================================== 
                 
+                // weapon depth omits floors entirely; characters and effects retain the ordinary world depth.
+                var obstacleDepth = lowResDepth;
+                if ((_spriteLayers.value & _weaponLayers.value) != 0 && _floorLayers.value != 0)
+                {
+                    var obstacleDesc = lowResDepthDesc;
+                    obstacleDesc.name = "PixelWorld_ObstacleDepth";
+                    obstacleDepth = renderGraph.CreateTexture(obstacleDesc);
+                    using var builder = renderGraph.AddRasterRenderPass<WorldPassData>("Pixel Art Weapon Obstacle Depth", out var passData);
+                    var obstacleMask = _worldLayers.value & ~_floorLayers.value;
+                    passData.RegularRenderers = CreateRendererList(renderGraph, renderingData, cameraData, lightData,
+                        obstacleMask & ~_toonLayers.value);
+                    passData.ToonRenderers = CreateRendererList(renderGraph, renderingData, cameraData, lightData,
+                        obstacleMask & _toonLayers.value, _toonOverrideShader);
+                    builder.UseAllGlobalTextures(true);
+                    builder.UseRendererList(passData.RegularRenderers);
+                    builder.UseRendererList(passData.ToonRenderers);
+                    builder.SetRenderAttachmentDepth(obstacleDepth, AccessFlags.Write);
+                    builder.SetRenderFunc(static (WorldPassData data, RasterGraphContext context) =>
+                    {
+                        context.cmd.DrawRendererList(data.RegularRenderers);
+                        context.cmd.DrawRendererList(data.ToonRenderers);
+                    });
+                }
+
                 TextureDesc fullResDepthDesc = renderGraph.GetTextureDesc(resourceData.activeDepthTexture);
-                fullResDepthDesc.name = "PixelWorld_FullResolutionDepth";
+                fullResDepthDesc.name = "PixelWorld_WeaponDepth";
                 fullResDepthDesc.msaaSamples = MSAASamples.None;
                 fullResDepthDesc.bindTextureMS = false;
                 fullResDepthDesc.filterMode = FilterMode.Point;
@@ -375,7 +407,7 @@ namespace Game50033
                 TextureHandle fullResDepth = renderGraph.CreateTexture(fullResDepthDesc);
 
                 renderGraph.AddBlitPass(
-                    lowResDepth,
+                    obstacleDepth,
                     fullResDepth,
                     Vector2.one,
                     Vector2.zero,
@@ -383,7 +415,7 @@ namespace Game50033
                     passName: "Pixel Art Depth Upscale"
                 );
 
-                // characters keep their normal mutual depth; front weapons retain the untouched world depth.
+                // character depth still contains floors, and receives character writes independently of weapon depth.
                 fullResDepthDesc.name = "PixelWorld_CharacterDepth";
                 TextureHandle characterDepth = renderGraph.CreateTexture(fullResDepthDesc);
                 renderGraph.AddBlitPass(
@@ -418,10 +450,26 @@ namespace Game50033
                     passName: "Pixel Art Upscale"
                 );
 
+                // resting weapons use obstacle depth, then characters cover them as before.
+                if ((_spriteLayers.value & _weaponLayers.value) != 0)
+                {
+                    using var builder = renderGraph.AddRasterRenderPass<RendererPassData>("Pixel Art Resting Weapons", out var passData);
+                    passData.Renderers = CreateRendererList(renderGraph, renderingData, cameraData, lightData,
+                        _spriteLayers.value & _weaponLayers.value, queueRange: new RenderQueueRange(0, 2499));
+                    builder.UseAllGlobalTextures(true);
+                    builder.UseRendererList(passData.Renderers);
+                    builder.SetRenderAttachment(fullRes, 0, AccessFlags.ReadWrite);
+                    builder.SetRenderAttachmentDepth(fullResDepth, AccessFlags.Read);
+                    builder.SetRenderFunc(static (RendererPassData data, RasterGraphContext context) =>
+                    {
+                        context.cmd.DrawRendererList(data.Renderers);
+                    });
+                }
+
                 using (var builder = renderGraph.AddRasterRenderPass<RendererPassData>("Pixel Art Full-Resolution Sprites", out var passData))
                 {
                     // queue 2500 explicitly opts full-resolution sprites into the front-weapon pass below.
-                    passData.Renderers = CreateRendererList(renderGraph, renderingData, cameraData, lightData, _spriteLayers.value,
+                    passData.Renderers = CreateRendererList(renderGraph, renderingData, cameraData, lightData, _spriteLayers.value & ~_weaponLayers.value,
                         queueRange: new RenderQueueRange(0, 2499));
 
                     builder.UseAllGlobalTextures(true);
@@ -436,7 +484,7 @@ namespace Game50033
                 }
 
                 // ==================================================
-                // front weapons: cover characters, retain world occlusion
+                // front weapons: cover characters, retain obstacle occlusion
                 // ==================================================
 
                 using (var builder = renderGraph.AddRasterRenderPass<RendererPassData>("Pixel Art Front Weapons", out var passData))

@@ -207,7 +207,7 @@ namespace Game50033
                     height = Mathf.LerpUnclamped(special.gripHeight, weapon.gripOffset.y, settle);
                 }
                 // lift the grip and rotate the sprite through a screen-space overhead arc, including north/south aims.
-                // the physical depth mesh is projected back onto XZ below, independently of damage geometry.
+                // the sprite is projected for presentation, independently of damage geometry.
                 radial = _camera.transform.right * Mathf.Cos(outwardAngle * Mathf.Deg2Rad)
                     + _camera.transform.up * Mathf.Sin(outwardAngle * Mathf.Deg2Rad);
                 position = transform.position + Vector3.up * height - _direction * backwardOffset;
@@ -246,12 +246,12 @@ namespace Game50033
             // keep shake separate from the smoothed pose so offsets cannot accumulate or leak into the downstroke.
             var displayedAngle = _visualAngle + windupShake;
 
-            // the original flat geometry supplies depth; the shader supplies the camera-facing image.
+            // the original flat geometry still supplies shadow casting; an upright depth plane handles obstacle occlusion.
             var worldDirection = _posing ? radial : -facing;
             if ((!_posing || _smashing || _strumming) && Mathf.Abs(_camera.transform.forward.y) > 0.001f)
             {
                 // project the already-smoothed visible direction onto XZ along the camera's view rays.
-                // this keeps the idle depth geometry on the same axis instead of smoothing it a second time.
+                // this keeps the idle shadow geometry on the same axis instead of smoothing it a second time.
                 var visibleAngle = (displayedAngle + weapon.spriteOutwardAngle) * Mathf.Deg2Rad;
                 worldDirection = _camera.transform.right * Mathf.Cos(visibleAngle) + _camera.transform.up * Mathf.Sin(visibleAngle);
                 worldDirection -= _camera.transform.forward * (worldDirection.y / _camera.transform.forward.y);
@@ -263,7 +263,7 @@ namespace Game50033
             // apply vibration after the final pivot rotation, from the base pose each frame; it cannot accumulate.
             weaponSprite.transform.localPosition += weaponPivot.InverseTransformVector(_camera.transform.up * strumVibration);
             weaponSprite.GetPropertyBlock(_properties);
-            _properties.SetFloat(SpriteFlatDepthId, 1f);
+            _properties.SetFloat(SpriteFlatDepthId, 2f);
             _properties.SetFloat(SpriteRotationId, displayedAngle);
             _properties.SetVector(SpritePivotId, new Vector4(_gripPoint.x, _gripPoint.y, 0f, 0f));
             weaponSprite.SetPropertyBlock(_properties);
