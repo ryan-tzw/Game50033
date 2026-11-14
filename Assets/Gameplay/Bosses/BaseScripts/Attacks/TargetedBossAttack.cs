@@ -18,6 +18,8 @@ namespace Game50033
         [Header("Projectile Attributes for Projectile-based Targeted Attacks")]
         public bool homing;
         public bool destroyOnArrival;
+        public bool bouncy;
+        public bool blockedByObstacles;
         [SerializeField, Min(0.1f)] public float projectileSpeed;
         [SerializeField] public float projectileHomingHeight = 0f;
 
