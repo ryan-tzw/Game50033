@@ -77,6 +77,7 @@ Shader "Experimental/2D Sprite Lit"
         [HideInInspector] _XRMotionVectorsPass("_XRMotionVectorsPass", Float) = 1.0
 
         [ToggleUI] _ReceiveShadows("Receive Shadows", Float) = 1.0
+        [Toggle(_RECEIVE_PLAYER_SHADOWS)] _ReceivePlayerShadows("Exclude Weapon Shadows", Float) = 0.0
         // Editmode props
         _QueueOffset("Queue offset", Float) = 0.0
 
@@ -139,6 +140,7 @@ Shader "Experimental/2D Sprite Lit"
             #pragma shader_feature_local _NORMALMAP
             #pragma shader_feature_local _PARALLAXMAP
             #pragma shader_feature_local _RECEIVE_SHADOWS_OFF
+            #pragma shader_feature_local _RECEIVE_PLAYER_SHADOWS
             #pragma shader_feature_local _ _DETAIL_MULX2 _DETAIL_SCALED
             #pragma shader_feature_local_fragment _SURFACE_TYPE_TRANSPARENT
             #pragma shader_feature_local_fragment _ALPHATEST_ON

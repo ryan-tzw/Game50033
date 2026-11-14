@@ -100,7 +100,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1490190280533302842}
   - component: {fileID: 1030246312269351953}
-  m_Layer: 11
+  m_Layer: 13
   m_Name: GuitarSprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -9,7 +9,15 @@ float3 AdjustSaturation(float3 color, float saturation)
     return luminance.xxx + saturation.xxx * (color - luminance.xxx);
 }
 
+#if defined(_RECEIVE_PLAYER_SHADOWS)
+    // replace only the main-light shadow lookup used by URP lighting; retain its PBR and additional-light paths.
+    #include "../PlayerShadows/PlayerShadows.hlsl"
+    #define MainLightShadow PlayerMainLightShadow
+#endif
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+#if defined(_RECEIVE_PLAYER_SHADOWS)
+    #undef MainLightShadow
+#endif
 
 #if defined(LOD_FADE_CROSSFADE)
     #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
@@ -47,6 +55,10 @@ struct Varyings
     float3 normalWS                 : TEXCOORD2;
 #if defined(REQUIRES_WORLD_SPACE_TANGENT_INTERPOLATOR)
     half4 tangentWS                : TEXCOORD3;    // xyz: tangent, w: sign
+#endif
+
+#if defined(_RECEIVE_PLAYER_SHADOWS)
+    float3 casterPositionWS         : TEXCOORD4;
 #endif
 
 #ifdef _ADDITIONAL_LIGHTS_VERTEX
@@ -106,7 +118,10 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
     inputData.normalWS = NormalizeNormalPerPixel(inputData.normalWS);
     inputData.viewDirectionWS = viewDirWS;
 
-#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+#if defined(_RECEIVE_PLAYER_SHADOWS)
+    // sample where the original mesh casts shadows; billboard lighting positions lie on a different surface.
+    inputData.shadowCoord = PlayerWorldToShadowCoord(input.casterPositionWS);
+#elif defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
     inputData.shadowCoord = input.shadowCoord;
 #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
     inputData.shadowCoord = TransformWorldToShadowCoord(inputData.positionWS);
@@ -172,6 +187,9 @@ Varyings LitPassVertex(Attributes input)
     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
     VertexPositionInputs vertexInput = GetVertexPositionInputs(input.positionOS.xyz);
+#if defined(_RECEIVE_PLAYER_SHADOWS)
+    output.casterPositionWS = vertexInput.positionWS;
+#endif
     
     // modifications start here
     
