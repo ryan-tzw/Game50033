@@ -16,6 +16,7 @@ namespace Game50033
         }
 
         [SerializeField] private MeshFilter smearFilter;
+        [SerializeField] private MeshFilter smashFilter;
         [SerializeField] private GuitarTuning tuning;
 
         private readonly List<Smear> _smears = new();
@@ -24,6 +25,18 @@ namespace Game50033
         private readonly List<Vector4> _poseData = new();
         private readonly List<Vector3> _shapeData = new();
         private readonly List<int> _triangles = new();
+        private Mesh _smashMesh;
+        private Renderer _smashRenderer;
+        private MaterialPropertyBlock _smashProperties;
+        private readonly Vector3[] _smashVertices = new Vector3[4];
+        private Vector3 _smashCentre;
+        private float _smashRadius, _smashSweetSpotRadius;
+        private bool _smashIndicator;
+        private float _smashStartedAt = -1f;
+        private static readonly int SweetRatioId = Shader.PropertyToID("_SweetRatio");
+        private static readonly int SmashModeId = Shader.PropertyToID("_Impact");
+        private static readonly int SmashProgressId = Shader.PropertyToID("_Progress");
+        private static readonly int IndicatorOpacityId = Shader.PropertyToID("_IndicatorOpacity");
         private MaterialPropertyBlock _properties;
         private Mesh _mesh;
         private Renderer _renderer;
@@ -36,6 +49,17 @@ namespace Game50033
             _hitstop = GetComponent<PlayerHitstop>();
             _mesh = new Mesh { name = "Guitar smear" };
             _mesh.MarkDynamic();
+            if (smashFilter != null)
+            {
+                _smashMesh = new Mesh { name = "Guitar smash" };
+                _smashMesh.MarkDynamic();
+                _smashMesh.vertices = _smashVertices;
+                _smashMesh.uv = new[] { Vector2.zero, Vector2.right, Vector2.one, Vector2.up };
+                _smashMesh.triangles = new[] { 0, 2, 1, 0, 3, 2 };
+                smashFilter.sharedMesh = _smashMesh;
+                _smashRenderer = smashFilter.GetComponent<Renderer>();
+                _smashRenderer.enabled = false;
+            }
             if (smearFilter == null) return;
             smearFilter.sharedMesh = _mesh;
             _renderer = smearFilter.GetComponent<Renderer>();
@@ -51,6 +75,24 @@ namespace Game50033
             }
             // native-backed blocks do not survive a play-mode script reload.
             _properties ??= new MaterialPropertyBlock();
+            _smashProperties ??= new MaterialPropertyBlock();
+        }
+
+        public void ShowSmashIndicator(Vector3 centre, float radius, float sweetSpotRadius)
+        {
+            if (!isActiveAndEnabled || smashFilter == null) return;
+            _smashCentre = centre;
+            _smashRadius = radius;
+            _smashSweetSpotRadius = sweetSpotRadius;
+            _smashIndicator = true;
+            _smashStartedAt = -1f;
+        }
+
+        public void PlaySmashImpact()
+        {
+            if (!isActiveAndEnabled || smashFilter == null) return;
+            _smashIndicator = false;
+            _smashStartedAt = _hitstop != null ? _hitstop.ActionTime : Time.time;
         }
 
         public void BeginSwing(Vector3 origin, Vector3 direction, float startAngle, float endAngle,
@@ -71,12 +113,37 @@ namespace Game50033
 
         private void LateUpdate()
         {
+            var now = _hitstop != null ? _hitstop.ActionTime : Time.time;
+            if (_smashMesh != null && (_smashIndicator || _smashStartedAt >= 0f))
+            {
+                var special = tuning.special;
+                var progress = _smashIndicator ? 0f : Mathf.Clamp01((now - _smashStartedAt) / Mathf.Max(0.01f, special.impactDuration));
+                _smashRenderer.enabled = progress < 1f;
+                if (progress >= 1f) _smashStartedAt = -1f;
+                else
+                {
+                    // rebuild only four local vertices so the impact remains at its world snapshot as the owner walks.
+                    _smashVertices[0] = smashFilter.transform.InverseTransformPoint(_smashCentre + new Vector3(-_smashRadius, 0, -_smashRadius));
+                    _smashVertices[1] = smashFilter.transform.InverseTransformPoint(_smashCentre + new Vector3(_smashRadius, 0, -_smashRadius));
+                    _smashVertices[2] = smashFilter.transform.InverseTransformPoint(_smashCentre + new Vector3(_smashRadius, 0, _smashRadius));
+                    _smashVertices[3] = smashFilter.transform.InverseTransformPoint(_smashCentre + new Vector3(-_smashRadius, 0, _smashRadius));
+                    _smashMesh.vertices = _smashVertices;
+                    _smashMesh.RecalculateBounds();
+                    _smashRenderer.GetPropertyBlock(_smashProperties);
+                    _smashProperties.SetColor(BodyColorId, special.areaColor);
+                    _smashProperties.SetColor(SweetSpotColorId, special.sweetSpotColor);
+                    _smashProperties.SetFloat(SweetRatioId, _smashSweetSpotRadius / Mathf.Max(0.01f, _smashRadius));
+                    _smashProperties.SetFloat(SmashModeId, _smashIndicator ? 0f : 1f);
+                    _smashProperties.SetFloat(SmashProgressId, progress);
+                    _smashProperties.SetFloat(IndicatorOpacityId, special.indicatorOpacity);
+                    _smashRenderer.SetPropertyBlock(_smashProperties);
+                }
+            }
             if (_mesh == null || smearFilter == null) return;
             if (_smears.Count == 0 && _mesh.vertexCount == 0) return;
 
             var vfx = tuning.vfx;
             // smear poses share the owner's action clock; scene-local impact particles keep world time.
-            var now = _hitstop != null ? _hitstop.ActionTime : Time.time;
             var durations = new Vector4(Mathf.Max(0.001f, vfx.frameDurations.x), Mathf.Max(0.001f, vfx.frameDurations.y),
                 Mathf.Max(0.001f, vfx.frameDurations.z), Mathf.Max(0.001f, vfx.frameDurations.w));
             _vertices.Clear();
@@ -158,6 +225,9 @@ namespace Game50033
 
         public void Cancel()
         {
+            _smashIndicator = false;
+            _smashStartedAt = -1f;
+            if (_smashRenderer != null) _smashRenderer.enabled = false;
             _smears.Clear();
             if (_mesh != null) _mesh.Clear();
         }
@@ -170,6 +240,7 @@ namespace Game50033
         private void OnDestroy()
         {
             if (_mesh != null) Destroy(_mesh);
+            if (_smashMesh != null) Destroy(_smashMesh);
         }
     }
 }

@@ -12,6 +12,7 @@ namespace Game50033
         private static readonly List<CombatHurtbox> _active = new();
         public static IReadOnlyList<CombatHurtbox> Active => _active;
         public IHittable Target { get; private set; }
+        public Vector3 WorldCenter => (anchor != null ? anchor : transform).TransformPoint(tuning.center);
 
         private void OnEnable()
         {
@@ -38,7 +39,7 @@ namespace Game50033
             // like a capsule collider, the wider perpendicular scale sets the round cross-section.
             radius = Mathf.Max(0.001f, tuning.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z)));
             var halfLine = Mathf.Max(0f, tuning.height * Mathf.Abs(scale.y) * 0.5f - radius);
-            var centre = basis.TransformPoint(tuning.center);
+            var centre = WorldCenter;
             bottom = centre - basis.up * halfLine;
             top = centre + basis.up * halfLine;
         }

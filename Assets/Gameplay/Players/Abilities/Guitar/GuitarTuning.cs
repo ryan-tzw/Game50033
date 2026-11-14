@@ -2,12 +2,14 @@ namespace Game50033
 {
     using System;
     using UnityEngine;
+    using UnityEngine.Serialization;
 
     [CreateAssetMenu(menuName = "Game50033/Tuning/Guitar", fileName = "GuitarTuning")]
     public sealed class GuitarTuning : ScriptableObject
     {
         public AttackSettings attack = new();
         public SecondarySettings secondary = new();
+        public SpecialSettings special = new();
         public WeaponSettings weapon = new();
         [InspectorName("VFX")] public VFXSettings vfx = new();
 
@@ -85,7 +87,8 @@ namespace Game50033
 
             [Header("Damage and Empowerment")]
             [Min(0f)] public float damage = 1f;
-            [Min(1f)] public float primaryMultiplier = 1.5f;
+            [FormerlySerializedAs("primaryMultiplier")]
+            [Min(1f)] public float empowermentMultiplier = 1.5f;
 
             [Header("Wave Travel")]
             public GuitarStrum wavePrefab;
@@ -115,6 +118,55 @@ namespace Game50033
             public AnimationCurve backstepEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
             [Range(1f, 300f)] public float swingAngle = 140f;
             public AnimationCurve swingEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+        }
+
+        [Serializable]
+        public sealed class SpecialSettings
+        {
+            [Header("Timing")]
+            [Min(0.01f)] public float windup = 0.9f;
+            [Min(0.01f)] public float active = 0.12f;
+            [Min(0.01f)] public float recovery = 0.45f;
+            [Min(0f)] public float cooldown = 12f;
+            [Tooltip("Fraction of Active when the downstroke lands. The weapon reaches its contact pose at this point.")]
+            [Range(0.01f, 1f)] public float impactFraction = 0.8f;
+
+            [Header("Impact Area and Damage")]
+            [Min(0f)] public float distance = 1f;
+            [Min(0.01f)] public float radius = 0.75f;
+            [Min(0f)] public float sweetSpotRadius = 0.25f;
+            public float impactHeight = 0.025f;
+            [Min(0.01f)] public float hitHeight = 1f;
+            public LayerMask hitMask = ~0;
+            [Min(0f)] public float damage = 8f;
+            [Min(1f)] public float sweetSpotMultiplier = 2f;
+
+            [Header("Movement and Hitstop")]
+            [Range(0f, 1f)] public float movementSpeedMultiplier = 0.2f;
+            [Min(0f)] public float hitstopDuration = 0.06f;
+            [Min(0f)] public float sweetSpotHitstopDuration = 0.1f;
+
+            [Header("Overhead Motion")]
+            [Tooltip("The weapon reaches the drawn-back pose during this fraction of Windup, then holds it.")]
+            [Range(0.01f, 1f)] public float raiseFraction = 0.3f;
+            [Range(0f, 90f)] public float backwardTilt = 15f;
+            [Range(-90f, 0f)] public float impactTilt = -25f;
+            public float gripHeight = 0.3f;
+            public float raisedGripHeight = 0.28f;
+            [Min(0f)] public float windupBackwardOffset = 0.18f;
+            [Tooltip("Maximum cosmetic rotation during Windup, growing stronger toward release. Zero disables shake.")]
+            [Min(0f)] public float windupShakeAngle = 2f;
+            [Tooltip("Held shake poses per second, using the player action clock.")]
+            [Min(1f)] public float windupShakeFrequency = 24f;
+            public AnimationCurve raiseEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+            public AnimationCurve swingEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+            public AnimationCurve recoveryEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+            [Header("Indicator and Impact")]
+            public Color areaColor = new(0.9f, 0.78f, 0.57f, 1f);
+            public Color sweetSpotColor = new(1f, 0.94f, 0.72f, 1f);
+            [Range(0f, 1f)] public float indicatorOpacity = 0.3f;
+            [Min(0.01f)] public float impactDuration = 0.25f;
         }
 
         [Serializable]
