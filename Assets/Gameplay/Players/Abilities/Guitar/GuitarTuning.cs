@@ -20,6 +20,8 @@ namespace Game50033
             [Range(1f, 300f)] public float angle;
             [Min(0f)] public float lungeDistance;
             [Min(0.01f)] public float reachMultiplier;
+            [Min(0f)] public float hitstopDuration;
+            [Min(0f)] public float sweetSpotHitstopDuration;
         }
 
         [Serializable]
@@ -27,9 +29,9 @@ namespace Game50033
         {
             public Swing[] combo =
             {
-                new Swing { windup = 0.14f, active = 0.18f, recovery = 0.16f, angle = 140f, lungeDistance = 0.22f, reachMultiplier = 1f },
-                new Swing { windup = 0.12f, active = 0.18f, recovery = 0.18f, angle = 140f, lungeDistance = 0.22f, reachMultiplier = 1f },
-                new Swing { windup = 0.22f, active = 0.22f, recovery = 0.28f, angle = 180f, lungeDistance = 0.3f, reachMultiplier = 1.4f },
+                new Swing { windup = 0.14f, active = 0.18f, recovery = 0.16f, angle = 140f, lungeDistance = 0.22f, reachMultiplier = 1f, hitstopDuration = 0.04f, sweetSpotHitstopDuration = 0.06f },
+                new Swing { windup = 0.12f, active = 0.18f, recovery = 0.18f, angle = 140f, lungeDistance = 0.22f, reachMultiplier = 1f, hitstopDuration = 0.05f, sweetSpotHitstopDuration = 0.075f },
+                new Swing { windup = 0.22f, active = 0.22f, recovery = 0.28f, angle = 180f, lungeDistance = 0.3f, reachMultiplier = 1.4f, hitstopDuration = 0.06f, sweetSpotHitstopDuration = 0.09f },
             };
             [Min(0f)] public float comboCooldown = 0.4f;
             [Min(0f)] public float comboResetDelay = 0.8f;

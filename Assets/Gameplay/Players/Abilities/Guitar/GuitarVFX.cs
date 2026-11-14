@@ -27,11 +27,13 @@ namespace Game50033
         private MaterialPropertyBlock _properties;
         private Mesh _mesh;
         private Renderer _renderer;
+        private PlayerHitstop _hitstop;
         private static readonly int BodyColorId = Shader.PropertyToID("_BodyColor");
         private static readonly int SweetSpotColorId = Shader.PropertyToID("_SweetSpotColor");
 
         private void Awake()
         {
+            _hitstop = GetComponent<PlayerHitstop>();
             _mesh = new Mesh { name = "Guitar smear" };
             _mesh.MarkDynamic();
             if (smearFilter == null) return;
@@ -63,7 +65,7 @@ namespace Game50033
             {
                 origin = origin, direction = direction, startAngle = startAngle, endAngle = endAngle,
                 inner = innerRadius, outer = reach, stretchAxis = stretchAxis, depthStretch = Mathf.Max(1f, depthStretch),
-                sweetSpot = sweetSpotRadius, startsAt = Time.time
+                sweetSpot = sweetSpotRadius, startsAt = _hitstop != null ? _hitstop.ActionTime : Time.time
             });
         }
 
@@ -73,6 +75,8 @@ namespace Game50033
             if (_smears.Count == 0 && _mesh.vertexCount == 0) return;
 
             var vfx = tuning.vfx;
+            // smear poses share the owner's action clock; scene-local impact particles keep world time.
+            var now = _hitstop != null ? _hitstop.ActionTime : Time.time;
             var durations = new Vector4(Mathf.Max(0.001f, vfx.frameDurations.x), Mathf.Max(0.001f, vfx.frameDurations.y),
                 Mathf.Max(0.001f, vfx.frameDurations.z), Mathf.Max(0.001f, vfx.frameDurations.w));
             _vertices.Clear();
@@ -84,7 +88,7 @@ namespace Game50033
             for (var i = 0; i < _smears.Count; i++)
             {
                 var smear = _smears[i];
-                var age = Time.time - smear.startsAt;
+                var age = now - smear.startsAt;
                 if (age >= durations.x + durations.y + durations.z + durations.w)
                 {
                     _smears.RemoveAt(i--);

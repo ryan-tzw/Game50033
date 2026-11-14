@@ -20,18 +20,24 @@ MonoBehaviour:
       angle: 140
       lungeDistance: 0.22
       reachMultiplier: 1.1
+      hitstopDuration: 0.04
+      sweetSpotHitstopDuration: 0.06
     - windup: 0.21
       active: 0.18
       recovery: 0.26
       angle: 140
       lungeDistance: 0.22
       reachMultiplier: 1.1
+      hitstopDuration: 0.05
+      sweetSpotHitstopDuration: 0.075
     - windup: 0.38
       active: 0.22
       recovery: 0.3
       angle: 180
       lungeDistance: 0.4
       reachMultiplier: 1.4
+      hitstopDuration: 0.06
+      sweetSpotHitstopDuration: 0.09
     comboCooldown: 0.4
     comboResetDelay: 0.8
     impactDelay: 0.035

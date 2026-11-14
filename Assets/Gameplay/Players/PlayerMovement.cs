@@ -13,6 +13,7 @@ namespace Game50033
         [SerializeField, Min(0.01f)] private float dodgeRechargeTime = 7f;
 
         private CharacterController _controller;
+        private PlayerHitstop _hitstop;
         private bool _initialized;
         private Vector2 _moveInput;
         private Vector3 _dodgeDirection;
@@ -34,7 +35,7 @@ namespace Game50033
         public bool IsDisplacing { get; private set; }
         public bool IsInvulnerable => IsDodging && isActiveAndEnabled && _controller != null && _controller.enabled;
         public bool CanDodge => isActiveAndEnabled && _controller != null && _controller.enabled
-            && !IsDodging && !IsDisplacing && DodgeCharges > 0;
+            && !IsDodging && !IsDisplacing && DodgeCharges > 0 && (_hitstop == null || !_hitstop.IsStopped);
         public int DodgeCharges { get; private set; }
         public int MaxDodgeCharges => maxDodgeCharges;
         public float DodgeRechargeRemaining => DodgeCharges < maxDodgeCharges
@@ -50,6 +51,7 @@ namespace Game50033
             if (_initialized) return;
 
             _controller = GetComponent<CharacterController>();
+            _hitstop = GetComponent<PlayerHitstop>();
             DodgeCharges = maxDodgeCharges;
             _initialized = true;
         }
@@ -89,13 +91,14 @@ namespace Game50033
         {
             direction.y = 0f;
             if (!isActiveAndEnabled || _controller == null || !_controller.enabled
+                || _hitstop != null && _hitstop.IsStopped
                 || IsDodging || IsDisplacing || direction.sqrMagnitude < 0.0001f || duration <= 0f) return false;
 
             _displacementDirection = direction.normalized;
             _displacementDistance = distance;
             _displacementDuration = duration;
             _displacementElapsed = 0f;
-            _displacementStartsAt = Time.time + Mathf.Max(0f, delay);
+            _displacementStartsAt = (_hitstop != null ? _hitstop.ActionTime : Time.time) + Mathf.Max(0f, delay);
             _displacementCurve = easing;
             _curveStart = easing != null ? easing.Evaluate(0f) : 0f;
             _curveSpan = easing != null ? easing.Evaluate(1f) - _curveStart : 0f;
@@ -125,6 +128,8 @@ namespace Game50033
                 CancelDisplacement();
                 return;
             }
+            // recharge uses world time above, but a frozen player must not move or depenetrate.
+            if (_hitstop != null && _hitstop.IsStopped) return;
 
             var displacement = Vector3.zero;
             var dodging = IsDodging;
@@ -141,7 +146,7 @@ namespace Game50033
             else if (IsDisplacing)
             {
                 var previousProgress = Mathf.Clamp01(_displacementElapsed / _displacementDuration);
-                _displacementElapsed = Time.time - _displacementStartsAt;
+                _displacementElapsed = (_hitstop != null ? _hitstop.ActionTime : Time.time) - _displacementStartsAt;
                 var progress = Mathf.Clamp01(_displacementElapsed / _displacementDuration);
 
                 // normalize the endpoints to preserve total distance while allowing curve overshoot.

@@ -73,6 +73,8 @@ namespace Game50033
                 _placed = false;
                 return;
             }
+            // show the impact pose on its request frame, then hold all weapon motion during stopped frames.
+            if (_player.Hitstop.IsStopped && _player.Hitstop.ActionDeltaTime <= 0f) return;
 
             var facing = _player.Movement.FacingDirection;
             if (_camera == null) return;
@@ -84,7 +86,7 @@ namespace Game50033
             if (_posing) position = transform.position + Vector3.up * _height;
 
             // use the neck at rest, blending to the external swing pivot during windup.
-            var blend = !_placed || _active ? 1f : 1f - Mathf.Exp(-weapon.followSharpness * Time.deltaTime);
+            var blend = !_placed || _active ? 1f : 1f - Mathf.Exp(-weapon.followSharpness * _player.Hitstop.ActionDeltaTime);
             weaponPivot.position = Vector3.Lerp(weaponPivot.position, position, blend);
             var targetGrip = _posing ? weapon.spriteGripPoint : weapon.restingGripPoint;
             _gripPoint = Vector2.Lerp(_gripPoint, targetGrip, blend);
@@ -101,7 +103,7 @@ namespace Game50033
                 : new Vector2(-Vector3.Dot(facing, _camera.transform.right), -Vector3.Dot(facing, _camera.transform.up));
             var spriteAngle = Mathf.Atan2(screenDirection.y, screenDirection.x) * Mathf.Rad2Deg - weapon.spriteOutwardAngle;
             if (!_posing) spriteAngle -= weapon.restingAngleOffset * handSide;
-            var rotationBlend = !_placed || _active ? 1f : 1f - Mathf.Exp(-weapon.rotationSharpness * Time.deltaTime);
+            var rotationBlend = !_placed || _active ? 1f : 1f - Mathf.Exp(-weapon.rotationSharpness * _player.Hitstop.ActionDeltaTime);
             _visualAngle = Mathf.LerpAngle(_visualAngle, spriteAngle, rotationBlend);
 
             // the original flat geometry supplies depth; the shader supplies the camera-facing image.

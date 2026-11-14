@@ -107,6 +107,7 @@ GameObject:
   - component: {fileID: 1544443953293736951}
   - component: {fileID: 2439631078986181378}
   - component: {fileID: 5036130649280889951}
+  - component: {fileID: 7213515434291519152}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -269,3 +270,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerCharacterSelect
   avatarVisual: {fileID: 3231995453142075047}
   navigateThreshold: 0.6
+--- !u!114 &7213515434291519152
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dff59e866ce1b7abdb381b46576a41f7, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHitstop

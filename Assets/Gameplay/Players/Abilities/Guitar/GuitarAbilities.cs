@@ -98,8 +98,8 @@ namespace Game50033
             HasEmpoweredPrimary = false;
             ComboStep = _nextComboIndex + 1;
             _swingSign = _nextComboIndex % 2 == 0 ? 1f : -1f;
-            _startedAt = Time.time;
-            _readyAt = _startedAt + _swing.windup + _swing.active + _swing.recovery;
+            _startedAt = Player.Hitstop.ActionTime;
+            _readyAt = Time.time + _swing.windup + _swing.active + _swing.recovery;
             _activeFinished = false;
             _impactResolved = false;
             _hitThisSwing.Clear();
@@ -126,9 +126,10 @@ namespace Game50033
                 Cancel();
                 return;
             }
+            if (Player.Hitstop.IsStopped) return;
 
             var attack = tuning.attack;
-            var elapsed = Time.time - _startedAt;
+            var elapsed = Player.Hitstop.ActionTime - _startedAt;
             if (_strumming)
             {
                 var secondary = tuning.secondary;
@@ -215,6 +216,7 @@ namespace Game50033
             if (!_impactResolved && elapsed >= _swing.windup + Mathf.Clamp(attack.impactDelay, 0f, _swing.active))
             {
                 _impactResolved = true;
+                var hitstopDuration = 0f;
                 _impactOrigin = origin;
                 if (vfx != null)
                     vfx.BeginSwing(origin, _direction, startAngle, -startAngle, attack.innerRadius, _swingReach,
@@ -247,6 +249,7 @@ namespace Game50033
                     target.TakeHit(new HitInfo(gameObject, attack.damage * _primaryMultiplier
                         * (normalHit ? 1f : attack.sweetSpotMultiplier), hitDirection));
                     if (!IsAttacking || !isActiveAndEnabled) return;
+                    hitstopDuration = Mathf.Max(hitstopDuration, normalHit ? _swing.hitstopDuration : _swing.sweetSpotHitstopDuration);
                     if (vfx != null) vfx.PlayImpact(contact, !normalHit);
                 }
 
@@ -298,8 +301,15 @@ namespace Game50033
 
                         // a hit callback may down or disable the attacker; stop resolving immediately.
                         if (!IsAttacking || !isActiveAndEnabled) return;
+                        hitstopDuration = Mathf.Max(hitstopDuration, sweetSpot ? _swing.sweetSpotHitstopDuration : _swing.hitstopDuration);
                         if (vfx != null) vfx.PlayImpact(contact, sweetSpot);
                     }
+                }
+                // resolve every target first, then pause once using the strongest contact in this sweep.
+                if (hitstopDuration > 0f)
+                {
+                    Player.Hitstop.Request(hitstopDuration);
+                    if (Player.Hitstop.IsStopped) return;
                 }
             }
             _activeFinished = activeProgress >= 1f;
@@ -351,7 +361,7 @@ namespace Game50033
             if (secondary.backstepDistance > 0f && !Player.Movement.TryStartDisplacement(
                 -_direction, secondary.backstepDistance, _strumActive, secondary.backstepEasing, _strumWindup)) return false;
 
-            _startedAt = Time.time;
+            _startedAt = Player.Hitstop.ActionTime;
             _secondaryReadyAt = Time.time + Mathf.Max(0f, secondary.cooldown);
             _strumReleased = false;
             _strumming = true;
@@ -379,6 +389,7 @@ namespace Game50033
             BlocksDodge = false;
             BlocksAbilities = false;
             if (Player.Movement != null) Player.Movement.CancelDisplacement();
+            if (Player.Hitstop != null) Player.Hitstop.Clear();
             if (weaponVisual != null) weaponVisual.Cancel();
             if (vfx != null) vfx.Cancel();
         }
