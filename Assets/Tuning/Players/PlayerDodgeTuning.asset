@@ -17,14 +17,70 @@ MonoBehaviour:
   hitstopDuration: 0.05
   flashEnabled: 1
   flashPrefab: {fileID: 7325644495473268895, guid: a939d147cd59af60898b9ca2b41ccac0, type: 3}
-  flashDuration: 0.12
-  flashLength: 0.55
-  flashWidth: 0.18
+  flashDuration: 0.3
+  flashLength: 0.6
+  flashWidth: 0.06
   flashHeight: 0.15
-  flashForwardDrift: 0.08
+  flashForwardDrift: 0.04
   flashColor: {r: 1, g: 1, b: 1, a: 1}
-  flashOpacity: 1
+  flashOpacity: 0.5
   flashFadeCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: -1
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: -1
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  shockwaveEnabled: 1
+  shockwaveDuration: 0.3
+  shockwaveInitialRadius: 0.05
+  shockwaveFinalRadius: 0.6
+  shockwaveThickness: 0.2
+  shockwaveHeight: 0.15
+  shockwaveStrengthPixels: 2
+  shockwaveCombinedLimitPixels: 4
+  shockwaveExpansion:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 2
+      outSlope: 2
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  shockwaveFalloff:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3

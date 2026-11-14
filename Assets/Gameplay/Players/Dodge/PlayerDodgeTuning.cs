@@ -26,6 +26,20 @@ namespace Game50033
         [Tooltip("Sampled once per held pose; the flash has four poses over its total duration.")]
         public AnimationCurve flashFadeCurve = AnimationCurve.Linear(0f, 1f, 1f, 0f);
 
+        [Header("Distortion Shockwave")]
+        public bool shockwaveEnabled = true;
+        [Min(0.01f)] public float shockwaveDuration = 0.25f;
+        [Min(0f)] public float shockwaveInitialRadius = 0.05f;
+        [Min(0f)] public float shockwaveFinalRadius = 0.8f;
+        [Min(0.001f)] public float shockwaveThickness = 0.12f;
+        public float shockwaveHeight = 0.15f;
+        [Tooltip("Peak displacement in pixels of the pixel renderer's reference grid.")]
+        [Min(0f)] public float shockwaveStrengthPixels = 1f;
+        [Tooltip("Limits the total offset where multiple waves overlap, in reference-grid pixels.")]
+        [Min(0f)] public float shockwaveCombinedLimitPixels = 2f;
+        public AnimationCurve shockwaveExpansion = new(new Keyframe(0f, 0f, 2f, 2f), new Keyframe(1f, 1f, 0f, 0f));
+        public AnimationCurve shockwaveFalloff = AnimationCurve.Linear(0f, 1f, 1f, 0f);
+
         [Header("Afterimage Emission")]
         public bool afterimagesEnabled = true;
         [Min(0)] public int maxAfterimages = 8;

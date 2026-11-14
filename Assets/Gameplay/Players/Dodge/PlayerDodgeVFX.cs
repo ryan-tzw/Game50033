@@ -1,5 +1,6 @@
 namespace Game50033
 {
+    using System.Collections.Generic;
     using UnityEngine;
     using UnityEngine.Rendering;
     using UnityEngine.SceneManagement;
@@ -11,6 +12,19 @@ namespace Game50033
     {
         [SerializeField] private SpriteRenderer avatarRenderer;
         [SerializeField] private PlayerDodgeTuning tuning;
+
+        internal struct Shockwave
+        {
+            internal Vector3 origin;
+            internal float startedAt, duration;
+        }
+
+        private static readonly List<PlayerDodgeVFX> _active = new();
+        internal static IReadOnlyList<PlayerDodgeVFX> Active => _active;
+        internal IReadOnlyList<Shockwave> Shockwaves => _shockwaves;
+        internal PlayerDodgeTuning Tuning => tuning;
+        private readonly Shockwave[] _shockwaves = new Shockwave[2];
+        private int _nextShockwave;
 
         private Player _player;
         private PlayerMovement _movement;
@@ -54,6 +68,9 @@ namespace Game50033
                 enabled = false;
                 return;
             }
+            _active.Add(this);
+            System.Array.Clear(_shockwaves, 0, _shockwaves.Length);
+            _nextShockwave = 0;
             _properties ??= new MaterialPropertyBlock();
             _flashProperties ??= new MaterialPropertyBlock();
             _movement.DodgeStarted += HandleDodgeStarted;
@@ -95,6 +112,8 @@ namespace Game50033
 
         private void HandleSceneChanged(Scene previous, Scene current)
         {
+            System.Array.Clear(_shockwaves, 0, _shockwaves.Length);
+            _nextShockwave = 0;
             BuildPool();
         }
 
@@ -109,6 +128,17 @@ namespace Game50033
             _distanceSinceSnapshot = 0f;
             _previousPosition = transform.position;
             _previousAvatarPosition = avatarRenderer.transform.position;
+            if (tuning.shockwaveEnabled)
+            {
+                // world time keeps the expanding disturbance independent of the player's startup freeze.
+                _shockwaves[_nextShockwave] = new Shockwave
+                {
+                    origin = transform.position + Vector3.up * tuning.shockwaveHeight,
+                    startedAt = Time.time,
+                    duration = Mathf.Max(0.01f, tuning.shockwaveDuration)
+                };
+                _nextShockwave = (_nextShockwave + 1) % _shockwaves.Length;
+            }
             if (tuning.flashEnabled && _flashObject != null && _flashRenderer != null)
             {
                 _flashOrigin = transform.position + Vector3.up * tuning.flashHeight;
@@ -235,6 +265,9 @@ namespace Game50033
 
         private void OnDisable()
         {
+            _active.Remove(this);
+            System.Array.Clear(_shockwaves, 0, _shockwaves.Length);
+            _nextShockwave = 0;
             if (_movement != null)
             {
                 _movement.DodgeStarted -= HandleDodgeStarted;

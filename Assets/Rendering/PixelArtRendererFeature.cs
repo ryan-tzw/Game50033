@@ -19,6 +19,8 @@ namespace Game50033
         [SerializeField] private Shader toonOverrideShader;
         [SerializeField] private Material edgeDetectMat;
 
+        public Vector2Int Resolution => resolution;
+
         private PixelArtPass _pass;
 
         public override void Create()
