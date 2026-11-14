@@ -254,7 +254,7 @@ MonoBehaviour:
       serializedVersion: 2
       m_Bits: 4294967295
     movementSpeedMultiplier: 0.15
-    backstepDistance: 0.15
+    backstepDistance: 0.08
     backstepEasing:
       serializedVersion: 2
       m_Curve:
@@ -279,31 +279,12 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    swingAngle: 140
-    swingEasing:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 0
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      - serializedVersion: 3
-        time: 1
-        value: 1
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
+    strumOffset: {x: 0.08, y: 0.2, z: 0}
+    strumGripPoint: {x: 0, y: 0.1}
+    strumAngle: -30
+    strumAmplitude: 0.04
+    strumFrequency: 14
+    strumDecay: 2
   special:
     windup: 0.7
     active: 0.12

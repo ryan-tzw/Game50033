@@ -253,33 +253,15 @@ namespace Game50033
             if (_strumming)
             {
                 var secondary = tuning.secondary;
-                var sign = _nextComboIndex % 2 == 0 ? 1f : -1f;
-                var start = -secondary.swingAngle * 0.5f * sign;
                 var windingUp = elapsed < _strumWindup;
                 var recovering = elapsed >= _strumWindup + _strumActive;
-                float angle;
-                float scale;
-                if (windingUp)
-                {
-                    var progress = Mathf.Clamp01(elapsed / _strumWindup);
-                    angle = start - attack.anticipationAngle * sign * Mathf.Sin(attack.windupEasing.Evaluate(progress) * Mathf.PI);
-                    scale = attack.windupScale;
-                }
-                else if (!recovering)
-                {
-                    var progress = Mathf.Clamp01((elapsed - _strumWindup) / _strumActive);
-                    angle = Mathf.LerpUnclamped(start, -start, secondary.swingEasing.Evaluate(progress));
-                    scale = attack.swingScale;
-                }
-                else
-                {
-                    var progress = Mathf.Clamp01((elapsed - _strumWindup - _strumActive) / _strumRecovery);
-                    var eased = attack.recoveryEasing.Evaluate(progress);
-                    angle = -start + 12f * sign * eased;
-                    scale = Mathf.Lerp(attack.swingScale, 1f, eased);
-                }
+                var phase = windingUp ? PlayerAttackPhase.Windup : recovering ? PlayerAttackPhase.Recovery : PlayerAttackPhase.Active;
+                var progress = windingUp ? elapsed / _strumWindup : recovering
+                    ? (elapsed - _strumWindup - _strumActive) / _strumRecovery
+                    : (elapsed - _strumWindup) / _strumActive;
                 if (weaponVisual != null)
-                    weaponVisual.SetSwingPose(_direction, angle, attack.attackHeight, !windingUp && !recovering, scale);
+                    weaponVisual.SetStrumPose(_direction, phase, Mathf.Clamp01(progress),
+                        Mathf.Max(0f, elapsed - _strumWindup), _strumActive + _strumRecovery);
 
                 if (!_strumReleased && elapsed >= _strumWindup)
                 {
@@ -304,11 +286,7 @@ namespace Game50033
                 BlocksDodge = false;
                 BlocksAbilities = false;
                 _comboExpiresAt = Time.time + attack.comboResetDelay;
-                if (weaponVisual != null)
-                {
-                    if (_nextComboIndex == 0) weaponVisual.Cancel();
-                    else weaponVisual.SetSwingPose(_direction, angle, attack.attackHeight, false, scale);
-                }
+                if (weaponVisual != null) weaponVisual.Cancel();
                 return;
             }
             var origin = transform.position + Vector3.up * attack.attackHeight;

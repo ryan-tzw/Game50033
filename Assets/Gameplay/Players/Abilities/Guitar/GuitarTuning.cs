@@ -110,14 +110,25 @@ namespace Game50033
             [Min(0.01f)] public float hitThickness = 0.04f;
             public LayerMask collisionMask = ~0;
 
-            [Header("Movement and Weapon Motion")]
+            [Header("Movement")]
             [Tooltip("Normal movement speed throughout Secondary's windup, active and recovery phases. Its backstep is added independently.")]
             [Range(0f, 1f)] public float movementSpeedMultiplier = 0.2f;
             [Tooltip("Retreat opposite the captured aim. Starts on release and lasts through the active phase.")]
             [Min(0f)] public float backstepDistance = 0.15f;
             public AnimationCurve backstepEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
-            [Range(1f, 300f)] public float swingAngle = 140f;
-            public AnimationCurve swingEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+            [Header("Strum Pose")]
+            [Tooltip("Camera-right offset (mirrored), world height, then offset along captured aim.")]
+            public Vector3 strumOffset = new(0.08f, 0.2f, 0f);
+            public Vector2 strumGripPoint = new(0f, 0.1f);
+            [Range(-90f, 90f)] public float strumAngle = 20f;
+
+            [Header("Strum Vibration")]
+            [Tooltip("Maximum screen-vertical displacement in world units. 0.04 is two pixels at 50 pixels per unit.")]
+            [Min(0f)] public float strumAmplitude = 0.04f;
+            [Min(0f)] public float strumFrequency = 14f;
+            [Tooltip("Decay power over Active and Recovery. Larger values settle the vibration sooner.")]
+            [Min(0.01f)] public float strumDecay = 2f;
         }
 
         [Serializable]

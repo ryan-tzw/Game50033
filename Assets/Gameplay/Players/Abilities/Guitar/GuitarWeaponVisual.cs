@@ -14,6 +14,10 @@ namespace Game50033
 
         private Player _player;
         private Camera _camera;
+        private bool _strumming;
+        private PlayerAttackPhase _strumPhase;
+        private float _strumProgress, _strumElapsed, _strumDuration, _strumStartAngle;
+        private Vector3 _strumStartOffset;
         private bool _smashing;
         private PlayerAttackPhase _smashPhase;
         private float _smashProgress, _smashImpactFraction, _smashStartAngle, _smashStartHeight;
@@ -49,6 +53,7 @@ namespace Game50033
 
         public void SetSwingPose(Vector3 direction, float angle, float height, bool active, float emphasis)
         {
+            _strumming = false;
             _smashing = false;
             _posing = true;
             _direction = direction;
@@ -58,8 +63,28 @@ namespace Game50033
             _emphasis = emphasis;
         }
 
+        public void SetStrumPose(Vector3 direction, PlayerAttackPhase phase, float progress, float vibrationElapsed, float vibrationDuration)
+        {
+            if (!_strumming)
+            {
+                _strumStartAngle = _visualAngle + tuning.weapon.spriteOutwardAngle;
+                _strumStartOffset = weaponPivot != null ? weaponPivot.position - transform.position : Vector3.up * tuning.weapon.gripOffset.y;
+            }
+            _strumming = true;
+            _smashing = false;
+            _posing = true;
+            _direction = direction;
+            _strumPhase = phase;
+            _strumProgress = progress;
+            _strumElapsed = vibrationElapsed;
+            _strumDuration = vibrationDuration;
+            _active = phase == PlayerAttackPhase.Active;
+            _emphasis = 1f;
+        }
+
         public void SetSmashPose(Vector3 direction, PlayerAttackPhase phase, float progress, float impactFraction)
         {
+            _strumming = false;
             if (!_smashing)
             {
                 _smashStartAngle = _visualAngle + tuning.weapon.spriteOutwardAngle;
@@ -77,6 +102,7 @@ namespace Game50033
 
         public override void Cancel()
         {
+            _strumming = false;
             _smashing = false;
             _posing = false;
             _active = false;
@@ -104,8 +130,43 @@ namespace Game50033
             var handSide = Vector3.Dot(facing, _camera.transform.right) >= -0.0001f ? 1f : -1f;
             var position = transform.position + Vector3.up * weapon.gripOffset.y
                 + _camera.transform.right * (weapon.gripOffset.x * handSide) + facing * weapon.gripOffset.z;
+            var restingPosition = position;
             var radial = Quaternion.AngleAxis(_angle, Vector3.up) * _direction;
             if (_posing) position = transform.position + Vector3.up * _height;
+
+            var strumVibration = 0f;
+            if (_strumming)
+            {
+                var secondary = tuning.secondary;
+                var sign = Vector3.Dot(_direction, _camera.transform.right) >= -0.0001f ? 1f : -1f;
+                var playingAngle = sign > 0f ? 180f - secondary.strumAngle : secondary.strumAngle;
+                var playingPosition = transform.position + _camera.transform.right * (secondary.strumOffset.x * sign)
+                    + Vector3.up * secondary.strumOffset.y + _direction * secondary.strumOffset.z;
+                var outwardAngle = playingAngle;
+                position = playingPosition;
+                if (_strumPhase == PlayerAttackPhase.Windup)
+                {
+                    var prepare = Mathf.SmoothStep(0f, 1f, _strumProgress);
+                    outwardAngle = _strumStartAngle + Mathf.DeltaAngle(_strumStartAngle, playingAngle) * prepare;
+                    position = Vector3.Lerp(transform.position + _strumStartOffset, playingPosition, prepare);
+                }
+                else
+                {
+                    var remaining = 1f - Mathf.Clamp01(_strumElapsed / Mathf.Max(0.001f, _strumDuration));
+                    strumVibration = Mathf.Sin(_strumElapsed * secondary.strumFrequency * 2f * Mathf.PI)
+                        * secondary.strumAmplitude * Mathf.Pow(remaining, secondary.strumDecay);
+                    if (_strumPhase == PlayerAttackPhase.Recovery)
+                    {
+                        var settle = Mathf.SmoothStep(0f, 1f, _strumProgress);
+                        var rest = Mathf.Atan2(-Vector3.Dot(facing, _camera.transform.up),
+                            -Vector3.Dot(facing, _camera.transform.right)) * Mathf.Rad2Deg - weapon.restingAngleOffset * handSide;
+                        outwardAngle = playingAngle + Mathf.DeltaAngle(playingAngle, rest) * settle;
+                        position = Vector3.Lerp(playingPosition, restingPosition, settle);
+                    }
+                }
+                radial = _camera.transform.right * Mathf.Cos(outwardAngle * Mathf.Deg2Rad)
+                    + _camera.transform.up * Mathf.Sin(outwardAngle * Mathf.Deg2Rad);
+            }
 
             var windupShake = 0f;
             if (_smashing)
@@ -156,6 +217,12 @@ namespace Game50033
             var blend = !_placed || _active ? 1f : 1f - Mathf.Exp(-weapon.followSharpness * _player.Hitstop.ActionDeltaTime);
             weaponPivot.position = Vector3.Lerp(weaponPivot.position, position, blend);
             var targetGrip = _posing ? weapon.spriteGripPoint : weapon.restingGripPoint;
+            if (_strumming)
+            {
+                targetGrip = tuning.secondary.strumGripPoint;
+                if (_strumPhase == PlayerAttackPhase.Recovery)
+                    targetGrip = Vector2.Lerp(targetGrip, weapon.restingGripPoint, Mathf.SmoothStep(0f, 1f, _strumProgress));
+            }
             if (_smashing && _smashPhase == PlayerAttackPhase.Recovery)
                 targetGrip = Vector2.Lerp(weapon.spriteGripPoint, weapon.restingGripPoint,
                     tuning.special.recoveryEasing.Evaluate(_smashProgress));
@@ -181,7 +248,7 @@ namespace Game50033
 
             // the original flat geometry supplies depth; the shader supplies the camera-facing image.
             var worldDirection = _posing ? radial : -facing;
-            if ((!_posing || _smashing) && Mathf.Abs(_camera.transform.forward.y) > 0.001f)
+            if ((!_posing || _smashing || _strumming) && Mathf.Abs(_camera.transform.forward.y) > 0.001f)
             {
                 // project the already-smoothed visible direction onto XZ along the camera's view rays.
                 // this keeps the idle depth geometry on the same axis instead of smoothing it a second time.
@@ -193,6 +260,8 @@ namespace Game50033
             var yaw = weapon.spriteOutwardAngle - Mathf.Atan2(worldDirection.z, worldDirection.x) * Mathf.Rad2Deg;
             var rotation = Quaternion.AngleAxis(yaw, Vector3.up) * Quaternion.Euler(90f, 0f, 0f);
             weaponPivot.rotation = _posing ? Quaternion.Slerp(weaponPivot.rotation, rotation, rotationBlend) : rotation;
+            // apply vibration after the final pivot rotation, from the base pose each frame; it cannot accumulate.
+            weaponSprite.transform.localPosition += weaponPivot.InverseTransformVector(_camera.transform.up * strumVibration);
             weaponSprite.GetPropertyBlock(_properties);
             _properties.SetFloat(SpriteFlatDepthId, 1f);
             _properties.SetFloat(SpriteRotationId, displayedAngle);
