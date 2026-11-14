@@ -1,5 +1,6 @@
 namespace Game50033
 {
+    using System;
     using UnityEngine;
 
     [DisallowMultipleComponent]
@@ -10,6 +11,8 @@ namespace Game50033
         [SerializeField, Min(0f)] private float dodgeDistance = 1f;
         [SerializeField, Min(0.01f)] private float dodgeDuration = 0.2f;
         [SerializeField, Min(1)] private int maxDodgeCharges = 2;
+        [SerializeField] private PlayerDodgeTuning dodgeTuning;
+        [Tooltip("Legacy fallback for players without a shared dodge tuning asset.")]
         [SerializeField, Min(0.01f)] private float dodgeRechargeTime = 7f;
 
         private CharacterController _controller;
@@ -28,6 +31,11 @@ namespace Game50033
         private AnimationCurve _displacementCurve;
         private float _curveStart;
         private float _curveSpan;
+
+        private float DodgeRechargeTime => Mathf.Max(0.01f, dodgeTuning != null ? dodgeTuning.rechargeTime : dodgeRechargeTime);
+
+        public event Action<Vector3> DodgeStarted;
+        public event Action<bool> DodgeEnded;
 
         public Vector3 MoveDirection { get; private set; }
         public Vector3 FacingDirection { get; private set; } = Vector3.forward;
@@ -74,17 +82,20 @@ namespace Game50033
         {
             if (!allowed || !CanDodge) return false;
 
-            if (DodgeCharges == maxDodgeCharges) _nextChargeAt = Time.time + dodgeRechargeTime;
+            if (DodgeCharges == maxDodgeCharges) _nextChargeAt = Time.time + DodgeRechargeTime;
             DodgeCharges--;
             _dodgeDirection = FacingDirection;
             _dodgeElapsed = 0f;
             IsDodging = true;
+            DodgeStarted?.Invoke(_dodgeDirection);
             return true;
         }
 
         internal void CancelDodge()
         {
+            if (!IsDodging) return;
             IsDodging = false;
+            DodgeEnded?.Invoke(false);
         }
 
         public bool TryStartDisplacement(Vector3 direction, float distance, float duration, AnimationCurve easing, float delay = 0f)
@@ -119,7 +130,7 @@ namespace Game50033
             while (DodgeCharges < maxDodgeCharges && Time.time >= _nextChargeAt)
             {
                 DodgeCharges++;
-                _nextChargeAt += dodgeRechargeTime;
+                _nextChargeAt += DodgeRechargeTime;
             }
 
             if (!_controller.enabled)
@@ -172,6 +183,7 @@ namespace Game50033
             _verticalSpeed = _controller.isGrounded ? -2f : Mathf.Max(-30f, _verticalSpeed + Physics.gravity.y * deltaTime);
             displacement.y = _verticalSpeed * deltaTime;
             _controller.Move(displacement);
+            if (dodging && !IsDodging) DodgeEnded?.Invoke(true);
         }
     }
 }

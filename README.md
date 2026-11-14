@@ -92,6 +92,14 @@ Each character can only be picked by one player. Characters taken by someone els
 
 ---
 
+### Dodge feedback
+
+The shared `Player.prefab` includes `PlayerDodgeVFX`; Guitar and Flute inherit it. The standalone Trombone prefab is intentionally deferred. Move and press Space / the right trigger to activate a dodge; no incoming attack or successful evasion is required. Accepted activations spend a charge, pause that player for 0.05 s, then perform the existing dodge. Rejected inputs produce no effects. `IsDodging` invulnerability includes the startup pause, while charge recovery continues on world time. Distance, travel duration, easing and input behaviour are unchanged.
+
+Tune **`Assets/Tuning/Players/PlayerDodgeTuning.asset`**. **Charge Recovery → Recharge Time** controls seconds per restored charge (default 7); spending the second charge does not restart the countdown. The shared prefab assigns this asset directly to `PlayerMovement`, independently of the VFX component. The standalone Trombone retains its existing prefab recharge value until migrated. Startup hitstop and afterimages have independent toggles. The current asset uses four snapshots per dodge, 0.3-unit spacing, a 1 s lifetime and 0.75 starting opacity. Its cubic fade curve is `(1 - progress)^3`. **Fade Steps = 0** follows the curve smoothly; positive values enable stepped opacity. Smooth fading keeps the same hard-edged, solid-colour silhouette. Color Multiplier modifies the player colour; the shader discards source RGB entirely and uses only sprite alpha, producing a solid silhouette. Snapshots capture the avatar frame/flip/transform, exclude weapons and shadows, and stay at their emitted world positions. Their lifetimes use world time; hitstop does not pause existing afterimage fades. Emission follows actual collision-limited XZ movement and skips the stationary freeze. The bounded pool has twice the configured per-dodge maximum; unusually long lifetimes recycle the oldest slots rather than allocating indefinitely. Disabling/destroying a player clears its pool; changing the active scene rebuilds it in the new scene.
+
+For a quick check, dodge in `GuitarPrimaryTest`, dodge into its wall, spend both charges, and test two controllers together. Streak and radial distortion are subsequent stages and are not present yet.
+
 ## 4. Where things are
 
 | Folder | Contents |
