@@ -9,6 +9,7 @@ namespace Game50033
     {
         public AttackSettings attack = new();
         public SecondarySettings secondary = new();
+        public DefensiveSettings defensive = new();
         public SpecialSettings special = new();
         public WeaponSettings weapon = new();
         [InspectorName("VFX")] public VFXSettings vfx = new();
@@ -43,8 +44,8 @@ namespace Game50033
             };
             [Min(0f)] public float comboCooldown = 0.4f;
             [Min(0f)] public float comboResetDelay = 0.8f;
-            [Tooltip("Seconds after the active phase begins until the whole crescent hits and appears.")]
-            [Min(0f)] public float impactDelay = 0.035f;
+            [Tooltip("Fraction of Active elapsed before the complete crescent hits and appears. 0.5 is halfway through the swing.")]
+            [Range(0f, 1f)] public float impactFraction = 0.5f;
 
             [Header("Hit Area")]
             [Min(0.01f)] public float reach = 1.05f;
@@ -132,6 +133,48 @@ namespace Game50033
         }
 
         [Serializable]
+        public sealed class DefensiveSettings
+        {
+            [Header("Timing and Damage")]
+            [Min(0.001f)] public float windup = 0.08f;
+            [Min(0.001f)] public float active = 0.2f;
+            [Min(0.001f)] public float recovery = 0.2f;
+            [Min(0f)] public float cooldown = 5f;
+            [Min(0f)] public float damage = 2f;
+            [Min(0f)] public float hitstopDuration = 0.04f;
+            [Tooltip("Fraction of Active elapsed before the complete melee sector hits and appears.")]
+            [Range(0f, 1f)] public float impactFraction = 0.5f;
+
+            [Header("Hit Area")]
+            [Range(1f, 300f)] public float angle = 140f;
+            [Min(0.01f)] public float reach = 1.15f;
+            [Min(0f)] public float innerRadius = 0.12f;
+            public Vector2 stretchAxis = Vector2.up;
+            [Min(1f)] public float depthStretch = 1.5f;
+            [Min(0.01f)] public float hitThickness = 0.08f;
+            public float attackHeight = 0.25f;
+            public LayerMask hitMask = ~0;
+
+            [Header("Movement")]
+            [Range(0f, 1f)] public float movementSpeedMultiplier = 0.2f;
+            [Min(0f)] public float backstepDistance = 0.4f;
+            public AnimationCurve backstepEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+            [Header("Weapon Animation")]
+            public AnimationCurve windupEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+            public AnimationCurve swingEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+            public AnimationCurve recoveryEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+            public float anticipationAngle = 22f;
+            [Min(0.01f)] public float windupScale = 0.9f;
+            [Min(0.01f)] public float swingScale = 1.05f;
+
+            [Header("Invulnerability Flash")]
+            [Min(0.1f)] public float flashFrequency = 8f;
+            [Range(0f, 1f)] public float flashOpacity = 0.55f;
+            [Range(0f, 1f)] public float flashDutyCycle = 0.5f;
+        }
+
+        [Serializable]
         public sealed class SpecialSettings
         {
             [Header("Timing")]
@@ -208,9 +251,10 @@ namespace Game50033
         [Serializable]
         public sealed class VFXSettings
         {
-            [Header("Primary Smear")]
-            [Tooltip("Seconds per pose: X broad, Y follow-through, Z broken, W streaks. Independent of rendering FPS.")]
-            public Vector4 frameDurations = new(0.045f, 0.045f, 0.055f, 0.065f);
+            [Header("Melee Smear")]
+            [Tooltip("Relative pose durations: X broad, Y follow-through, Z broken, W streaks. The whole sequence lasts one Active duration after impact.")]
+            [FormerlySerializedAs("frameDurations")]
+            public Vector4 frameWeights = new(0.045f, 0.045f, 0.055f, 0.065f);
             public Color smearColor = new(0.9f, 0.78f, 0.57f, 1f);
             public Color smearSweetSpotColor = new(1f, 0.94f, 0.72f, 1f);
 

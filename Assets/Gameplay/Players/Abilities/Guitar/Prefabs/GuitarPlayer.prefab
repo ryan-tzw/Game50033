@@ -436,3 +436,9 @@ MonoBehaviour:
   smearFilter: {fileID: 1466483713951560910}
   smashFilter: {fileID: 3955692954648331253}
   tuning: {fileID: 11400000, guid: a4ecf3fee9186063897b77006eb91110, type: 2}
+  avatarRenderer: {fileID: 9138158728770028337}
+--- !u!212 &9138158728770028337 stripped
+SpriteRenderer:
+  m_CorrespondingSourceObject: {fileID: 1627041761190954647, guid: 54d14410a406964f98f9e3c220de0abb, type: 3}
+  m_PrefabInstance: {fileID: 7513459030509634982}
+  m_PrefabAsset: {fileID: 0}

@@ -40,7 +40,7 @@ MonoBehaviour:
       sweetSpotHitstopDuration: 0.15
     comboCooldown: 0.4
     comboResetDelay: 0.8
-    impactDelay: 0.035
+    impactFraction: 0.5
     reach: 1.05
     innerRadius: 0.12
     sweetSpotRadius: 0.7
@@ -285,6 +285,128 @@ MonoBehaviour:
     strumAmplitude: 0.04
     strumFrequency: 14
     strumDecay: 2
+  defensive:
+    windup: 0.2
+    active: 0.4
+    recovery: 0.2
+    cooldown: 1
+    damage: 2
+    hitstopDuration: 0.04
+    impactFraction: 0.5
+    angle: 160
+    reach: 0.9
+    innerRadius: 0.12
+    stretchAxis: {x: 0, y: 1}
+    depthStretch: 1.5
+    hitThickness: 0.08
+    attackHeight: 0.25
+    hitMask:
+      serializedVersion: 2
+      m_Bits: 4294967295
+    movementSpeedMultiplier: 0.2
+    backstepDistance: 0.5
+    backstepEasing:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    windupEasing:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    swingEasing:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    recoveryEasing:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    anticipationAngle: 22
+    windupScale: 0.9
+    swingScale: 1.05
+    flashFrequency: 5
+    flashOpacity: 0.3
+    flashDutyCycle: 0.5
   special:
     windup: 0.7
     active: 0.12
@@ -398,7 +520,7 @@ MonoBehaviour:
     spriteScale: 1
     spriteOutwardAngle: -90
   vfx:
-    frameDurations: {x: 0.045, y: 0.045, z: 0.055, w: 0.065}
+    frameWeights: {x: 0.045, y: 0.045, z: 0.055, w: 0.065}
     smearColor: {r: 0.9, g: 0.78, b: 0.57, a: 1}
     smearSweetSpotColor: {r: 1, g: 0.94, b: 0.72, a: 1}
     strumColor: {r: 0.95, g: 0.82, b: 0.55, a: 1}

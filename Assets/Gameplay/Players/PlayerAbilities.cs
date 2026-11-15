@@ -28,6 +28,7 @@ namespace Game50033
         public bool BlocksMovement { get; protected set; }
         public bool BlocksDodge { get; protected set; }
         public bool BlocksAbilities { get; protected set; }
+        public virtual bool BlocksDefensive => BlocksAbilities;
         public virtual float MovementSpeedMultiplier => 1f;
         public virtual PlayerAttackPhase AnimationPhase => PlayerAttackPhase.None;
 

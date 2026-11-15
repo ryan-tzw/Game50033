@@ -35,6 +35,8 @@ namespace Game50033
         private float _specialWindup, _specialActive, _specialRecovery, _specialImpactFraction;
         private float _specialDistance, _specialRadius, _specialSweetSpotRadius, _specialHeight;
         private bool _strumming;
+        private bool _defending;
+        private float _defensiveReadyAt;
         private bool _strumReleased;
         private float _strumWindup;
         private float _strumActive;
@@ -45,6 +47,9 @@ namespace Game50033
 
         public bool IsAttacking { get; private set; }
         public bool IsStrumming => _strumming;
+        public bool IsDefending => _defending;
+        public float DefensiveCooldownRemaining => Mathf.Max(0f, _defensiveReadyAt - Time.time);
+        public override bool BlocksDefensive => IsAttacking && (_defending || AnimationPhase == PlayerAttackPhase.Active);
         public override PlayerAttackPhase AnimationPhase
         {
             get
@@ -61,7 +66,8 @@ namespace Game50033
 
         public override float MovementSpeedMultiplier => !IsAttacking ? 1f
             : _smashing ? tuning.special.movementSpeedMultiplier
-            : _strumming ? tuning.secondary.movementSpeedMultiplier : tuning.attack.movementSpeedMultiplier;
+            : _strumming ? tuning.secondary.movementSpeedMultiplier
+            : _defending ? tuning.defensive.movementSpeedMultiplier : tuning.attack.movementSpeedMultiplier;
         public bool HasEmpoweredAttack { get; private set; }
         public float SpecialCooldownRemaining => Mathf.Max(0f, _specialReadyAt - Time.time);
         public float SecondaryCooldownRemaining => Mathf.Max(0f, _secondaryReadyAt - Time.time);
@@ -289,7 +295,22 @@ namespace Game50033
                 if (weaponVisual != null) weaponVisual.Cancel();
                 return;
             }
-            var origin = transform.position + Vector3.up * attack.attackHeight;
+            // primary and defensive share sweep resolution; defensive supplies its own tuning and has no sweet band.
+            var defensive = tuning.defensive;
+            var height = _defending ? defensive.attackHeight : attack.attackHeight;
+            var innerRadius = _defending ? defensive.innerRadius : attack.innerRadius;
+            var impactFraction = _defending ? defensive.impactFraction : attack.impactFraction;
+            var damage = _defending ? defensive.damage : attack.damage;
+            var sweetMultiplier = _defending ? 1f : attack.sweetSpotMultiplier;
+            var hitMask = _defending ? defensive.hitMask : attack.hitMask;
+            var hitThickness = Mathf.Max(0.001f, _defending ? defensive.hitThickness : attack.hitThickness);
+            var windupEasing = _defending ? defensive.windupEasing : attack.windupEasing;
+            var swingEasing = _defending ? defensive.swingEasing : attack.swingEasing;
+            var recoveryEasing = _defending ? defensive.recoveryEasing : attack.recoveryEasing;
+            var anticipationAngle = _defending ? defensive.anticipationAngle : attack.anticipationAngle;
+            var windupScale = _defending ? defensive.windupScale : attack.windupScale;
+            var swingScale = _defending ? defensive.swingScale : attack.swingScale;
+            var origin = transform.position + Vector3.up * height;
             var startAngle = -_swing.angle * 0.5f * _swingSign;
 
             // -----------------------------
@@ -297,28 +318,28 @@ namespace Game50033
             // -----------------------------
             if (elapsed < _swing.windup)
             {
-                var progress = attack.windupEasing.Evaluate(Mathf.Clamp01(elapsed / _swing.windup));
-                var angle = startAngle - attack.anticipationAngle * _swingSign * Mathf.Sin(progress * Mathf.PI);
+                var progress = windupEasing.Evaluate(Mathf.Clamp01(elapsed / _swing.windup));
+                var angle = startAngle - anticipationAngle * _swingSign * Mathf.Sin(progress * Mathf.PI);
                 if (weaponVisual != null)
-                    weaponVisual.SetSwingPose(_direction, angle, attack.attackHeight, false, attack.windupScale);
+                    weaponVisual.SetSwingPose(_direction, angle, height, false, windupScale);
                 return;
             }
 
             var activeProgress = Mathf.Clamp01((elapsed - _swing.windup) / _swing.active);
-            var currentAngle = Mathf.LerpUnclamped(startAngle, -startAngle, attack.swingEasing.Evaluate(activeProgress));
+            var currentAngle = Mathf.LerpUnclamped(startAngle, -startAngle, swingEasing.Evaluate(activeProgress));
             if (!_activeFinished && weaponVisual != null)
-                weaponVisual.SetSwingPose(_direction, currentAngle, attack.attackHeight, true, attack.swingScale);
+                weaponVisual.SetSwingPose(_direction, currentAngle, height, true, swingScale);
 
             // the entire sector resolves once, even when a slow frame crosses the impact time.
             // later lunging, weapon motion and smear poses cannot move or repeat this hit area.
-            if (!_impactResolved && elapsed >= _swing.windup + Mathf.Clamp(attack.impactDelay, 0f, _swing.active))
+            if (!_impactResolved && elapsed >= _swing.windup + _swing.active * Mathf.Clamp01(impactFraction))
             {
                 _impactResolved = true;
                 var hitstopDuration = 0f;
                 _impactOrigin = origin;
                 if (vfx != null)
-                    vfx.BeginSwing(origin, _direction, startAngle, -startAngle, attack.innerRadius, _swingReach,
-                        _swingSweetSpotRadius, _swingStretchAxis, _swingDepthStretch);
+                    vfx.BeginSwing(origin, _direction, startAngle, -startAngle, innerRadius, _swingReach,
+                        _swingSweetSpotRadius, _swing.active, _swingStretchAxis, _swingDepthStretch);
 
                 // snapshot the registry because a hit callback can disable or destroy another hurtbox.
                 _hurtboxBuffer.Clear();
@@ -327,15 +348,15 @@ namespace Game50033
                 foreach (var hurtbox in _hurtboxBuffer)
                 {
                     if (hurtbox == null || !hurtbox.isActiveAndEnabled
-                        || (attack.hitMask.value & (1 << hurtbox.gameObject.layer)) == 0
+                        || (hitMask.value & (1 << hurtbox.gameObject.layer)) == 0
                         || hurtbox.GetComponentInParent<Player>() != null) continue;
                     var target = hurtbox.Target;
                     if (target == null || _hitThisSwing.Contains(target)
                         || target is Behaviour behaviour && !behaviour.isActiveAndEnabled) continue;
 
                     // a hurtbox spanning both bands takes normal damage, matching near-surface classification.
-                    var boundary = Mathf.Clamp(_swingSweetSpotRadius, attack.innerRadius, _swingReach);
-                    var normalHit = hurtbox.TryOverlapSector(camera, origin, _direction, attack.innerRadius, boundary,
+                    var boundary = Mathf.Clamp(_swingSweetSpotRadius, innerRadius, _swingReach);
+                    var normalHit = hurtbox.TryOverlapSector(camera, origin, _direction, innerRadius, boundary,
                         _swing.angle, _swingStretchAxis, _swingDepthStretch, out var contact);
                     if (!normalHit && !hurtbox.TryOverlapSector(camera, origin, _direction, boundary, _swingReach,
                         _swing.angle, _swingStretchAxis, _swingDepthStretch, out contact)) continue;
@@ -344,8 +365,8 @@ namespace Game50033
                     hitDirection.y = 0f;
                     hitDirection = hitDirection.sqrMagnitude > 0.0001f ? hitDirection.normalized : _direction;
                     _hitThisSwing.Add(target);
-                    target.TakeHit(new HitInfo(gameObject, attack.damage * _damageMultiplier
-                        * (normalHit ? 1f : attack.sweetSpotMultiplier), hitDirection));
+                    target.TakeHit(new HitInfo(gameObject, damage * _damageMultiplier
+                        * (normalHit ? 1f : sweetMultiplier), hitDirection));
                     if (!IsAttacking || !isActiveAndEnabled) return;
                     hitstopDuration = Mathf.Max(hitstopDuration, normalHit ? _swing.hitstopDuration : _swing.sweetSpotHitstopDuration);
                     if (vfx != null) vfx.PlayImpact(contact, !normalHit);
@@ -354,19 +375,19 @@ namespace Game50033
                 // overlapping radial capsules cover the sector without a physics-step-dependent trigger.
                 // clamp contacts to the sector itself so the capsule thickness does not add hidden reach.
                 var samples = Mathf.Max(1, Mathf.CeilToInt(_swing.angle / 4f),
-                    Mathf.CeilToInt(_swing.angle * Mathf.Deg2Rad * _swingReach * _swingDepthStretch / attack.hitThickness));
+                    Mathf.CeilToInt(_swing.angle * Mathf.Deg2Rad * _swingReach * _swingDepthStretch / hitThickness));
                 for (var sample = 0; sample <= samples; sample++)
                 {
                     var sampleAngle = Mathf.Lerp(startAngle, -startAngle, (float)sample / samples);
                     var radial = Quaternion.AngleAxis(sampleAngle, Vector3.up) * _direction;
                     radial += _swingStretchAxis * (Vector3.Dot(radial, _swingStretchAxis) * (_swingDepthStretch - 1f));
-                    var inside = origin + radial * attack.innerRadius;
+                    var inside = origin + radial * innerRadius;
                     var outside = origin + radial * _swingReach;
                     int count;
                     while (true)
                     {
-                        count = Physics.OverlapCapsuleNonAlloc(inside, outside, attack.hitThickness,
-                            _hitBuffer, attack.hitMask, QueryTriggerInteraction.Collide);
+                        count = Physics.OverlapCapsuleNonAlloc(inside, outside, hitThickness,
+                            _hitBuffer, hitMask, QueryTriggerInteraction.Collide);
                         if (count < _hitBuffer.Length) break;
                         Array.Resize(ref _hitBuffer, _hitBuffer.Length * 2);
                     }
@@ -389,13 +410,13 @@ namespace Game50033
                         offset -= _swingStretchAxis * (Vector3.Dot(offset, _swingStretchAxis) * (1f - 1f / _swingDepthStretch));
                         var distance = offset.magnitude;
                         // allow only floating-point roundoff at the sector boundary.
-                        if (distance < attack.innerRadius - 0.0001f || distance > _swingReach + 0.0001f
+                        if (distance < innerRadius - 0.0001f || distance > _swingReach + 0.0001f
                             || Mathf.Abs(Vector3.SignedAngle(_direction, offset, Vector3.up)) > _swing.angle * 0.5f + 0.001f)
                             continue;
 
-                        var sweetSpot = distance >= _swingSweetSpotRadius;
+                        var sweetSpot = !_defending && distance >= _swingSweetSpotRadius;
                         _hitThisSwing.Add(target);
-                        target.TakeHit(new HitInfo(gameObject, attack.damage * _damageMultiplier * (sweetSpot ? attack.sweetSpotMultiplier : 1f), radial.normalized));
+                        target.TakeHit(new HitInfo(gameObject, damage * _damageMultiplier * (sweetSpot ? sweetMultiplier : 1f), radial.normalized));
 
                         // a hit callback may down or disable the attacker; stop resolving immediately.
                         if (!IsAttacking || !isActiveAndEnabled) return;
@@ -418,11 +439,11 @@ namespace Game50033
             if (!_activeFinished) return;
 
             var recoveryProgress = Mathf.Clamp01((elapsed - _swing.windup - _swing.active) / _swing.recovery);
-            var easedRecovery = attack.recoveryEasing.Evaluate(recoveryProgress);
+            var easedRecovery = recoveryEasing.Evaluate(recoveryProgress);
             if (weaponVisual != null)
                 weaponVisual.SetSwingPose(_direction, -startAngle + 12f * _swingSign * easedRecovery,
-                    attack.attackHeight, false,
-                    Mathf.Lerp(attack.swingScale, 1f, easedRecovery));
+                    height, false,
+                    Mathf.Lerp(swingScale, 1f, easedRecovery));
 
             if (recoveryProgress < 1f) return;
 
@@ -431,6 +452,15 @@ namespace Game50033
             BlocksMovement = false;
             BlocksDodge = false;
             BlocksAbilities = false;
+            if (_defending)
+            {
+                _defending = false;
+                Player.Health.ClearAbilityInvulnerability();
+                if (vfx != null) vfx.SetDefensiveFlash(false);
+                _comboExpiresAt = Time.time + attack.comboResetDelay;
+                if (weaponVisual != null) weaponVisual.Cancel();
+                return;
+            }
             _nextComboIndex++;
             _comboExpiresAt = Time.time + attack.comboResetDelay;
             _readyAt = Time.time;
@@ -470,7 +500,63 @@ namespace Game50033
             BlocksAbilities = true;
             return true;
         }
-        public override bool TryUseDefensive() => false;
+        public override bool TryUseDefensive()
+        {
+            if (!isActiveAndEnabled || !Player.CanUseDefensive || Time.time < _defensiveReadyAt) return false;
+            var defensive = tuning.defensive;
+            if (defensive.backstepDistance > 0f && (!Player.Movement.isActiveAndEnabled
+                || !GetComponent<CharacterController>().enabled)) return false;
+
+            var comboIndex = !IsAttacking && Time.time > _comboExpiresAt ? 0 : _nextComboIndex;
+            // a cancelled anticipation retries its strike; a strike already in recovery counts as completed.
+            if (IsAttacking && ComboStep > 0 && AnimationPhase == PlayerAttackPhase.Recovery)
+            {
+                comboIndex++;
+                if (comboIndex >= tuning.attack.combo.Length)
+                {
+                    comboIndex = 0;
+                    _readyAt += tuning.attack.comboCooldown;
+                }
+            }
+            var empowered = HasEmpoweredAttack;
+            var empowermentMultiplier = _empowerMultiplier;
+            Cancel();
+            _nextComboIndex = comboIndex;
+            HasEmpoweredAttack = empowered;
+            _empowerMultiplier = empowermentMultiplier;
+            _direction = Player.AimDirection;
+            _direction.y = 0f;
+            _direction = _direction.sqrMagnitude > 0.0001f ? _direction.normalized : Player.Movement.FacingDirection;
+            _swing = new GuitarTuning.Swing
+            {
+                windup = Mathf.Max(0.001f, defensive.windup), active = Mathf.Max(0.001f, defensive.active),
+                recovery = Mathf.Max(0.001f, defensive.recovery), angle = defensive.angle,
+                hitstopDuration = defensive.hitstopDuration, sweetSpotHitstopDuration = defensive.hitstopDuration
+            };
+            if (defensive.backstepDistance > 0f && !Player.Movement.TryStartDisplacement(
+                -_direction, defensive.backstepDistance, _swing.active, defensive.backstepEasing, _swing.windup)) return false;
+
+            _swingReach = Mathf.Max(0.01f, defensive.reach);
+            _swingSweetSpotRadius = _swingReach + 1f;
+            _swingStretchAxis = new Vector3(defensive.stretchAxis.x, 0f, defensive.stretchAxis.y);
+            _swingStretchAxis = _swingStretchAxis.sqrMagnitude > 0.0001f ? _swingStretchAxis.normalized : Vector3.forward;
+            _swingDepthStretch = Mathf.Max(1f, defensive.depthStretch);
+            _swingSign = 1f;
+            _damageMultiplier = 1f;
+            _startedAt = Player.Hitstop.ActionTime;
+            _defensiveReadyAt = Time.time + Mathf.Max(0f, defensive.cooldown);
+            _comboExpiresAt = Time.time + tuning.attack.comboResetDelay;
+            _impactResolved = false;
+            _activeFinished = false;
+            _defending = true;
+            IsAttacking = true;
+            BlocksMovement = false;
+            BlocksDodge = true;
+            BlocksAbilities = true;
+            Player.Health.GrantAbilityInvulnerability(_swing.windup + _swing.active);
+            if (vfx != null) vfx.SetDefensiveFlash(true);
+            return true;
+        }
         public override bool TryUseSpecial()
         {
             if (!isActiveAndEnabled || !Player.CanUseAbilities || IsAttacking || Time.time < _specialReadyAt) return false;
@@ -504,6 +590,8 @@ namespace Game50033
 
         public override void Cancel()
         {
+            _defending = false;
+            if (Player.Health != null) Player.Health.ClearAbilityInvulnerability();
             _smashing = false;
             _strumming = false;
             HasEmpoweredAttack = false;
@@ -542,14 +630,17 @@ namespace Game50033
             }
             var primaryActive = IsAttacking && !_strumming;
             var direction = IsAttacking ? _direction : Vector3.forward;
-            var origin = primaryActive && _impactResolved ? _impactOrigin : transform.position + Vector3.up * attack.attackHeight;
+            var defensive = tuning.defensive;
+            var height = _defending ? defensive.attackHeight : attack.attackHeight;
+            var innerRadius = _defending ? defensive.innerRadius : attack.innerRadius;
+            var origin = primaryActive && _impactResolved ? _impactOrigin : transform.position + Vector3.up * height;
             var angle = primaryActive ? _swing.angle : attack.combo != null && attack.combo.Length > 0 ? attack.combo[0].angle : 140f;
             var shownReach = primaryActive ? _swingReach : attack.reach;
             var shownSweetSpot = primaryActive ? _swingSweetSpotRadius : attack.sweetSpotRadius;
             var stretchAxis = primaryActive ? _swingStretchAxis : new Vector3(attack.stretchAxis.x, 0f, attack.stretchAxis.y);
             stretchAxis = stretchAxis.sqrMagnitude > 0.0001f ? stretchAxis.normalized : Vector3.forward;
             var depthStretch = primaryActive ? _swingDepthStretch : Mathf.Max(1f, attack.depthStretch);
-            for (var ring = 0; ring < 2; ring++)
+            for (var ring = 0; ring < (_defending ? 1 : 2); ring++)
             {
                 var radius = ring == 0 ? shownReach : shownSweetSpot;
                 Gizmos.color = ring == 0 ? Color.cyan : new Color(1f, 0.8f, 0.25f);
@@ -567,8 +658,8 @@ namespace Game50033
             var right = Quaternion.AngleAxis(angle * 0.5f, Vector3.up) * direction;
             left += stretchAxis * (Vector3.Dot(left, stretchAxis) * (depthStretch - 1f));
             right += stretchAxis * (Vector3.Dot(right, stretchAxis) * (depthStretch - 1f));
-            Gizmos.DrawLine(origin + left * attack.innerRadius, origin + left * shownReach);
-            Gizmos.DrawLine(origin + right * attack.innerRadius, origin + right * shownReach);
+            Gizmos.DrawLine(origin + left * innerRadius, origin + left * shownReach);
+            Gizmos.DrawLine(origin + right * innerRadius, origin + right * shownReach);
         }
     }
 }

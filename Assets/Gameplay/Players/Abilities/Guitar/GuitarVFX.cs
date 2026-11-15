@@ -12,12 +12,21 @@ namespace Game50033
             public Vector3 direction;
             public Vector3 stretchAxis;
             public float depthStretch;
+            public Vector4 durations;
             public float startAngle, endAngle, inner, outer, sweetSpot, startsAt;
         }
 
         [SerializeField] private MeshFilter smearFilter;
         [SerializeField] private MeshFilter smashFilter;
         [SerializeField] private GuitarTuning tuning;
+        [SerializeField] private SpriteRenderer avatarRenderer;
+
+        private PlayerHealth _health;
+        private bool _defensiveFlashing;
+        private float _flashStartedAt;
+        private MaterialPropertyBlock _avatarProperties;
+        private static readonly int FlashAmountId = Shader.PropertyToID("_FlashAmount");
+        private static readonly int FlashColorId = Shader.PropertyToID("_FlashColor");
 
         private readonly List<Smear> _smears = new();
         private readonly List<Vector3> _vertices = new();
@@ -47,6 +56,7 @@ namespace Game50033
         private void Awake()
         {
             _hitstop = GetComponent<PlayerHitstop>();
+            _health = GetComponent<PlayerHealth>();
             _mesh = new Mesh { name = "Guitar smear" };
             _mesh.MarkDynamic();
             if (smashFilter != null)
@@ -76,6 +86,21 @@ namespace Game50033
             // native-backed blocks do not survive a play-mode script reload.
             _properties ??= new MaterialPropertyBlock();
             _smashProperties ??= new MaterialPropertyBlock();
+            _avatarProperties ??= new MaterialPropertyBlock();
+        }
+
+        public void SetDefensiveFlash(bool active)
+        {
+            _defensiveFlashing = active && isActiveAndEnabled;
+            if (_defensiveFlashing)
+            {
+                _flashStartedAt = _hitstop != null ? _hitstop.ActionTime : Time.time;
+                return;
+            }
+            if (avatarRenderer == null || _avatarProperties == null) return;
+            avatarRenderer.GetPropertyBlock(_avatarProperties);
+            _avatarProperties.SetFloat(FlashAmountId, 0f);
+            avatarRenderer.SetPropertyBlock(_avatarProperties);
         }
 
         public void ShowSmashIndicator(Vector3 centre, float radius, float sweetSpotRadius)
@@ -96,24 +121,43 @@ namespace Game50033
         }
 
         public void BeginSwing(Vector3 origin, Vector3 direction, float startAngle, float endAngle,
-            float innerRadius, float reach, float sweetSpotRadius, Vector3 stretchAxis = default, float depthStretch = 1f)
+            float innerRadius, float reach, float sweetSpotRadius, float activeDuration, Vector3 stretchAxis = default, float depthStretch = 1f)
         {
             if (!isActiveAndEnabled || smearFilter == null) return;
 
             stretchAxis.y = 0f;
             stretchAxis = stretchAxis.sqrMagnitude > 0.0001f ? stretchAxis.normalized : Vector3.forward;
+            // snapshot each sequence's pace so overlapping swings and live tuning edits cannot retime old smears.
+            var weights = tuning.vfx.frameWeights;
+            weights = new Vector4(Mathf.Max(0.001f, weights.x), Mathf.Max(0.001f, weights.y),
+                Mathf.Max(0.001f, weights.z), Mathf.Max(0.001f, weights.w));
+            var durations = weights * (Mathf.Max(0.001f, activeDuration) / (weights.x + weights.y + weights.z + weights.w));
             // gameplay supplies the complete impact snapshot; later poses are only afterimages.
             _smears.Add(new Smear
             {
                 origin = origin, direction = direction, startAngle = startAngle, endAngle = endAngle,
                 inner = innerRadius, outer = reach, stretchAxis = stretchAxis, depthStretch = Mathf.Max(1f, depthStretch),
-                sweetSpot = sweetSpotRadius, startsAt = _hitstop != null ? _hitstop.ActionTime : Time.time
+                durations = durations, sweetSpot = sweetSpotRadius, startsAt = _hitstop != null ? _hitstop.ActionTime : Time.time
             });
         }
 
         private void LateUpdate()
         {
             var now = _hitstop != null ? _hitstop.ActionTime : Time.time;
+            if (_defensiveFlashing)
+            {
+                if (_health == null || _health.AbilityInvulnerabilityRemaining <= 0f) SetDefensiveFlash(false);
+                else if (avatarRenderer != null)
+                {
+                    var defensive = tuning.defensive;
+                    var phase = Mathf.Repeat((now - _flashStartedAt) * Mathf.Max(0.1f, defensive.flashFrequency), 1f);
+                    avatarRenderer.GetPropertyBlock(_avatarProperties);
+                    // white is blended over the lit character; texture alpha and the player's tint stay intact.
+                    _avatarProperties.SetColor(FlashColorId, Color.white);
+                    _avatarProperties.SetFloat(FlashAmountId, phase < defensive.flashDutyCycle ? defensive.flashOpacity : 0f);
+                    avatarRenderer.SetPropertyBlock(_avatarProperties);
+                }
+            }
             if (_smashMesh != null && (_smashIndicator || _smashStartedAt >= 0f))
             {
                 var special = tuning.special;
@@ -144,8 +188,6 @@ namespace Game50033
 
             var vfx = tuning.vfx;
             // smear poses share the owner's action clock; scene-local impact particles keep world time.
-            var durations = new Vector4(Mathf.Max(0.001f, vfx.frameDurations.x), Mathf.Max(0.001f, vfx.frameDurations.y),
-                Mathf.Max(0.001f, vfx.frameDurations.z), Mathf.Max(0.001f, vfx.frameDurations.w));
             _vertices.Clear();
             _uvs.Clear();
             _poseData.Clear();
@@ -155,6 +197,7 @@ namespace Game50033
             for (var i = 0; i < _smears.Count; i++)
             {
                 var smear = _smears[i];
+                var durations = smear.durations;
                 var age = now - smear.startsAt;
                 if (age >= durations.x + durations.y + durations.z + durations.w)
                 {
@@ -225,6 +268,7 @@ namespace Game50033
 
         public void Cancel()
         {
+            SetDefensiveFlash(false);
             _smashIndicator = false;
             _smashStartedAt = -1f;
             if (_smashRenderer != null) _smashRenderer.enabled = false;

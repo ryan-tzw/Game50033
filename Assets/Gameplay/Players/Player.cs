@@ -55,6 +55,9 @@ namespace Game50033
         public bool CanUseAbilities => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !Hitstop.IsStopped
             && !Movement.IsDodging && Abilities != null && Abilities.isActiveAndEnabled && !Abilities.BlocksAbilities;
 
+        public bool CanUseDefensive => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !Hitstop.IsStopped
+            && !Movement.IsDodging && Abilities != null && Abilities.isActiveAndEnabled && !Abilities.BlocksDefensive;
+
         private void Awake()
         {
             Initialize();
@@ -111,10 +114,12 @@ namespace Game50033
                 // dodge is press-only; ability activation is retried while held.
                 if (_dodgeAction.WasPressedThisFrame()) Movement.TryDodge(CanDodge);
 
+                // defensive gets priority over held attacks, including instrument-defined cancellation windows.
+                if (CanUseDefensive && _defensiveAction.IsPressed()) Abilities.TryUseDefensive();
+
                 // each activation may change the restrictions for subsequent actions this frame.
                 if (CanUseAbilities && _primaryAction.IsPressed()) Abilities.TryUsePrimary();
                 if (CanUseAbilities && _secondaryAction.IsPressed()) Abilities.TryUseSecondary();
-                if (CanUseAbilities && _defensiveAction.IsPressed()) Abilities.TryUseDefensive();
 
                 // Keep the press edge so a quick Special tap can still start charging.
                 if (CanUseAbilities && (_specialAction.IsPressed() || _specialAction.WasPressedThisFrame()))
