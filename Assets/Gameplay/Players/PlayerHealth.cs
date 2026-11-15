@@ -12,6 +12,8 @@ namespace Game50033
         [SerializeField, Min(0f)] private float revivalImmunityDuration = 1f;
 
         private PlayerMovement _movement;
+        private PlayerHitstop _hitstop;
+        private float _abilityImmuneUntil;
         private bool _initialized;
         private float _reviveAt;
         private float _immuneUntil;
@@ -21,7 +23,9 @@ namespace Game50033
         public bool IsDowned { get; private set; }
         public float RevivalRemaining => IsDowned ? Mathf.Max(0f, _reviveAt - Time.time) : 0f;
         public float RevivalImmunityRemaining => Mathf.Max(0f, _immuneUntil - Time.time);
-        public bool IsInvulnerable => RevivalImmunityRemaining > 0f || (_movement != null && _movement.IsInvulnerable);
+        public float AbilityInvulnerabilityRemaining => Mathf.Max(0f, _abilityImmuneUntil - (_hitstop != null ? _hitstop.ActionTime : Time.time));
+        public bool IsInvulnerable => RevivalImmunityRemaining > 0f || AbilityInvulnerabilityRemaining > 0f
+            || (_movement != null && _movement.IsInvulnerable);
 
         public event Action<int, int> HealthChanged;
         public event Action Downed;
@@ -37,6 +41,7 @@ namespace Game50033
             if (_initialized) return;
 
             _movement = GetComponent<PlayerMovement>();
+            _hitstop = GetComponent<PlayerHitstop>();
             CurrentHealth = maxHealth;
             _initialized = true;
         }
@@ -51,6 +56,19 @@ namespace Game50033
             HealthChanged?.Invoke(CurrentHealth, maxHealth);
             Revived?.Invoke();
         }
+
+        // one active ability owns this deadline; clearing it never removes dodge or revival immunity.
+        public void GrantAbilityInvulnerability(float duration)
+        {
+            Initialize();
+            if (!isActiveAndEnabled || IsDowned || duration <= 0f || float.IsNaN(duration) || float.IsInfinity(duration)) return;
+            var now = _hitstop != null ? _hitstop.ActionTime : Time.time;
+            _abilityImmuneUntil = Mathf.Max(_abilityImmuneUntil, now + duration);
+        }
+
+        public void ClearAbilityInvulnerability() => _abilityImmuneUntil = 0f;
+
+        private void OnDisable() => ClearAbilityInvulnerability();
 
         public bool TryTakeDamage(int damage)
         {
