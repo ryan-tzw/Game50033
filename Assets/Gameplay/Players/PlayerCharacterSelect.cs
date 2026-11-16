@@ -7,6 +7,7 @@ namespace Game50033
     /// Per-player character selection in the lobby. While selecting, the avatar is hidden and
     /// Move left/right browses the roster; Special (E / bottom face button) confirms; Defensive (Q / right face button) backs out
     /// of the lobby. Once confirmed the avatar spawns with the chosen character and can move and attack.
+    /// The lobby's UnreadyZone can send a spawned player back to selecting via <see cref="ReturnToSelection"/>.
     ///
     /// Outside the lobby (nobody calls <see cref="BeginSelection"/>) this component does nothing,
     /// so the player prefab still works in test scenes.
@@ -73,7 +74,7 @@ namespace Game50033
             _backAction = _boundActions.FindAction("Player/Defensive", true);
         }
 
-        public void BeginSelection(LobbyManager lobby)
+        public void BeginSelection(LobbyManager lobby, CharacterDefinition preferred = null)
         {
             CacheComponents();
             _lobby = lobby;
@@ -82,7 +83,13 @@ namespace Game50033
             _navigateHeld = true; // require the stick to return to centre before the first step
             SetAvatarActive(false);
 
-            _highlightIndex = _lobby.FirstAvailableCharacterIndex();
+            var preferredIndex = -1;
+            if (preferred != null)
+            {
+                for (var i = 0; i < _lobby.Roster.Count; i++)
+                    if (_lobby.Roster[i] == preferred) preferredIndex = i;
+            }
+            _highlightIndex = preferredIndex >= 0 ? preferredIndex : _lobby.FirstAvailableCharacterIndex();
             _lobby.SelectionChanged += RefreshPanel;
             RefreshPanel();
         }
@@ -154,6 +161,8 @@ namespace Game50033
                 return;
             }
 
+            // the character controller is disabled while selecting, so the move is not blocked.
+            transform.position = lobby.GetSpawnPosition(PlayerIndex, transform.position);
             CompleteSelection(lobby, character);
         }
 
@@ -172,6 +181,21 @@ namespace Game50033
             _controller.ApplyCharacter(character);
             SetAvatarActive(true);
             _lobby.NotifyPlayerSpawned(this);
+        }
+
+        /// <summary>
+        /// Unready: release the claimed character, hide the avatar and browse again, starting on the
+        /// character this player had. Only valid for a spawned player in the lobby.
+        /// </summary>
+        internal void ReturnToSelection()
+        {
+            if (State != SelectState.Spawned || _lobby == null) return;
+
+            var lobby = _lobby;
+            var previous = Character;
+            lobby.Release(this);
+            Character = null;
+            BeginSelection(lobby, previous);
         }
 
         internal void DetachFromLobby()

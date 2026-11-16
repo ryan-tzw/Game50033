@@ -66,8 +66,9 @@ The D-pad is not bound to anything yet.
 |---|---|---|
 | Join | E | Bottom face button (A / ✕ / Switch B) |
 | Browse characters | A / D or ← / → | Left stick left / right |
-| Pick the highlighted character | E | Bottom face button |
+| Pick the highlighted character (you appear on your coloured ring in your panel's corner) | E | Bottom face button |
 | Back out of the lobby (while picking) | Q | Right face button (B / ○ / Switch A) |
+| Unready (change character after picking) | Stand in the cyan ring below the mic for 2 seconds; the countdown shows above your head. Leaving the ring cancels it | Same |
 | Hit the mic dummy | Left click | Left face button (X / □ / Switch Y) |
 | Start the game | Everyone who joined has picked and stands in the yellow zone by the door for 3 seconds | Same |
 
