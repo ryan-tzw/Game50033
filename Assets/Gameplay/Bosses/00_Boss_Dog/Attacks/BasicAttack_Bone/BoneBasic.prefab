@@ -45,14 +45,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.TargetedBossAttack
   windUpTime: 0
-  activeTime: 0.3
+  activeTime: 2
   recoveryTime: 0.5
   _projectile: {fileID: 6759275388771745837, guid: c197b35afe9946c4798bb58b898713b1, type: 3}
   _numberOfProjectiles: 3
   _numberOfTargets: 4
   TriggerAttack: 0
   _targetedPlayers: []
+  boss: {fileID: 0}
+  lingeringObject: {fileID: 0}
   homing: 0
   destroyOnArrival: 1
+  bouncy: 0
+  blockedByObstacles: 1
+  lingeringEffect: 0
   projectileSpeed: 8
   projectileHomingHeight: 0

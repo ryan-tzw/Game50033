@@ -21,10 +21,9 @@ namespace Game50033
         [SerializeField, Min(0.1f)] public float projectileSpeed;
         [SerializeField] public float projectileHomingHeight = 0f;
 
-        protected override void Awake()
+        public override void Setup(BaseBoss owner)
         {
-            base.Awake();
-
+            base.Setup(owner);
             CalculateTargets();
         }
 
@@ -87,7 +86,7 @@ namespace Game50033
             Vector3 target = CalculateBulletSpread(currentPlayerPosition);
 
             var projectile = Instantiate(_projectile, transform.position, Quaternion.identity);
-            projectile.InitializeProjectile(player, target, this);
+            projectile.InitializeProjectile(player, boss, target, this);
         }
 
         public Vector3 RetrievePlayerPosition(Player player)

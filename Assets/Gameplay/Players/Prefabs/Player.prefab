@@ -107,7 +107,7 @@ GameObject:
   - component: {fileID: 1544443953293736951}
   - component: {fileID: 2439631078986181378}
   - component: {fileID: 5036130649280889951}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -197,6 +197,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 066ec035c6c1431c3a352198077b0c38, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.Player
+  autoAimRange: 14
+  enemyTargetMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!114 &1544443953293736950
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -207,7 +211,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 24b493a548b3863c2bf46d9bab41b2b9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerMovement
   moveSpeed: 5
   dodgeDistance: 1
@@ -224,7 +228,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 591db355528a998a03d30a9f6d119291, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHealth
   maxHealth: 5
   downedDuration: 15

@@ -8,6 +8,7 @@ namespace Game50033
     public class BossAttacks : MonoBehaviour
     {
         private bool _initialized;
+        private BaseBoss _boss;
 
         [Header("Phase 1")]
         [SerializeField] private List<GameObject> p1Attacks;
@@ -30,6 +31,7 @@ namespace Game50033
         {
             if (_initialized) return;
             _currentAttackIdx = 0;
+            _boss = GetComponent<BaseBoss>();
             StartedAttack += () => { IsAttacking = true; };
             _initialized = true;
         }
@@ -45,7 +47,9 @@ namespace Game50033
             {
                 StartedAttack?.Invoke();
                 GameObject currentAttack = Instantiate(p1Attacks[_currentAttackIdx], transform.position, Quaternion.identity);
-                currentAttack.GetComponent<BaseBossAttack>().Attack();
+                var attack = currentAttack.GetComponent<BaseBossAttack>();
+                attack.Setup(_boss);
+                attack.Attack();
                 _currentAttackIdx++;
                 if (_currentAttackIdx >= p1Attacks.Count) _currentAttackIdx = 0;
                 bossAttackIntervalTimer = BossAttackInterval;

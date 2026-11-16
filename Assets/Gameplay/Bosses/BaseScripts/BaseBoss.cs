@@ -16,10 +16,12 @@ namespace Game50033
         public BossMovement Movement { get; private set; }
         public BossHealth Health { get; private set; }
         public BossAttacks Attacks { get; private set; }
+        public BossAttackStack AttackStack { get; private set; }
         private bool _initialized;
 
         private GameSession _session;
-        public List<Player> players;
+        //public List<Player> players;
+        public List<Player> players = new();
 
         // [SerializeField] protected float BossMovementSpeed = 5f;
         // [SerializeField, Min(0.01f)] protected float BossHealthPoints = 20000f;
@@ -104,7 +106,9 @@ namespace Game50033
             if (_initialized) return;
 
             _session = FindFirstObjectByType<GameSession>();
-            players = new(_session.Players);
+            players.Clear();
+            players.AddRange(_session.Players);
+            //players = new(_session.Players);
 
             Movement = GetComponent<BossMovement>();
             Health = GetComponent<BossHealth>();
@@ -230,6 +234,16 @@ namespace Game50033
             if (player == null) return;
 
             players.Remove(player);
+        }
+
+        public void SetVisibility(bool visibility) {
+            _sr.gameObject.SetActive(visibility);
+        }
+
+        public void SetPosition(Vector3 position)
+        {
+            if (_rb != null) _rb.position = position;
+            transform.position = position;
         }
     }
 }

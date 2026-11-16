@@ -17,11 +17,12 @@ namespace Game50033
         private SpriteRenderer _sr;
 
         private Player _followTarget;
-        private List<Player> _players;
+        private List<Player> _players = new();
         private bool _canMove;
 
         public bool IsMoving => (_rb.linearVelocity.sqrMagnitude > 0.01f) ? true : false;
         public bool InRange = false;
+        public bool FlipX => _sr.flipX;
 
         internal void Initialize()
         {

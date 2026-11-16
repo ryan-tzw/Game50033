@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 830479413212438412}
   - component: {fileID: 2294948817786019401}
   - component: {fileID: 6759275388771745837}
+  - component: {fileID: -2994555812996501130}
   m_Layer: 0
   m_Name: BoneProjectile
   m_TagString: Untagged
@@ -126,6 +127,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4cdc8209ffc38a2478d216942ad88257, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.BaseBossProjectile
+--- !u!54 &-2994555812996501130
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1600263900997377633}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &3680936389800666329
 GameObject:
   m_ObjectHideFlags: 0
