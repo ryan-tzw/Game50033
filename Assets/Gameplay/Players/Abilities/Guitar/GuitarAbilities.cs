@@ -9,6 +9,17 @@ namespace Game50033
     [DisallowMultipleComponent]
     public sealed class GuitarAbilities : PlayerAbilities
     {
+        private enum GuitarAction
+        {
+            None,
+            Primary,
+            Secondary,
+            Defensive,
+            Special
+        }
+
+        private GuitarAction _action = GuitarAction.None;
+
         [SerializeField] private GuitarWeaponVisual weaponVisual;
         [SerializeField] private GuitarVFX vfx;
         [SerializeField] private GuitarTuning tuning;
@@ -30,12 +41,9 @@ namespace Game50033
         private float _swingDepthStretch;
         private bool _activeFinished;
         private bool _impactResolved;
-        private bool _smashing;
         private float _specialReadyAt;
         private float _specialWindup, _specialActive, _specialRecovery, _specialImpactFraction;
         private float _specialDistance, _specialRadius, _specialSweetSpotRadius, _specialHeight;
-        private bool _strumming;
-        private bool _defending;
         private float _defensiveReadyAt;
         private bool _strumReleased;
         private float _strumWindup;
@@ -45,11 +53,11 @@ namespace Game50033
         private float _empowerMultiplier = 1f;
         private float _damageMultiplier = 1f;
 
-        public bool IsAttacking { get; private set; }
-        public bool IsStrumming => _strumming;
-        public bool IsDefending => _defending;
+        public bool IsAttacking => _action != GuitarAction.None;
+        public bool IsStrumming => _action == GuitarAction.Secondary;
+        public bool IsDefending => _action == GuitarAction.Defensive;
         public float DefensiveCooldownRemaining => Mathf.Max(0f, _defensiveReadyAt - Time.time);
-        public override bool BlocksDefensive => IsAttacking && (_defending || AnimationPhase == PlayerAttackPhase.Active);
+        public override bool BlocksDefensive => IsAttacking && (IsDefending || AnimationPhase == PlayerAttackPhase.Active);
         public override PlayerAttackPhase AnimationPhase
         {
             get
@@ -57,17 +65,17 @@ namespace Game50033
                 if (!IsAttacking) return PlayerAttackPhase.None;
 
                 var elapsed = Player.Hitstop.ActionTime - _startedAt;
-                var windup = _smashing ? _specialWindup : _strumming ? _strumWindup : _swing.windup;
-                var active = _smashing ? _specialActive : _strumming ? _strumActive : _swing.active;
+                var windup = _action == GuitarAction.Special ? _specialWindup : IsStrumming ? _strumWindup : _swing.windup;
+                var active = _action == GuitarAction.Special ? _specialActive : IsStrumming ? _strumActive : _swing.active;
                 if (elapsed < windup) return PlayerAttackPhase.Windup;
                 return elapsed < windup + active ? PlayerAttackPhase.Active : PlayerAttackPhase.Recovery;
             }
         }
 
         public override float MovementSpeedMultiplier => !IsAttacking ? 1f
-            : _smashing ? tuning.special.movementSpeedMultiplier
-            : _strumming ? tuning.secondary.movementSpeedMultiplier
-            : _defending ? tuning.defensive.movementSpeedMultiplier : tuning.attack.movementSpeedMultiplier;
+            : _action == GuitarAction.Special ? tuning.special.movementSpeedMultiplier
+            : IsStrumming ? tuning.secondary.movementSpeedMultiplier
+            : IsDefending ? tuning.defensive.movementSpeedMultiplier : tuning.attack.movementSpeedMultiplier;
         public bool HasEmpoweredAttack { get; private set; }
         public float SpecialCooldownRemaining => Mathf.Max(0f, _specialReadyAt - Time.time);
         public float SecondaryCooldownRemaining => Mathf.Max(0f, _secondaryReadyAt - Time.time);
@@ -129,7 +137,7 @@ namespace Game50033
             _activeFinished = false;
             _impactResolved = false;
             _hitThisSwing.Clear();
-            IsAttacking = true;
+            _action = GuitarAction.Primary;
             BlocksMovement = false;
             BlocksDodge = true;
             BlocksAbilities = true;
@@ -138,178 +146,53 @@ namespace Game50033
 
         private void Update()
         {
-            if (!IsAttacking)
-            {
-                if (_nextComboIndex > 0 && Time.time > _comboExpiresAt)
-                {
-                    _nextComboIndex = 0;
-                    if (weaponVisual != null) weaponVisual.Cancel();
-                }
-                return;
-            }
-            if (Player.Health.IsDowned || !Player.HasActiveInput)
+            if (IsAttacking && (Player.Health.IsDowned || !Player.HasActiveInput))
             {
                 Cancel();
                 return;
             }
-            if (Player.Hitstop.IsStopped) return;
+            if (IsAttacking && Player.Hitstop.IsStopped) return;
 
+            switch (_action)
+            {
+                case GuitarAction.None:
+                    if (_nextComboIndex > 0 && Time.time > _comboExpiresAt)
+                    {
+                        _nextComboIndex = 0;
+                        if (weaponVisual != null) weaponVisual.Cancel();
+                    }
+                    break;
+                case GuitarAction.Primary:
+                case GuitarAction.Defensive:
+                    UpdateSweep(Player.Hitstop.ActionTime - _startedAt);
+                    break;
+                case GuitarAction.Secondary:
+                    UpdateSecondary(Player.Hitstop.ActionTime - _startedAt);
+                    break;
+                case GuitarAction.Special:
+                    UpdateSpecial(Player.Hitstop.ActionTime - _startedAt);
+                    break;
+            }
+        }
+
+        private void UpdateSweep(float elapsed)
+        {
             var attack = tuning.attack;
-            var elapsed = Player.Hitstop.ActionTime - _startedAt;
-            // -----------------------------
-            // overhead smash: telegraph, contact and recovery
-            // -----------------------------
-            if (_smashing)
-            {
-                var special = tuning.special;
-                var windingUp = elapsed < _specialWindup;
-                var recovering = elapsed >= _specialWindup + _specialActive;
-                var phase = windingUp ? PlayerAttackPhase.Windup : recovering ? PlayerAttackPhase.Recovery : PlayerAttackPhase.Active;
-                var progress = windingUp ? elapsed / _specialWindup : recovering
-                    ? (elapsed - _specialWindup - _specialActive) / _specialRecovery
-                    : (elapsed - _specialWindup) / _specialActive;
-                var centre = _impactResolved ? _impactOrigin
-                    : transform.position + _direction * _specialDistance + Vector3.up * _specialHeight;
-                if (weaponVisual != null)
-                    weaponVisual.SetSmashPose(_direction, phase, Mathf.Clamp01(progress), _specialImpactFraction);
-                if (!_impactResolved && vfx != null)
-                    vfx.ShowSmashIndicator(centre, _specialRadius, _specialSweetSpotRadius);
-
-                if (!_impactResolved && elapsed >= _specialWindup + _specialActive * _specialImpactFraction)
-                {
-                    _impactResolved = true;
-                    _impactOrigin = centre;
-                    if (vfx != null) vfx.PlaySmashImpact();
-                    var hitstop = 0f;
-                    var camera = Camera.main;
-                    _hurtboxBuffer.Clear();
-                    foreach (var hurtbox in CombatHurtbox.Active) _hurtboxBuffer.Add(hurtbox);
-                    foreach (var hurtbox in _hurtboxBuffer)
-                    {
-                        if (hurtbox == null || !hurtbox.isActiveAndEnabled
-                            || (special.hitMask.value & (1 << hurtbox.gameObject.layer)) == 0
-                            || hurtbox.GetComponentInParent<Player>() != null) continue;
-                        var target = hurtbox.Target;
-                        if (target == null || _hitThisSwing.Contains(target)
-                            || target is Behaviour behaviour && !behaviour.isActiveAndEnabled) continue;
-                        if (!hurtbox.TryOverlapSector(camera, centre, _direction, 0f, _specialRadius,
-                                360f, Vector3.forward, 1f, out var contact)) continue;
-
-                        // sweet spots use the ground footprint; height must not shift the centre along the camera ray.
-                        var targetCentre = hurtbox.WorldCenter;
-                        targetCentre.y = centre.y;
-                        var sweet = (targetCentre - centre).sqrMagnitude <= _specialSweetSpotRadius * _specialSweetSpotRadius + 0.000001f;
-                        var direction = targetCentre - centre;
-                        direction.y = 0f;
-                        direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : _direction;
-                        _hitThisSwing.Add(target);
-                        target.TakeHit(new HitInfo(gameObject, special.damage * _damageMultiplier
-                            * (sweet ? special.sweetSpotMultiplier : 1f), direction));
-                        if (!IsAttacking || !_smashing || !isActiveAndEnabled) return;
-                        hitstop = Mathf.Max(hitstop, sweet ? special.sweetSpotHitstopDuration : special.hitstopDuration);
-                        if (vfx != null) vfx.PlayImpact(contact, sweet);
-                    }
-
-                    // retain the existing physics fallback for targets without an authored projected hurtbox.
-                    int count;
-                    while (true)
-                    {
-                        var halfHeight = Vector3.up * Mathf.Max(0f, special.hitHeight) * 0.5f;
-                        count = Physics.OverlapCapsuleNonAlloc(centre - halfHeight, centre + halfHeight, _specialRadius,
-                            _hitBuffer, special.hitMask, QueryTriggerInteraction.Collide);
-                        if (count < _hitBuffer.Length) break;
-                        Array.Resize(ref _hitBuffer, _hitBuffer.Length * 2);
-                    }
-                    for (var i = 0; i < count; i++)
-                    {
-                        var candidate = _hitBuffer[i];
-                        if (candidate == null || candidate.GetComponentInParent<Player>() != null
-                            || candidate.GetComponentInParent<CombatHurtbox>() != null) continue;
-                        var target = candidate.GetComponentInParent<IHittable>();
-                        if (target == null || _hitThisSwing.Contains(target)
-                            || target is Behaviour behaviour && !behaviour.isActiveAndEnabled) continue;
-                        var contact = candidate.ClosestPoint(centre);
-                        var near = contact - centre;
-                        near.y = 0f;
-                        if (near.sqrMagnitude > _specialRadius * _specialRadius + 0.000001f) continue;
-                        var targetCentre = candidate.bounds.center;
-                        var offset = targetCentre - centre;
-                        offset.y = 0f;
-                        var sweet = offset.sqrMagnitude <= _specialSweetSpotRadius * _specialSweetSpotRadius + 0.000001f;
-                        var direction = offset.sqrMagnitude > 0.0001f ? offset.normalized : _direction;
-                        _hitThisSwing.Add(target);
-                        target.TakeHit(new HitInfo(gameObject, special.damage * _damageMultiplier
-                            * (sweet ? special.sweetSpotMultiplier : 1f), direction));
-                        if (!IsAttacking || !_smashing || !isActiveAndEnabled) return;
-                        hitstop = Mathf.Max(hitstop, sweet ? special.sweetSpotHitstopDuration : special.hitstopDuration);
-                        if (vfx != null) vfx.PlayImpact(contact, sweet);
-                    }
-                    Player.Hitstop.Request(hitstop);
-                    if (Player.Hitstop.IsStopped) return;
-                }
-                if (elapsed < _specialWindup + _specialActive + _specialRecovery) return;
-                _smashing = false;
-                IsAttacking = false;
-                BlocksMovement = false;
-                BlocksDodge = false;
-                BlocksAbilities = false;
-                if (weaponVisual != null) weaponVisual.Cancel();
-                return;
-            }
-            if (_strumming)
-            {
-                var secondary = tuning.secondary;
-                var windingUp = elapsed < _strumWindup;
-                var recovering = elapsed >= _strumWindup + _strumActive;
-                var phase = windingUp ? PlayerAttackPhase.Windup : recovering ? PlayerAttackPhase.Recovery : PlayerAttackPhase.Active;
-                var progress = windingUp ? elapsed / _strumWindup : recovering
-                    ? (elapsed - _strumWindup - _strumActive) / _strumRecovery
-                    : (elapsed - _strumWindup) / _strumActive;
-                if (weaponVisual != null)
-                    weaponVisual.SetStrumPose(_direction, phase, Mathf.Clamp01(progress),
-                        Mathf.Max(0f, elapsed - _strumWindup), _strumActive + _strumRecovery);
-
-                if (!_strumReleased && elapsed >= _strumWindup)
-                {
-                    if (secondary.wavePrefab == null)
-                    {
-                        Cancel();
-                        return;
-                    }
-                    _strumReleased = true;
-                    var position = transform.position + Vector3.up * attack.attackHeight + _direction * secondary.spawnOffset;
-                    var wave = Instantiate(secondary.wavePrefab, position, Quaternion.identity);
-                    wave.Initialize(Player, _direction, tuning, vfx);
-                    // launching grants one pending boost, regardless of whether the wave hits anything.
-                    HasEmpoweredAttack = true;
-                    _empowerMultiplier = Mathf.Max(1f, secondary.empowermentMultiplier);
-                }
-                if (elapsed < _strumWindup + _strumActive + _strumRecovery) return;
-
-                _strumming = false;
-                IsAttacking = false;
-                BlocksMovement = false;
-                BlocksDodge = false;
-                BlocksAbilities = false;
-                _comboExpiresAt = Time.time + attack.comboResetDelay;
-                if (weaponVisual != null) weaponVisual.Cancel();
-                return;
-            }
             // primary and defensive share sweep resolution; defensive supplies its own tuning and has no sweet band.
             var defensive = tuning.defensive;
-            var height = _defending ? defensive.attackHeight : attack.attackHeight;
-            var innerRadius = _defending ? defensive.innerRadius : attack.innerRadius;
-            var impactFraction = _defending ? defensive.impactFraction : attack.impactFraction;
-            var damage = _defending ? defensive.damage : attack.damage;
-            var sweetMultiplier = _defending ? 1f : attack.sweetSpotMultiplier;
-            var hitMask = _defending ? defensive.hitMask : attack.hitMask;
-            var hitThickness = Mathf.Max(0.001f, _defending ? defensive.hitThickness : attack.hitThickness);
-            var windupEasing = _defending ? defensive.windupEasing : attack.windupEasing;
-            var swingEasing = _defending ? defensive.swingEasing : attack.swingEasing;
-            var recoveryEasing = _defending ? defensive.recoveryEasing : attack.recoveryEasing;
-            var anticipationAngle = _defending ? defensive.anticipationAngle : attack.anticipationAngle;
-            var windupScale = _defending ? defensive.windupScale : attack.windupScale;
-            var swingScale = _defending ? defensive.swingScale : attack.swingScale;
+            var height = IsDefending ? defensive.attackHeight : attack.attackHeight;
+            var innerRadius = IsDefending ? defensive.innerRadius : attack.innerRadius;
+            var impactFraction = IsDefending ? defensive.impactFraction : attack.impactFraction;
+            var damage = IsDefending ? defensive.damage : attack.damage;
+            var sweetMultiplier = IsDefending ? 1f : attack.sweetSpotMultiplier;
+            var hitMask = IsDefending ? defensive.hitMask : attack.hitMask;
+            var hitThickness = Mathf.Max(0.001f, IsDefending ? defensive.hitThickness : attack.hitThickness);
+            var windupEasing = IsDefending ? defensive.windupEasing : attack.windupEasing;
+            var swingEasing = IsDefending ? defensive.swingEasing : attack.swingEasing;
+            var recoveryEasing = IsDefending ? defensive.recoveryEasing : attack.recoveryEasing;
+            var anticipationAngle = IsDefending ? defensive.anticipationAngle : attack.anticipationAngle;
+            var windupScale = IsDefending ? defensive.windupScale : attack.windupScale;
+            var swingScale = IsDefending ? defensive.swingScale : attack.swingScale;
             var origin = transform.position + Vector3.up * height;
             var startAngle = -_swing.angle * 0.5f * _swingSign;
 
@@ -414,7 +297,7 @@ namespace Game50033
                             || Mathf.Abs(Vector3.SignedAngle(_direction, offset, Vector3.up)) > _swing.angle * 0.5f + 0.001f)
                             continue;
 
-                        var sweetSpot = !_defending && distance >= _swingSweetSpotRadius;
+                        var sweetSpot = !IsDefending && distance >= _swingSweetSpotRadius;
                         _hitThisSwing.Add(target);
                         target.TakeHit(new HitInfo(gameObject, damage * _damageMultiplier * (sweetSpot ? sweetMultiplier : 1f), radial.normalized));
 
@@ -447,14 +330,14 @@ namespace Game50033
 
             if (recoveryProgress < 1f) return;
 
-            IsAttacking = false;
+            var finishedDefensive = IsDefending;
+            _action = GuitarAction.None;
             ComboStep = 0;
             BlocksMovement = false;
             BlocksDodge = false;
             BlocksAbilities = false;
-            if (_defending)
+            if (finishedDefensive)
             {
-                _defending = false;
                 Player.Health.ClearAbilityInvulnerability();
                 if (vfx != null) vfx.SetDefensiveFlash(false);
                 _comboExpiresAt = Time.time + attack.comboResetDelay;
@@ -470,6 +353,143 @@ namespace Game50033
                 _readyAt += attack.comboCooldown;
                 if (weaponVisual != null) weaponVisual.Cancel();
             }
+        }
+
+        private void UpdateSecondary(float elapsed)
+        {
+            var attack = tuning.attack;
+            var secondary = tuning.secondary;
+            var windingUp = elapsed < _strumWindup;
+            var recovering = elapsed >= _strumWindup + _strumActive;
+            var phase = windingUp ? PlayerAttackPhase.Windup : recovering ? PlayerAttackPhase.Recovery : PlayerAttackPhase.Active;
+            var progress = windingUp ? elapsed / _strumWindup : recovering
+                ? (elapsed - _strumWindup - _strumActive) / _strumRecovery
+                : (elapsed - _strumWindup) / _strumActive;
+            if (weaponVisual != null)
+                weaponVisual.SetStrumPose(_direction, phase, Mathf.Clamp01(progress),
+                    Mathf.Max(0f, elapsed - _strumWindup), _strumActive + _strumRecovery);
+
+            if (!_strumReleased && elapsed >= _strumWindup)
+            {
+                if (secondary.wavePrefab == null)
+                {
+                    Cancel();
+                    return;
+                }
+                _strumReleased = true;
+                var position = transform.position + Vector3.up * attack.attackHeight + _direction * secondary.spawnOffset;
+                var wave = Instantiate(secondary.wavePrefab, position, Quaternion.identity);
+                wave.Initialize(Player, _direction, tuning, vfx);
+                // launching grants one pending boost, regardless of whether the wave hits anything.
+                HasEmpoweredAttack = true;
+                _empowerMultiplier = Mathf.Max(1f, secondary.empowermentMultiplier);
+            }
+            if (elapsed < _strumWindup + _strumActive + _strumRecovery) return;
+
+            _action = GuitarAction.None;
+            BlocksMovement = false;
+            BlocksDodge = false;
+            BlocksAbilities = false;
+            _comboExpiresAt = Time.time + attack.comboResetDelay;
+            if (weaponVisual != null) weaponVisual.Cancel();
+            return;
+        }
+
+        private void UpdateSpecial(float elapsed)
+        {
+            var special = tuning.special;
+            var windingUp = elapsed < _specialWindup;
+            var recovering = elapsed >= _specialWindup + _specialActive;
+            var phase = windingUp ? PlayerAttackPhase.Windup : recovering ? PlayerAttackPhase.Recovery : PlayerAttackPhase.Active;
+            var progress = windingUp ? elapsed / _specialWindup : recovering
+                ? (elapsed - _specialWindup - _specialActive) / _specialRecovery
+                : (elapsed - _specialWindup) / _specialActive;
+            var centre = _impactResolved ? _impactOrigin
+                : transform.position + _direction * _specialDistance + Vector3.up * _specialHeight;
+            if (weaponVisual != null)
+                weaponVisual.SetSmashPose(_direction, phase, Mathf.Clamp01(progress), _specialImpactFraction);
+            if (!_impactResolved && vfx != null)
+                vfx.ShowSmashIndicator(centre, _specialRadius, _specialSweetSpotRadius);
+
+            if (!_impactResolved && elapsed >= _specialWindup + _specialActive * _specialImpactFraction)
+            {
+                _impactResolved = true;
+                _impactOrigin = centre;
+                if (vfx != null) vfx.PlaySmashImpact();
+                var hitstop = 0f;
+                var camera = Camera.main;
+                _hurtboxBuffer.Clear();
+                foreach (var hurtbox in CombatHurtbox.Active) _hurtboxBuffer.Add(hurtbox);
+                foreach (var hurtbox in _hurtboxBuffer)
+                {
+                    if (hurtbox == null || !hurtbox.isActiveAndEnabled
+                        || (special.hitMask.value & (1 << hurtbox.gameObject.layer)) == 0
+                        || hurtbox.GetComponentInParent<Player>() != null) continue;
+                    var target = hurtbox.Target;
+                    if (target == null || _hitThisSwing.Contains(target)
+                        || target is Behaviour behaviour && !behaviour.isActiveAndEnabled) continue;
+                    if (!hurtbox.TryOverlapSector(camera, centre, _direction, 0f, _specialRadius,
+                            360f, Vector3.forward, 1f, out var contact)) continue;
+
+                    // sweet spots use the ground footprint; height must not shift the centre along the camera ray.
+                    var targetCentre = hurtbox.WorldCenter;
+                    targetCentre.y = centre.y;
+                    var sweet = (targetCentre - centre).sqrMagnitude <= _specialSweetSpotRadius * _specialSweetSpotRadius + 0.000001f;
+                    var direction = targetCentre - centre;
+                    direction.y = 0f;
+                    direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : _direction;
+                    _hitThisSwing.Add(target);
+                    target.TakeHit(new HitInfo(gameObject, special.damage * _damageMultiplier
+                        * (sweet ? special.sweetSpotMultiplier : 1f), direction));
+                    if (!IsAttacking || _action != GuitarAction.Special || !isActiveAndEnabled) return;
+                    hitstop = Mathf.Max(hitstop, sweet ? special.sweetSpotHitstopDuration : special.hitstopDuration);
+                    if (vfx != null) vfx.PlayImpact(contact, sweet);
+                }
+
+                // retain the existing physics fallback for targets without an authored projected hurtbox.
+                int count;
+                while (true)
+                {
+                    var halfHeight = Vector3.up * Mathf.Max(0f, special.hitHeight) * 0.5f;
+                    count = Physics.OverlapCapsuleNonAlloc(centre - halfHeight, centre + halfHeight, _specialRadius,
+                        _hitBuffer, special.hitMask, QueryTriggerInteraction.Collide);
+                    if (count < _hitBuffer.Length) break;
+                    Array.Resize(ref _hitBuffer, _hitBuffer.Length * 2);
+                }
+                for (var i = 0; i < count; i++)
+                {
+                    var candidate = _hitBuffer[i];
+                    if (candidate == null || candidate.GetComponentInParent<Player>() != null
+                        || candidate.GetComponentInParent<CombatHurtbox>() != null) continue;
+                    var target = candidate.GetComponentInParent<IHittable>();
+                    if (target == null || _hitThisSwing.Contains(target)
+                        || target is Behaviour behaviour && !behaviour.isActiveAndEnabled) continue;
+                    var contact = candidate.ClosestPoint(centre);
+                    var near = contact - centre;
+                    near.y = 0f;
+                    if (near.sqrMagnitude > _specialRadius * _specialRadius + 0.000001f) continue;
+                    var targetCentre = candidate.bounds.center;
+                    var offset = targetCentre - centre;
+                    offset.y = 0f;
+                    var sweet = offset.sqrMagnitude <= _specialSweetSpotRadius * _specialSweetSpotRadius + 0.000001f;
+                    var direction = offset.sqrMagnitude > 0.0001f ? offset.normalized : _direction;
+                    _hitThisSwing.Add(target);
+                    target.TakeHit(new HitInfo(gameObject, special.damage * _damageMultiplier
+                        * (sweet ? special.sweetSpotMultiplier : 1f), direction));
+                    if (!IsAttacking || _action != GuitarAction.Special || !isActiveAndEnabled) return;
+                    hitstop = Mathf.Max(hitstop, sweet ? special.sweetSpotHitstopDuration : special.hitstopDuration);
+                    if (vfx != null) vfx.PlayImpact(contact, sweet);
+                }
+                Player.Hitstop.Request(hitstop);
+                if (Player.Hitstop.IsStopped) return;
+            }
+            if (elapsed < _specialWindup + _specialActive + _specialRecovery) return;
+            _action = GuitarAction.None;
+            BlocksMovement = false;
+            BlocksDodge = false;
+            BlocksAbilities = false;
+            if (weaponVisual != null) weaponVisual.Cancel();
+            return;
         }
 
         public override bool TryUseSecondary()
@@ -492,9 +512,8 @@ namespace Game50033
             _startedAt = Player.Hitstop.ActionTime;
             _secondaryReadyAt = Time.time + Mathf.Max(0f, secondary.cooldown);
             _strumReleased = false;
-            _strumming = true;
             ComboStep = 0;
-            IsAttacking = true;
+            _action = GuitarAction.Secondary;
             BlocksMovement = false;
             BlocksDodge = true;
             BlocksAbilities = true;
@@ -548,8 +567,7 @@ namespace Game50033
             _comboExpiresAt = Time.time + tuning.attack.comboResetDelay;
             _impactResolved = false;
             _activeFinished = false;
-            _defending = true;
-            IsAttacking = true;
+            _action = GuitarAction.Defensive;
             BlocksMovement = false;
             BlocksDodge = true;
             BlocksAbilities = true;
@@ -576,12 +594,11 @@ namespace Game50033
             HasEmpoweredAttack = false;
             _startedAt = Player.Hitstop.ActionTime;
             _specialReadyAt = Time.time + Mathf.Max(0f, special.cooldown);
-            _smashing = true;
             _impactResolved = false;
             _hitThisSwing.Clear();
             _nextComboIndex = 0;
             ComboStep = 0;
-            IsAttacking = true;
+            _action = GuitarAction.Special;
             BlocksMovement = false;
             BlocksDodge = true;
             BlocksAbilities = true;
@@ -590,14 +607,11 @@ namespace Game50033
 
         public override void Cancel()
         {
-            _defending = false;
+            _action = GuitarAction.None;
             if (Player.Health != null) Player.Health.ClearAbilityInvulnerability();
-            _smashing = false;
-            _strumming = false;
             HasEmpoweredAttack = false;
             _damageMultiplier = 1f;
             _empowerMultiplier = 1f;
-            IsAttacking = false;
             ComboStep = 0;
             _nextComboIndex = 0;
             _hitThisSwing.Clear();
@@ -614,7 +628,7 @@ namespace Game50033
         {
             if (tuning == null) return;
             var attack = tuning.attack;
-            if (_smashing)
+            if (_action == GuitarAction.Special)
             {
                 var centre = _impactResolved ? _impactOrigin
                     : transform.position + _direction * _specialDistance + Vector3.up * _specialHeight;
@@ -628,19 +642,19 @@ namespace Game50033
                 }
                 return;
             }
-            var primaryActive = IsAttacking && !_strumming;
+            var sweepActive = _action == GuitarAction.Primary || _action == GuitarAction.Defensive;
             var direction = IsAttacking ? _direction : Vector3.forward;
             var defensive = tuning.defensive;
-            var height = _defending ? defensive.attackHeight : attack.attackHeight;
-            var innerRadius = _defending ? defensive.innerRadius : attack.innerRadius;
-            var origin = primaryActive && _impactResolved ? _impactOrigin : transform.position + Vector3.up * height;
-            var angle = primaryActive ? _swing.angle : attack.combo != null && attack.combo.Length > 0 ? attack.combo[0].angle : 140f;
-            var shownReach = primaryActive ? _swingReach : attack.reach;
-            var shownSweetSpot = primaryActive ? _swingSweetSpotRadius : attack.sweetSpotRadius;
-            var stretchAxis = primaryActive ? _swingStretchAxis : new Vector3(attack.stretchAxis.x, 0f, attack.stretchAxis.y);
+            var height = IsDefending ? defensive.attackHeight : attack.attackHeight;
+            var innerRadius = IsDefending ? defensive.innerRadius : attack.innerRadius;
+            var origin = sweepActive && _impactResolved ? _impactOrigin : transform.position + Vector3.up * height;
+            var angle = sweepActive ? _swing.angle : attack.combo != null && attack.combo.Length > 0 ? attack.combo[0].angle : 140f;
+            var shownReach = sweepActive ? _swingReach : attack.reach;
+            var shownSweetSpot = sweepActive ? _swingSweetSpotRadius : attack.sweetSpotRadius;
+            var stretchAxis = sweepActive ? _swingStretchAxis : new Vector3(attack.stretchAxis.x, 0f, attack.stretchAxis.y);
             stretchAxis = stretchAxis.sqrMagnitude > 0.0001f ? stretchAxis.normalized : Vector3.forward;
-            var depthStretch = primaryActive ? _swingDepthStretch : Mathf.Max(1f, attack.depthStretch);
-            for (var ring = 0; ring < (_defending ? 1 : 2); ring++)
+            var depthStretch = sweepActive ? _swingDepthStretch : Mathf.Max(1f, attack.depthStretch);
+            for (var ring = 0; ring < (IsDefending ? 1 : 2); ring++)
             {
                 var radius = ring == 0 ? shownReach : shownSweetSpot;
                 Gizmos.color = ring == 0 ? Color.cyan : new Color(1f, 0.8f, 0.25f);
