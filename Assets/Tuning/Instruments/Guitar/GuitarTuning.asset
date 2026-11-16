@@ -286,10 +286,10 @@ MonoBehaviour:
     strumFrequency: 14
     strumDecay: 2
   defensive:
-    windup: 0.2
-    active: 0.4
-    recovery: 0.2
-    cooldown: 1
+    windup: 0.3
+    active: 0.3
+    recovery: 0.15
+    cooldown: 7
     damage: 2
     hitstopDuration: 0.04
     impactFraction: 0.5
@@ -411,7 +411,7 @@ MonoBehaviour:
     windup: 0.7
     active: 0.12
     recovery: 0.45
-    cooldown: 1
+    cooldown: 12
     impactFraction: 0.8
     distance: 1
     radius: 1
