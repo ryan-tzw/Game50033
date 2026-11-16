@@ -32,7 +32,7 @@ namespace Game50033
             _active.Remove(this);
         }
 
-        private void GetWorldCapsule(out Vector3 bottom, out Vector3 top, out float radius)
+        public void GetWorldCapsule(out Vector3 bottom, out Vector3 top, out float radius)
         {
             var basis = anchor != null ? anchor : transform;
             var scale = basis.lossyScale;

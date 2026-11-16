@@ -15,6 +15,7 @@ namespace Game50033
         [Tooltip("Legacy fallback for players without a shared dodge tuning asset.")]
         [SerializeField, Min(0.01f)] private float dodgeRechargeTime = 7f;
 
+        private Player _player;
         private CharacterController _controller;
         private PlayerHitstop _hitstop;
         private bool _initialized;
@@ -32,6 +33,7 @@ namespace Game50033
         private float _curveStart;
         private float _curveSpan;
 
+        private bool InfiniteDodge => _player != null && _player.Session != null && _player.Session.Debug.InfiniteDodge;
         private float DodgeRechargeTime => Mathf.Max(0.01f, dodgeTuning != null ? dodgeTuning.rechargeTime : dodgeRechargeTime);
 
         public event Action<Vector3> DodgeStarted;
@@ -43,7 +45,7 @@ namespace Game50033
         public bool IsDisplacing { get; private set; }
         public bool IsInvulnerable => IsDodging && isActiveAndEnabled && _controller != null && _controller.enabled;
         public bool CanDodge => isActiveAndEnabled && _controller != null && _controller.enabled
-            && !IsDodging && !IsDisplacing && DodgeCharges > 0 && (_hitstop == null || !_hitstop.IsStopped);
+            && !IsDodging && !IsDisplacing && (DodgeCharges > 0 || InfiniteDodge) && (_hitstop == null || !_hitstop.IsStopped);
         public int DodgeCharges { get; private set; }
         public int MaxDodgeCharges => maxDodgeCharges;
         public float DodgeRechargeRemaining => DodgeCharges < maxDodgeCharges
@@ -58,6 +60,7 @@ namespace Game50033
         {
             if (_initialized) return;
 
+            _player = GetComponent<Player>();
             _controller = GetComponent<CharacterController>();
             _hitstop = GetComponent<PlayerHitstop>();
             DodgeCharges = maxDodgeCharges;
@@ -82,8 +85,11 @@ namespace Game50033
         {
             if (!allowed || !CanDodge) return false;
 
-            if (DodgeCharges == maxDodgeCharges) _nextChargeAt = Time.time + DodgeRechargeTime;
-            DodgeCharges--;
+            if (!InfiniteDodge)
+            {
+                if (DodgeCharges == maxDodgeCharges) _nextChargeAt = Time.time + DodgeRechargeTime;
+                DodgeCharges--;
+            }
             _dodgeDirection = FacingDirection;
             _dodgeElapsed = 0f;
             IsDodging = true;

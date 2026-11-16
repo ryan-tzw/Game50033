@@ -104,3 +104,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 568178962569e67ae4ac7bada81ada57, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.GameSession
+  debugMenuPrefab: {fileID: 5095832498984272528, guid: 6aab2c5648e669b6ebb10d17769b5c23, type: 3}
