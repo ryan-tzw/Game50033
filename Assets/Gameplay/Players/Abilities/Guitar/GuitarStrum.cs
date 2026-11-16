@@ -29,6 +29,8 @@ namespace Game50033
         private LayerMask _mask;
         private bool _initialized;
         private bool _firstStep = true;
+        private DebugState _debug;
+        private DebugProjectileTrace _debugTrace;
 
         public bool IsFinished { get; private set; }
 
@@ -40,6 +42,7 @@ namespace Game50033
 
             var settings = tuning.secondary;
             _attacker = source.gameObject;
+            _debug = source.Session?.Debug;
             _impacts = impacts;
             direction.y = 0f;
             _direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.forward;
@@ -90,6 +93,10 @@ namespace Game50033
                 Mathf.CeilToInt(_angle * Mathf.Deg2Rad * (Mathf.Max(_radius, nextRadius) + _width * 0.5f)
                     * _stretch / (_thickness * 2f)));
             _contacts.Clear();
+            var captureQueries = _debug != null && _debug.ShowHitboxes && _debug.ShowPlayerAttacks;
+            if (captureQueries && _debugTrace == null) _debugTrace = new DebugProjectileTrace(this);
+            _debugTrace?.BeginFrame();
+            if (captureQueries) _debug.RecordProjectileTrace(_debugTrace);
 
             // each spoke moves by both forward travel and radial growth. sweep that combined motion
             // so expansion cannot skip targets or thin walls between rendered frames.
@@ -103,6 +110,9 @@ namespace Game50033
                 var outside = origin + radial * (_radius + width * 0.5f);
                 var motion = _direction * step + radial * (nextRadius - _radius);
                 var distance = motion.magnitude;
+                // publish the query inputs, not the visual wave or an independently reconstructed crescent.
+                if (captureQueries && (_firstStep || distance > 0.000001f))
+                    _debugTrace.AddSweep(inside, outside, _thickness, motion);
                 if (_firstStep)
                 {
                     int count;
@@ -148,6 +158,7 @@ namespace Game50033
                 fraction = Mathf.Min(fraction, contact.fraction);
                 blocked = true;
             }
+            _debugTrace?.CompleteFrame(fraction);
             foreach (var contact in _contacts)
             {
                 var collider = contact.collider;
@@ -171,7 +182,13 @@ namespace Game50033
             if (_visual != null && _visual.isActiveAndEnabled) _visual.SetWaveState(_radius, opacity, _age);
             if (!blocked && _age < _duration && opacity > 0.001f) return;
             IsFinished = true;
+            _debugTrace?.Finish();
             Destroy(gameObject);
+        }
+
+        private void OnDisable()
+        {
+            _debugTrace?.Finish();
         }
     }
 }

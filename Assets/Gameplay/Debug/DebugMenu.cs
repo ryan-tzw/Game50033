@@ -82,13 +82,28 @@ namespace Game50033
             enemyHurtboxes.SetValueWithoutNotify(_session.Debug.ShowEnemyHurtboxes);
             enemyHurtboxes.RegisterValueChangedCallback(evt => _session.Debug.ShowEnemyHurtboxes = evt.newValue);
             _panel.Add(enemyHurtboxes);
+            var playerAttacks = new Toggle("Player attacks") { name = "player-attacks", focusable = false };
+            playerAttacks.SetValueWithoutNotify(_session.Debug.ShowPlayerAttacks);
+            playerAttacks.RegisterValueChangedCallback(evt => _session.Debug.ShowPlayerAttacks = evt.newValue);
+            _panel.Add(playerAttacks);
+            var specialZones = new Toggle("Special zones") { name = "special-zones", focusable = false };
+            specialZones.SetValueWithoutNotify(_session.Debug.ShowSpecialZones);
+            specialZones.RegisterValueChangedCallback(evt => _session.Debug.ShowSpecialZones = evt.newValue);
+            _panel.Add(specialZones);
+            var snapshotHint = new Label("Dashed areas show past impacts, not active damage.");
+            snapshotHint.AddToClassList("debug-hint");
+            snapshotHint.style.whiteSpace = WhiteSpace.Normal;
+            _panel.Add(snapshotHint);
             _panel.style.display = IsOpen ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         private void LateUpdate()
         {
             if (_session == null || _hitboxOverlay == null) return;
-            var show = _session.Debug.ShowHitboxes && _session.Debug.ShowEnemyHurtboxes && visualizationTuning != null;
+            // expire even while hidden, so toggling the menu/filters cannot accumulate or replay old impacts.
+            if (visualizationTuning != null) _session.Debug.ExpireAttackSnapshots(visualizationTuning.snapshotDuration);
+            var show = _session.Debug.ShowHitboxes && visualizationTuning != null
+                && (_session.Debug.ShowEnemyHurtboxes || _session.Debug.ShowPlayerAttacks || _session.Debug.ShowSpecialZones);
             _hitboxOverlay.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
             // sample after gameplay movement; no polling or path generation is needed while hidden.
             if (show) _hitboxOverlay.MarkDirtyRepaint();

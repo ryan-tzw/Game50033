@@ -225,6 +225,8 @@ namespace Game50033
                 _impactResolved = true;
                 var hitstopDuration = 0f;
                 _impactOrigin = origin;
+                Player.Session?.Debug.RecordAttack(new DebugAttackSnapshot(origin, _direction, innerRadius, _swingReach,
+                    _swing.angle, _swingStretchAxis, _swingDepthStretch, IsDefending ? -1f : _swingSweetSpotRadius));
                 if (vfx != null)
                     vfx.BeginSwing(origin, _direction, startAngle, -startAngle, innerRadius, _swingReach,
                         _swingSweetSpotRadius, _swing.active, _swingStretchAxis, _swingDepthStretch);
@@ -420,6 +422,8 @@ namespace Game50033
             {
                 _impactResolved = true;
                 _impactOrigin = centre;
+                Player.Session?.Debug.RecordAttack(new DebugAttackSnapshot(centre, _direction, 0f, _specialRadius,
+                    360f, Vector3.forward, 1f, _specialSweetSpotRadius, sweetSpotInside: true));
                 if (vfx != null) vfx.PlaySmashImpact();
                 var hitstop = 0f;
                 var camera = Camera.main;
