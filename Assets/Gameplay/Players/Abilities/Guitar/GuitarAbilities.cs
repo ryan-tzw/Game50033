@@ -124,7 +124,9 @@ namespace Game50033
             _swingStretchAxis = new Vector3(attack.stretchAxis.x, 0f, attack.stretchAxis.y);
             _swingStretchAxis = _swingStretchAxis.sqrMagnitude > 0.0001f ? _swingStretchAxis.normalized : Vector3.forward;
             _swingDepthStretch = Mathf.Max(1f, attack.depthStretch);
-            _direction = Player.AimDirection;
+            if (_swing.lungeDistance > 0f && (!Player.Movement.isActiveAndEnabled
+                || !GetComponent<CharacterController>().enabled || Player.Movement.IsDisplacing)) return false;
+            _direction = Player.GetAttackDirection();
             _direction.y = 0f;
             _direction = _direction.sqrMagnitude > 0.0001f ? _direction.normalized : Player.Movement.FacingDirection;
 
@@ -508,7 +510,9 @@ namespace Game50033
             if (secondary.wavePrefab == null) return false;
 
             if (Time.time > _comboExpiresAt) _nextComboIndex = 0;
-            _direction = Player.AimDirection;
+            if (secondary.backstepDistance > 0f && (!Player.Movement.isActiveAndEnabled
+                || !GetComponent<CharacterController>().enabled || Player.Movement.IsDisplacing)) return false;
+            _direction = Player.GetAttackDirection();
             _direction.y = 0f;
             _direction = _direction.sqrMagnitude > 0.0001f ? _direction.normalized : Player.Movement.FacingDirection;
             _strumWindup = Mathf.Max(0.001f, secondary.windup);
@@ -552,7 +556,7 @@ namespace Game50033
             _nextComboIndex = comboIndex;
             HasEmpoweredAttack = empowered;
             _empowerMultiplier = empowermentMultiplier;
-            _direction = Player.AimDirection;
+            _direction = Player.GetAttackDirection();
             _direction.y = 0f;
             _direction = _direction.sqrMagnitude > 0.0001f ? _direction.normalized : Player.Movement.FacingDirection;
             _swing = new GuitarTuning.Swing
@@ -588,7 +592,7 @@ namespace Game50033
         {
             if (!isActiveAndEnabled || !Player.CanUseAbilities || IsAttacking || (!IgnoreCooldowns && Time.time < _specialReadyAt)) return false;
             var special = tuning.special;
-            _direction = Player.AimDirection;
+            _direction = Player.GetAttackDirection();
             _direction.y = 0f;
             _direction = _direction.sqrMagnitude > 0.0001f ? _direction.normalized : Player.Movement.FacingDirection;
             _specialWindup = Mathf.Max(0.01f, special.windup);

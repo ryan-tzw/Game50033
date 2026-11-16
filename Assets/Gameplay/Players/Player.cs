@@ -125,7 +125,7 @@ namespace Game50033
 
             if (_boundActions == null) return;
 
-            // update movement facing before resolving aim and dodge direction.
+            // update movement facing before abilities acquire aim or dodge reads its direction.
             var acceptsInput = _playerInput.isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned;
             var moveInput = acceptsInput ? _moveAction.ReadValue<Vector2>() : Vector2.zero;
             Movement.ReadInput(moveInput);
@@ -133,11 +133,6 @@ namespace Game50033
 
             if (acceptsInput)
             {
-                AimDirection = GetAttackDirection(
-                    transform.position + Vector3.up * 0.25f,
-                    autoAimRange,
-                    Physics.AllLayers);
-
                 // dodge is press-only; ability activation is retried while held.
                 if (_dodgeAction.WasPressedThisFrame()) Movement.TryDodge(CanDodge);
 
@@ -164,6 +159,10 @@ namespace Game50033
                 ? Abilities.MovementSpeedMultiplier : 1f;
             Movement.Tick(Hitstop.ActionDeltaTime, CanMove, movementSpeedMultiplier);
         }
+
+        // abilities request the shared defaults after their activation checks; idle facing never queries physics.
+        public Vector3 GetAttackDirection() => GetAttackDirection(
+            transform.position + Vector3.up * 0.25f, autoAimRange, Physics.AllLayers);
 
         public Vector3 GetAttackDirection(
             Vector3 origin,

@@ -179,7 +179,7 @@ namespace Game50033
             _hit.followThrough = Mathf.Max(0.01f, _hit.followThrough);
             _hit.recovery = Mathf.Max(0.01f, _hit.recovery);
 
-            _direction = Player.AimDirection;
+            _direction = Player.GetAttackDirection();
             _direction.y = 0f;
             _direction = _direction.sqrMagnitude > 0.0001f ? _direction.normalized : Player.Movement.FacingDirection;
 
@@ -403,7 +403,7 @@ namespace Game50033
             if (IsThrowing) return false;
             if (!Player.CanUseAbilities || IsAttacking || IsCrashing || Time.time < _throwReadyAt) return false;
 
-            _throwDirection = Player.AimDirection;
+            _throwDirection = Player.GetAttackDirection();
             _throwDirection.y = 0f;
             _throwDirection = _throwDirection.sqrMagnitude > 0.0001f ? _throwDirection.normalized : Player.Movement.FacingDirection;
             CurrentThrow = ThrowState.Windup;
@@ -578,7 +578,10 @@ namespace Game50033
             IsParrying = true;
             _parryStartedAt = Time.time;
             _parryRewarded = false;
-            _parryDirection = FlatAim();
+            _parryDirection = Player.GetAttackDirection();
+            _parryDirection.y = 0f;
+            _parryDirection = _parryDirection.sqrMagnitude > 0.0001f
+                ? _parryDirection.normalized : Player.Movement.FacingDirection;
             // free movement and a dash-cancel; no other abilities while the cymbals hold the parry.
             BlocksMovement = false;
             BlocksDodge = false;
@@ -597,7 +600,6 @@ namespace Game50033
 
             var settings = tuning.parry;
             var elapsed = Time.time - _parryStartedAt;
-            _parryDirection = FlatAim();
             ParryProjectiles(settings);
             if (!IsParrying || !isActiveAndEnabled) return;
             if (elapsed >= settings.duration)
@@ -681,12 +683,6 @@ namespace Game50033
             if (weaponVisual != null) weaponVisual.EndParry();
         }
 
-        private Vector3 FlatAim()
-        {
-            var aim = Player.AimDirection;
-            aim.y = 0f;
-            return aim.sqrMagnitude > 0.0001f ? aim.normalized : Player.Movement.FacingDirection;
-        }
         // -----------------------------
         // special: crash
         // -----------------------------
@@ -697,7 +693,7 @@ namespace Game50033
             if (!isActiveAndEnabled || !Player.SpecialPressedThisFrame) return false;
             if (!Player.CanUseAbilities || IsAttacking || IsThrowing || IsCrashing || CrashCharges <= 0) return false;
 
-            _crashDirection = Player.AimDirection;
+            _crashDirection = Player.GetAttackDirection();
             _crashDirection.y = 0f;
             _crashDirection = _crashDirection.sqrMagnitude > 0.0001f ? _crashDirection.normalized : Player.Movement.FacingDirection;
             CurrentCrash = CrashState.Windup;
@@ -944,6 +940,7 @@ namespace Game50033
             if (IsCrashing) return _crashDirection;
             if (IsParrying) return _parryDirection;
             if (Player == null) return transform.forward;
+            // idle previews use movement facing without running targeting from a gizmo callback.
             var aim = Player.AimDirection;
             aim.y = 0f;
             if (aim.sqrMagnitude > 0.0001f) return aim.normalized;
