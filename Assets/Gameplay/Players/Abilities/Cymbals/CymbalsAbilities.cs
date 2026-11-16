@@ -84,6 +84,38 @@ namespace Game50033
         public int MaxCrashCharges => tuning.crash.maxCharges;
         public bool IsParrying { get; private set; }
         public float ParryCooldownRemaining => Mathf.Max(0f, _parryReadyAt - Time.time);
+
+        // body attack poses for PlayerAnimation; presentation only, read from the existing ability state.
+        // free-walking parts (throw flight, the parry hold) report None so the walk cycle keeps playing.
+        public override PlayerAttackPhase AnimationPhase
+        {
+            get
+            {
+                if (IsAttacking)
+                    return CurrentPhase switch
+                    {
+                        Phase.Windup => PlayerAttackPhase.Windup,
+                        Phase.Recovery => PlayerAttackPhase.Recovery,
+                        _ => PlayerAttackPhase.Active,
+                    };
+                if (IsCrashing)
+                    return CurrentCrash switch
+                    {
+                        CrashState.Windup => PlayerAttackPhase.Windup,
+                        CrashState.Impact => PlayerAttackPhase.Active,
+                        _ => PlayerAttackPhase.Recovery,
+                    };
+                if (IsThrowing)
+                    return CurrentThrow switch
+                    {
+                        ThrowState.Windup => PlayerAttackPhase.Windup,
+                        ThrowState.Dashing => PlayerAttackPhase.Active,
+                        _ => PlayerAttackPhase.None,
+                    };
+                if (IsParrying && Time.time - _parryStartedAt < tuning.parry.raiseTime) return PlayerAttackPhase.Windup;
+                return PlayerAttackPhase.None;
+            }
+        }
         public float CrashRechargeRemaining => CrashCharges < MaxCrashCharges ? Mathf.Max(0f, _nextCrashChargeAt - Time.time) : 0f;
 
         // the apex window spans the end of the outbound and the start of the return.
