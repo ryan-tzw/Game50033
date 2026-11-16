@@ -11,9 +11,12 @@ namespace Game50033
     {
         public enum Phase { Windup, Approach, FollowThrough, Recovery }
         public enum ThrowState { None, Windup, Outbound, Returning, Dashing }
+        public enum CrashState { None, Windup, Impact, Recovery }
 
         [SerializeField] private CymbalsWeaponVisual weaponVisual;
         [SerializeField] private CymbalsTuning tuning;
+        [Tooltip("Child with a convex trigger MeshCollider; reshaped into the Crash triangle and enabled only for the impact query.")]
+        [SerializeField] private ResonatingAttack crashVolume;
 
         private readonly HashSet<IHittable> _hitThisStrike = new();
         private Collider[] _hitBuffer = new Collider[32];
@@ -41,6 +44,23 @@ namespace Game50033
         private int _lastSecondaryFrame = -10;
         private bool _recastUsed;
 
+        // special: crash, a triangular shockwave from the hitting point; charges refill one at a time.
+        private readonly HashSet<IHittable> _hitThisCrash = new();
+        private readonly Collider[] _crashBuffer = new Collider[64];
+        private MeshCollider _crashCollider;
+        private Mesh _crashMesh;
+        private Vector3 _crashMeshSize;
+        private Vector3 _crashDirection;
+        private Vector3 _crashTip;
+        private float _crashPhaseStartedAt;
+        private float _nextCrashChargeAt;
+        private int _crashCharges = -1;
+        private bool _crashVolumeReady;
+
+        // debug only: the areas hits actually queried, kept briefly so the gizmos can show them.
+        private readonly List<(Vector3 point, float radius, float time)> _debugColumns = new();
+        private float _debugCrashAt = float.NegativeInfinity;
+
         public bool IsAttacking { get; private set; }
         public int ComboStep { get; private set; }
         public Phase CurrentPhase { get; private set; }
@@ -48,6 +68,11 @@ namespace Game50033
         public bool IsThrowing => CurrentThrow != ThrowState.None;
         public bool RecastUsed => _recastUsed;
         public Vector3 ThrownCymbalPosition => _cymbalPosition;
+        public CrashState CurrentCrash { get; private set; }
+        public bool IsCrashing => CurrentCrash != CrashState.None;
+        public int CrashCharges => Mathf.Max(0, _crashCharges);
+        public int MaxCrashCharges => tuning.crash.maxCharges;
+        public float CrashRechargeRemaining => CrashCharges < MaxCrashCharges ? Mathf.Max(0f, _nextCrashChargeAt - Time.time) : 0f;
 
         // the apex window spans the end of the outbound and the start of the return.
         public bool InApexWindow
@@ -72,7 +97,26 @@ namespace Game50033
             {
                 Debug.LogError("CymbalsAbilities requires a CymbalsTuning asset.", this);
                 enabled = false;
+                return;
             }
+            if (_crashCharges < 0) _crashCharges = tuning.crash.maxCharges;
+        }
+
+        private void Start()
+        {
+            // the volume is a child of the player prefab; it only exists as a shape for impact queries.
+            if (crashVolume == null) return;
+            _crashCollider = crashVolume.GetComponent<MeshCollider>();
+            if (_crashCollider == null)
+            {
+                Debug.LogError("Crash volume needs a MeshCollider on the same GameObject.", crashVolume);
+                return;
+            }
+            _crashCollider.convex = true;
+            _crashCollider.isTrigger = true;
+            _crashCollider.enabled = false;
+            crashVolume.Initialize(Player);
+            _crashVolumeReady = true;
         }
 
         public override bool TryUsePrimary()
@@ -80,7 +124,7 @@ namespace Game50033
             if (!isActiveAndEnabled) return false;
             var hits = tuning.combo.hits;
             // the combo needs both cymbals, so it waits for a thrown cymbal to come back.
-            if (!Player.CanUseAbilities || IsAttacking || IsThrowing || Time.time < _readyAt
+            if (!Player.CanUseAbilities || IsAttacking || IsThrowing || IsCrashing || Time.time < _readyAt
                 || hits == null || hits.Length == 0) return false;
 
             if (Time.time > _comboExpiresAt) _nextHitIndex = 0;
@@ -111,6 +155,13 @@ namespace Game50033
 
         private void Update()
         {
+            TickCrashRecharge();
+            if (IsCrashing)
+            {
+                UpdateCrash();
+                return;
+            }
+
             if (IsThrowing)
             {
                 UpdateThrow();
@@ -215,6 +266,11 @@ namespace Game50033
             var combo = tuning.combo;
             var bottom = new Vector3(point.x, transform.position.y + radius, point.z);
             var top = bottom + Vector3.up * Mathf.Max(0f, combo.hitColumnHeight - 2f * radius);
+            if (tuning.showHitboxes)
+            {
+                if (_debugColumns.Count >= 64) _debugColumns.RemoveAt(0);
+                _debugColumns.Add((new Vector3(point.x, transform.position.y, point.z), radius, Time.time));
+            }
             int count;
             while (true)
             {
@@ -295,7 +351,7 @@ namespace Game50033
             if (CurrentThrow == ThrowState.Outbound || CurrentThrow == ThrowState.Returning)
                 return freshPress && TryRecast();
             if (IsThrowing) return false;
-            if (!Player.CanUseAbilities || IsAttacking || Time.time < _throwReadyAt) return false;
+            if (!Player.CanUseAbilities || IsAttacking || IsCrashing || Time.time < _throwReadyAt) return false;
 
             _throwDirection = Player.AimDirection;
             _throwDirection.y = 0f;
@@ -455,33 +511,337 @@ namespace Game50033
             if (weaponVisual != null) weaponVisual.EndThrow();
         }
         public override bool TryUseDefensive() => false;
-        public override bool TryUseSpecial() => false;
+        // -----------------------------
+        // special: crash
+        // -----------------------------
+
+        public override bool TryUseSpecial()
+        {
+            // a fresh press only, so holding the button never spends both charges.
+            if (!isActiveAndEnabled || !Player.SpecialPressedThisFrame) return false;
+            if (!Player.CanUseAbilities || IsAttacking || IsThrowing || IsCrashing || CrashCharges <= 0) return false;
+
+            _crashDirection = Player.AimDirection;
+            _crashDirection.y = 0f;
+            _crashDirection = _crashDirection.sqrMagnitude > 0.0001f ? _crashDirection.normalized : Player.Movement.FacingDirection;
+            CurrentCrash = CrashState.Windup;
+            _crashPhaseStartedAt = Time.time;
+            _hitThisCrash.Clear();
+            BlocksMovement = true;
+            BlocksDodge = false;
+            BlocksAbilities = true;
+            return true;
+        }
+
+        /// <summary>Grants one Crash charge immediately (a successful parry, later). No effect when full.</summary>
+        public void AddCrashCharge()
+        {
+            if (CrashCharges >= MaxCrashCharges) return;
+            _crashCharges++;
+        }
+
+        private void TickCrashRecharge()
+        {
+            var settings = tuning.crash;
+            if (_crashCharges < 0) _crashCharges = settings.maxCharges;
+            // one at a time: spending more does not restart the charge already refilling.
+            while (_crashCharges < settings.maxCharges && Time.time >= _nextCrashChargeAt)
+            {
+                _crashCharges++;
+                _nextCrashChargeAt += settings.rechargeTime;
+            }
+        }
+
+        private void UpdateCrash()
+        {
+            if (Player.Health.IsDowned || !Player.HasActiveInput)
+            {
+                Cancel();
+                return;
+            }
+
+            var settings = tuning.crash;
+            var elapsed = Time.time - _crashPhaseStartedAt;
+            switch (CurrentCrash)
+            {
+                case CrashState.Windup:
+                    if (Player.Movement.IsDodging)
+                    {
+                        EndCrash();
+                        return;
+                    }
+                    SetCrashPose(Phase.Windup, elapsed / settings.windup);
+                    if (elapsed < settings.windup) return;
+
+                    CurrentCrash = CrashState.Impact;
+                    _crashPhaseStartedAt = Time.time;
+                    BlocksDodge = true;
+                    ResolveCrash();
+                    if (!IsCrashing || !isActiveAndEnabled) return;
+                    SetCrashPose(Phase.FollowThrough, 0f);
+                    return;
+
+                case CrashState.Impact:
+                    SetCrashPose(Phase.FollowThrough, elapsed / settings.impactHold);
+                    if (elapsed < settings.impactHold) return;
+                    CurrentCrash = CrashState.Recovery;
+                    _crashPhaseStartedAt = Time.time;
+                    BlocksDodge = false;
+                    return;
+
+                case CrashState.Recovery:
+                    if (Player.Movement.IsDodging || elapsed >= settings.recovery)
+                    {
+                        EndCrash();
+                        return;
+                    }
+                    SetCrashPose(Phase.Recovery, elapsed / settings.recovery);
+                    return;
+            }
+        }
+
+        private void SetCrashPose(Phase phase, float progress)
+        {
+            if (weaponVisual != null) weaponVisual.SetCrashPose(_crashDirection, phase, Mathf.Clamp01(progress));
+        }
+
+        private void ResolveCrash()
+        {
+            var settings = tuning.crash;
+            var combo = tuning.combo;
+
+            // the charge is spent on the slam, so a dash-cancelled windup costs nothing.
+            if (_crashCharges >= settings.maxCharges) _nextCrashChargeAt = Time.time + settings.rechargeTime;
+            _crashCharges--;
+
+            _crashTip = combo.GetHitPoint(transform.position, _crashDirection);
+            _crashTip.y = transform.position.y;
+            _debugCrashAt = Time.time;
+            if (weaponVisual != null) weaponVisual.PlayCrashWaves(_crashTip, _crashDirection);
+            if (!_crashVolumeReady) return;
+
+            // shape and place the prism, then query it once with the collider enabled.
+            var rotation = Quaternion.LookRotation(_crashDirection, Vector3.up);
+            BuildCrashMesh(settings, combo.hitColumnHeight);
+            crashVolume.transform.SetPositionAndRotation(_crashTip, rotation);
+            _crashCollider.enabled = true;
+            Physics.SyncTransforms();
+            try
+            {
+                var center = _crashTip + _crashDirection * (settings.length * 0.5f) + Vector3.up * (combo.hitColumnHeight * 0.5f);
+                var extents = new Vector3(settings.width * 0.5f, combo.hitColumnHeight * 0.5f, settings.length * 0.5f);
+                var count = Physics.OverlapBoxNonAlloc(center, extents, _crashBuffer, rotation, Physics.AllLayers, QueryTriggerInteraction.Collide);
+
+                // resonance: teammates' Reverberations inside the triangle (the resolver checks the exact overlap).
+                for (var i = 0; i < count; i++)
+                {
+                    var candidate = _crashBuffer[i];
+                    if (candidate != null && candidate.TryGetComponent(out Reverberation reverberation))
+                        ResonanceResolver.TryActivate(reverberation, crashVolume);
+                    if (!isActiveAndEnabled || Player.Health.IsDowned) return;
+                }
+
+                // damage: solid bodies whose shape overlaps the prism.
+                for (var i = 0; i < count; i++)
+                {
+                    var candidate = _crashBuffer[i];
+                    if (candidate == null || candidate.isTrigger || !candidate.enabled
+                        || (combo.hitMask.value & (1 << candidate.gameObject.layer)) == 0
+                        || candidate.GetComponentInParent<Player>() != null) continue;
+                    var target = candidate.GetComponentInParent<IHittable>();
+                    if (target == null || _hitThisCrash.Contains(target)
+                        || target is Behaviour behaviour && !behaviour.isActiveAndEnabled) continue;
+                    if (!OverlapsCrash(candidate, rotation)) continue;
+
+                    _hitThisCrash.Add(target);
+                    target.TakeHit(new HitInfo(gameObject, settings.damage, _crashDirection));
+                    if (!isActiveAndEnabled || Player.Health.IsDowned) return;
+                    if (combo.hitEffect != null)
+                        combo.hitEffect.Play(new HitEffectRequest(
+                            ContactPoint(candidate, _crashTip + _crashDirection * (settings.length * 0.4f)),
+                            _crashDirection, settings.damage, true));
+                }
+            }
+            finally
+            {
+                if (_crashCollider != null) _crashCollider.enabled = false;
+            }
+        }
+
+        private bool OverlapsCrash(Collider candidate, Quaternion rotation)
+        {
+            // non-convex meshes cannot be tested exactly; fall back to their centre inside the triangle.
+            if (candidate is MeshCollider { convex: false })
+            {
+                tuning.crash.GetTriangle(_crashTip, _crashDirection, out var left, out var right);
+                return InsideTriangle(candidate.bounds.center, _crashTip, left, right);
+            }
+            return Physics.ComputePenetration(_crashCollider, _crashTip, rotation,
+                candidate, candidate.transform.position, candidate.transform.rotation, out _, out _);
+        }
+
+        private static bool InsideTriangle(Vector3 point, Vector3 a, Vector3 b, Vector3 c)
+        {
+            static float Side(Vector3 p, Vector3 from, Vector3 to) => (to.x - from.x) * (p.z - from.z) - (to.z - from.z) * (p.x - from.x);
+            var d1 = Side(point, a, b);
+            var d2 = Side(point, b, c);
+            var d3 = Side(point, c, a);
+            var negative = d1 < 0f || d2 < 0f || d3 < 0f;
+            var positive = d1 > 0f || d2 > 0f || d3 > 0f;
+            return !(negative && positive);
+        }
+
+        // a triangular prism in the volume's local space: tip at the origin, opening along +Z, from the feet up.
+        private void BuildCrashMesh(CymbalsTuning.CrashSettings settings, float height)
+        {
+            // reshape only when the tuned size changed; cooking a convex mesh every crash is wasted work.
+            var size = new Vector3(settings.width, height, settings.length);
+            if (_crashMesh != null && _crashCollider.sharedMesh == _crashMesh && size == _crashMeshSize) return;
+            _crashMeshSize = size;
+
+            // detach before editing: changing a mesh the collider still holds leaves the collider empty.
+            _crashCollider.sharedMesh = null;
+            if (_crashMesh == null) _crashMesh = new Mesh { name = "Crash volume" };
+            var half = settings.width * 0.5f;
+            var l = settings.length;
+            _crashMesh.Clear();
+            _crashMesh.vertices = new[]
+            {
+                new Vector3(0f, 0f, 0f), new Vector3(-half, 0f, l), new Vector3(half, 0f, l),
+                new Vector3(0f, height, 0f), new Vector3(-half, height, l), new Vector3(half, height, l),
+            };
+            _crashMesh.triangles = new[]
+            {
+                0, 2, 1, 3, 4, 5,
+                0, 1, 4, 0, 4, 3,
+                1, 2, 5, 1, 5, 4,
+                2, 0, 3, 2, 3, 5,
+            };
+            _crashMesh.RecalculateBounds();
+            _crashCollider.sharedMesh = _crashMesh;
+        }
+
+        private void OnDestroy()
+        {
+            if (_crashMesh != null) Destroy(_crashMesh);
+        }
+
+        private void EndCrash()
+        {
+            CurrentCrash = CrashState.None;
+            _hitThisCrash.Clear();
+            BlocksMovement = false;
+            BlocksDodge = false;
+            BlocksAbilities = false;
+            if (weaponVisual != null) weaponVisual.Cancel();
+        }
 
         public override void Cancel()
         {
             if (IsThrowing) EndThrow(startCooldown: true);
+            if (IsCrashing) EndCrash();
             EndAttackState();
             _nextHitIndex = 0;
             if (Player.Movement != null) Player.Movement.CancelDisplacement();
             if (weaponVisual != null) weaponVisual.Cancel();
         }
 
+        // debug only. In play mode the hit areas draw for every player (no selection needed) when
+        // tuning.showHitboxes is on; turn on Gizmos in the Game view toolbar to see them there too.
+        private void OnDrawGizmos()
+        {
+            if (!Application.isPlaying || tuning == null || !tuning.showHitboxes) return;
+            DrawHitAreas(LiveAim());
+        }
+
+        // edit-mode preview when the player is selected.
         private void OnDrawGizmosSelected()
         {
-            if (tuning == null) return;
+            if (Application.isPlaying || tuning == null) return;
+            DrawHitAreas(transform.forward);
+        }
+
+        private Vector3 LiveAim()
+        {
+            if (IsAttacking) return _direction;
+            if (IsCrashing) return _crashDirection;
+            if (Player == null) return transform.forward;
+            var aim = Player.AimDirection;
+            aim.y = 0f;
+            if (aim.sqrMagnitude > 0.0001f) return aim.normalized;
+            return Player.Movement != null ? Player.Movement.FacingDirection : transform.forward;
+        }
+
+        private void DrawHitAreas(Vector3 aim)
+        {
             var combo = tuning.combo;
-            var center = transform.position + Vector3.up * combo.hitHeight;
-            var direction = IsAttacking ? _direction : Vector3.forward;
+            var feet = transform.position.y;
+            var height = combo.hitColumnHeight;
+            var now = Time.time;
+            var flash = tuning.hitboxFlashTime;
+            var flashColor = new Color(1f, 0.15f, 0.15f);
 
-            // the ring every strike's hitting point lies on, and the damage circle at the current aim.
-            Gizmos.color = new Color(0.4f, 0.8f, 1f, 0.6f);
-            DrawCircle(center, combo.hitDistance);
-            Gizmos.color = new Color(1f, 0.8f, 0.25f);
-            DrawCircle(IsAttacking && _impactResolved ? _lastHitPoint : combo.GetHitPoint(transform.position, direction), combo.hitRadius);
+            // the ring every strike's hitting point lies on, and the damage column at the current aim.
+            Gizmos.color = new Color(0.4f, 0.8f, 1f, 0.5f);
+            DrawCircle(transform.position + Vector3.up * combo.hitHeight, combo.hitDistance);
+            var hitPoint = combo.GetHitPoint(transform.position, aim);
+            hitPoint.y = feet;
+            Gizmos.color = new Color(1f, 0.85f, 0.25f);
+            DrawColumn(hitPoint, combo.hitRadius, height);
 
-            if (!IsThrowing || CurrentThrow == ThrowState.Windup) return;
-            Gizmos.color = InApexWindow ? new Color(1f, 0.95f, 0.5f) : new Color(1f, 0.5f, 0.3f);
-            DrawCircle(_cymbalPosition, tuning.cymbalThrow.hitRadius);
+            // the crash prism at the current aim (locked to the press direction during the windup),
+            // then where the slam actually landed. _crashTip is only set at the slam, so it is stale during the windup.
+            var crashFlashing = now - _debugCrashAt <= flash;
+            var landed = crashFlashing || CurrentCrash == CrashState.Impact || CurrentCrash == CrashState.Recovery;
+            var tip = landed ? _crashTip : hitPoint;
+            tuning.crash.GetTriangle(tip, landed ? _crashDirection : aim, out var left, out var right);
+            Gizmos.color = crashFlashing ? flashColor : new Color(1f, 0.6f, 0.2f, 0.6f);
+            DrawPrism(tip, left, right, height);
+
+            // the thrown cymbal's damage column.
+            if (IsThrowing && CurrentThrow != ThrowState.Windup)
+            {
+                Gizmos.color = InApexWindow ? new Color(1f, 0.95f, 0.5f) : new Color(1f, 0.5f, 0.3f);
+                DrawColumn(new Vector3(_cymbalPosition.x, feet, _cymbalPosition.z), tuning.cymbalThrow.hitRadius, height);
+            }
+
+            // every column a hit actually queried recently (combo strikes, throw flight, recast dash).
+            Gizmos.color = flashColor;
+            for (var i = _debugColumns.Count - 1; i >= 0; i--)
+            {
+                var (point, radius, time) = _debugColumns[i];
+                if (now - time > flash)
+                {
+                    _debugColumns.RemoveAt(i);
+                    continue;
+                }
+                DrawColumn(point, radius, height);
+            }
+        }
+
+        private static void DrawColumn(Vector3 bottom, float radius, float height)
+        {
+            var top = bottom + Vector3.up * height;
+            DrawCircle(bottom, radius);
+            DrawCircle(top, radius);
+            Gizmos.DrawLine(bottom + Vector3.forward * radius, top + Vector3.forward * radius);
+            Gizmos.DrawLine(bottom - Vector3.forward * radius, top - Vector3.forward * radius);
+            Gizmos.DrawLine(bottom + Vector3.right * radius, top + Vector3.right * radius);
+            Gizmos.DrawLine(bottom - Vector3.right * radius, top - Vector3.right * radius);
+        }
+
+        private static void DrawPrism(Vector3 tip, Vector3 left, Vector3 right, float height)
+        {
+            var up = Vector3.up * height;
+            Gizmos.DrawLine(tip, left);
+            Gizmos.DrawLine(left, right);
+            Gizmos.DrawLine(right, tip);
+            Gizmos.DrawLine(tip + up, left + up);
+            Gizmos.DrawLine(left + up, right + up);
+            Gizmos.DrawLine(right + up, tip + up);
+            Gizmos.DrawLine(tip, tip + up);
+            Gizmos.DrawLine(left, left + up);
+            Gizmos.DrawLine(right, right + up);
         }
 
         private static void DrawCircle(Vector3 center, float radius)

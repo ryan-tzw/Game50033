@@ -54,7 +54,7 @@ Gamepad buttons are bound by **position**, not by the letter printed on them. Sw
 | Aim | Automatic | Automatic | — | — | — | Auto-targeting, with movement-facing fallback; Guitar snapshots this direction per strike |
 | Primary attack | Left click | Left face button | X | □ | Y | Guitar: three-hit sweeping combo; hold to continue/repeat. Cymbals: five-hit combo landing on one fixed hitting point; dash between hits keeps the chain. Other characters retain their current abilities/placeholders. |
 | Secondary attack | Right click | Top face button | Y | △ | X | Cymbals: Cymbal Throw. Press again once mid-flight to recast: a Burst Reverberation spawns at the cymbal, and if the cymbal is flashing near its apex you also dash to it, dealing damage. Others not implemented |
-| Special attack | E | Bottom face button | A | ✕ | B | Not implemented (used as **join / pick** in the lobby) |
+| Special attack | E | Bottom face button | A | ✕ | B | Cymbals: Crash, a triangular shockwave forward from the hitting point that sets off teammates' Reverberations in it; 2 charges, refilled one at a time. Others not implemented. Also **join / pick** in the lobby |
 | Defensive | Q | Right face button | B | ○ | A | Not implemented (used as **back** in the lobby) |
 | Dash | Space | Right trigger | RT | R2 | ZR | Existing dodge: two charges, invulnerability, timed recharge |
 
@@ -132,11 +132,15 @@ Open `Assets/Scenes/TestScenes/CymbalsPrimaryTest.unity` and press Play. Join wi
 
 Cymbal Throw is in the same scene. Stand about 2.5 units from a dummy and press Secondary (right click / top face button). The cymbal spins out, slows to a stop at the apex, flashes, then speeds back to you. It hits on the way out and on the way back (1.5 each by default). While it flies you can move and dash, but not use Primary. Press Secondary once more while it flashes to drop an orange Burst Reverberation at the cymbal and dash to it (2 damage to anything on the way). Pressing again before or after the flash only drops the Burst, and the cymbal keeps flying.
 
+Crash is Special (E / bottom face button). Both cymbals rise overhead and slam on the hitting point, and slanted waves sweep forward through a triangle (3 long, 3 wide at the far end by default). It deals 4 damage to everything in the triangle and sets off other players' Reverberations inside it. You have 2 charges, refilled one at a time (6 s each). Note: in this test scene, the button that joins you is also Special, so your first Crash charge may be spent on joining.
+
 Tune Cymbals in **`Assets/Tuning/Instruments/Cymbals/CymbalsTuning.asset`**:
 
 - **Combo / Hits**: per-hit windup, approach, follow-through and recovery times, damage, lunge, and for each hand whether it swings plus its start and end pose. A pose is X = degrees around the player relative to the aim (+ is aim-right) and Y = distance. Damage lands when the approach ends, and the swinging cymbal is always on the hitting point at that moment, whatever the poses.
 - **Combo / Hitting point**: `hitDistance` and `hitRadius` (the damage circle on the ground plane), shared by all five hits. `hitHeight` is only where the cymbals meet visually. `hitColumnHeight` is how tall the damage area is, measured from the feet, so tall or raised targets are still hit. Trigger colliders never count as hits.
 - **Throw**: windup, range, outbound and return time, and speed curves (by default it slows to a stop at the apex, then speeds up back to you). Also cooldown, flight damage and radius, apex window (total seconds around the apex in which a recast also dashes), the Burst Reverberation prefab and strength, dash speed, catch offset and damage, spin speed and minimum spin, and the apex flash.
+- **Crash**: max charges and recharge time, windup, impact hold and recovery, damage, triangle length and far-end width, and the waves (material, count, duration, stagger, slant, width, colour).
+- **Debug**: Show Hitboxes draws every Cymbals hit area as gizmos in play mode (turn on Gizmos in the Game view toolbar); areas real hits used flash red for Hitbox Flash Time.
 - **Weapon**: guard pose, clash spacing, easing curves per phase, sprite and impact scale. **Slash trail** sets the streak behind each swinging cymbal: material (`Abilities/Cymbals/Art/CymbalsTrail.mat`), time (length), start and end width, and colour.
 - **Combo / Hits / Big Hit** chooses the big-hit style of the hit effect; it's on for the clash.
 

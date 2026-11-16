@@ -8,7 +8,14 @@ namespace Game50033
     {
         public ComboSettings combo = new();
         [InspectorName("Throw")] public ThrowSettings cymbalThrow = new();
+        public CrashSettings crash = new();
         public WeaponSettings weapon = new();
+
+        [Header("Debug")]
+        [Tooltip("Draw the hit areas as gizmos in play mode, following the aim. Turn on Gizmos in the Game view toolbar to see them there.")]
+        public bool showHitboxes = true;
+        [Tooltip("How long the area a hit actually used stays drawn in red after it resolves.")]
+        [Min(0f)] public float hitboxFlashTime = 0.5f;
 
         // a pose relative to the hit's locked aim: x = degrees around the player (+ = aim-right), y = distance.
         [Serializable]
@@ -161,6 +168,52 @@ namespace Game50033
             [Range(0f, 1f)] public float apexFlashAmount = 0.6f;
             [Tooltip("Flash pulses per second while the apex window is open.")]
             [Min(0f)] public float apexFlashRate = 10f;
+        }
+
+        [Serializable]
+        public sealed class CrashSettings
+        {
+            [Header("Charges")]
+            [Min(1)] public int maxCharges = 2;
+            [Tooltip("Seconds to refill one charge; charges refill one at a time.")]
+            [Min(0.1f)] public float rechargeTime = 6f;
+
+            [Header("Timing")]
+            [Tooltip("Cymbals rise overhead. A dash cancels it and no charge is spent.")]
+            [Min(0.01f)] public float windup = 0.25f;
+            [Tooltip("Committed time after the slam; a dash cannot interrupt it.")]
+            [Min(0.01f)] public float impactHold = 0.1f;
+            [Tooltip("Back to guard. A dash may cancel it.")]
+            [Min(0.01f)] public float recovery = 0.35f;
+
+            [Header("Area")]
+            [Tooltip("Damage once per target in the triangle.")]
+            [Min(0f)] public float damage = 4f;
+            [Tooltip("Triangle length, from its tip at the combo hitting point forward along the aim.")]
+            [Min(0.1f)] public float length = 3f;
+            [Tooltip("Full width of the triangle at its far end.")]
+            [Min(0.1f)] public float width = 3f;
+
+            [Header("Waves")]
+            [Tooltip("Unlit, vertex-coloured material for the slanted shockwaves.")]
+            public Material waveMaterial;
+            [Min(1)] public int waveCount = 3;
+            [Min(0.01f)] public float waveDuration = 0.35f;
+            [Tooltip("Delay between successive waves.")]
+            [Min(0f)] public float waveStagger = 0.07f;
+            [Tooltip("How far each wave's centre leads its side ends, giving the slant.")]
+            public float waveSlant = 0.45f;
+            [Min(0f)] public float waveWidth = 0.08f;
+            public Color waveColor = new(1f, 0.95f, 0.75f, 0.9f);
+
+            // triangle corners on the ground plane: tip at the hitting point, base at the far end.
+            public void GetTriangle(Vector3 tip, Vector3 aim, out Vector3 left, out Vector3 right)
+            {
+                var side = Vector3.Cross(Vector3.up, aim) * (width * 0.5f);
+                var far = tip + aim * length;
+                left = far - side;
+                right = far + side;
+            }
         }
 
         [Serializable]

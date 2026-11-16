@@ -14,6 +14,7 @@ namespace Game50033
         [SerializeField] private TrailRenderer leftTrail;
         [SerializeField] private TrailRenderer rightTrail;
         [SerializeField] private CymbalsTuning tuning;
+        [SerializeField] private CymbalsCrashWaves crashWaves;
 
         private Player _player;
         private bool _posing;
@@ -38,6 +39,15 @@ namespace Game50033
         private Vector3 _chargeDirection = Vector3.forward;
         private float _spinAngle;
         private MaterialPropertyBlock _rightProperties;
+
+        // crash: both cymbals rise overhead, then slam together at the hitting point.
+        private bool _crashPosing;
+        private bool _crashCaptured;
+        private Vector3 _crashDirection = Vector3.forward;
+        private CymbalsAbilities.Phase _crashPhase;
+        private float _crashProgress;
+        private Vector3 _leftCrashFrom;
+        private Vector3 _rightCrashFrom;
         private static readonly int SpriteRotationId = Shader.PropertyToID("_SpriteRotation");
         private static readonly int FlashAmountId = Shader.PropertyToID("_FlashAmount");
         private static readonly int FlashColorId = Shader.PropertyToID("_FlashColor");
@@ -45,6 +55,7 @@ namespace Game50033
         private void Awake()
         {
             _player = GetComponent<Player>();
+            if (crashWaves == null) crashWaves = GetComponent<CymbalsCrashWaves>();
         }
 
         private void OnEnable()
@@ -89,6 +100,23 @@ namespace Game50033
         {
             _posing = false;
             _windupCaptured = false;
+            _crashPosing = false;
+            _crashCaptured = false;
+        }
+
+        public void SetCrashPose(Vector3 direction, CymbalsAbilities.Phase phase, float progress)
+        {
+            if (!_crashPosing) _crashCaptured = false;
+            _posing = false;
+            _crashPosing = true;
+            _crashDirection = direction;
+            _crashPhase = phase;
+            _crashProgress = progress;
+        }
+
+        public void PlayCrashWaves(Vector3 tip, Vector3 direction)
+        {
+            if (crashWaves != null) crashWaves.Play(tip, direction);
         }
 
         public void SetThrowWindup(Vector3 direction, float progress)
@@ -142,6 +170,13 @@ namespace Game50033
             if (_throwPose != ThrowPose.None)
             {
                 PlaceThrowPose();
+                _placed = true;
+                return;
+            }
+
+            if (_crashPosing)
+            {
+                PlaceCrashPose();
                 _placed = true;
                 return;
             }
@@ -264,6 +299,56 @@ namespace Game50033
             rightCymbal.transform.localScale = Vector3.one * scale;
             SetTrail(rightTrail, true);
             ApplyRightCymbalProperties(_spinAngle, flash);
+        }
+
+        private void PlaceCrashPose()
+        {
+            var weapon = tuning.weapon;
+            var combo = tuning.combo;
+            if (!_crashCaptured)
+            {
+                _leftCrashFrom = leftCymbal.transform.position - transform.position;
+                _rightCrashFrom = rightCymbal.transform.position - transform.position;
+                _crashCaptured = true;
+            }
+
+            var side = Vector3.Cross(Vector3.up, _crashDirection);
+            var overhead = Vector3.up * (weapon.restHeight + 0.65f) + _crashDirection * 0.05f;
+            var hit = Offset(_crashDirection, 0f, combo.hitDistance, combo.hitHeight, 0f);
+            var spacing = side * (weapon.clashSpacing * 0.5f);
+            var scale = weapon.spriteScale;
+            Vector3 left, right;
+            switch (_crashPhase)
+            {
+                case CymbalsAbilities.Phase.Windup:
+                {
+                    // raise both cymbals overhead, slightly apart, from wherever they were.
+                    var t = weapon.windupEasing.Evaluate(_crashProgress);
+                    left = Vector3.LerpUnclamped(_leftCrashFrom, overhead - side * 0.18f, t);
+                    right = Vector3.LerpUnclamped(_rightCrashFrom, overhead + side * 0.18f, t);
+                    break;
+                }
+                case CymbalsAbilities.Phase.Recovery:
+                {
+                    var t = weapon.recoveryEasing.Evaluate(_crashProgress);
+                    left = Vector3.LerpUnclamped(hit - spacing, Offset(_crashDirection, -weapon.restAngle, weapon.restDistance, weapon.restHeight, 0f), t);
+                    right = Vector3.LerpUnclamped(hit + spacing, Offset(_crashDirection, weapon.restAngle, weapon.restDistance, weapon.restHeight, 0f), t);
+                    break;
+                }
+                default:
+                    // the slam: both cymbals meet exactly on the hitting point, where the triangle starts.
+                    left = hit - spacing;
+                    right = hit + spacing;
+                    scale *= Mathf.Lerp(weapon.impactScale * 1.2f, weapon.impactScale, _crashProgress);
+                    break;
+            }
+
+            leftCymbal.transform.position = transform.position + left;
+            rightCymbal.transform.position = transform.position + right;
+            leftCymbal.transform.localScale = Vector3.one * scale;
+            rightCymbal.transform.localScale = Vector3.one * scale;
+            SetTrail(leftTrail, false);
+            SetTrail(rightTrail, false);
         }
 
         private void ApplyRightCymbalProperties(float rotation, float flash)
