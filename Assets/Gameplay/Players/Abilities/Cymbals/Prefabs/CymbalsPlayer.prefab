@@ -614,6 +614,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3885672621503035260, guid: 54d14410a406964f98f9e3c220de0abb, type: 3}
       insertIndex: -1
       addedObject: {fileID: 9059299678650517334}
+    - targetCorrespondingSourceObject: {fileID: 3885672621503035260, guid: 54d14410a406964f98f9e3c220de0abb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7105556367408576384}
   m_SourcePrefab: {fileID: 100100000, guid: 54d14410a406964f98f9e3c220de0abb, type: 3}
 --- !u!4 &2239881663719373251 stripped
 Transform:
@@ -643,6 +646,7 @@ MonoBehaviour:
   rightTrail: {fileID: 3099817888458622940}
   tuning: {fileID: 11400000, guid: b6b4a8d5283cea14bb0935e7a35cc3e7, type: 2}
   crashWaves: {fileID: 9059299678650517334}
+  parryArcs: {fileID: 7105556367408576384}
 --- !u!114 &5774669421613856341
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -670,4 +674,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b8024a8357619b47b6f02daf81c7aba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.CymbalsCrashWaves
+  tuning: {fileID: 11400000, guid: b6b4a8d5283cea14bb0935e7a35cc3e7, type: 2}
+--- !u!114 &7105556367408576384
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6063632567514359169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9dbe8d493e169fe4db39f1c26771e7a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.CymbalsParryArcs
   tuning: {fileID: 11400000, guid: b6b4a8d5283cea14bb0935e7a35cc3e7, type: 2}

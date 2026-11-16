@@ -81,7 +81,7 @@ MonoBehaviour:
     - label: Both cymbals clash
       windup: 0.18
       approach: 0.08
-      followThrough: 0.12
+      followThrough: 0.06
       recovery: 0.3
       damage: 2.5
       lungeDistance: 0.35
@@ -89,12 +89,12 @@ MonoBehaviour:
       left:
         swings: 1
         startPose: {x: -75, y: 0.55}
-        endPose: {x: 0, y: 0.85}
+        endPose: {x: 0, y: 0.6}
       right:
         swings: 1
         startPose: {x: 75, y: 0.55}
-        endPose: {x: 0, y: 0.85}
-    hitDistance: 0.75
+        endPose: {x: 0, y: 0.6}
+    hitDistance: 0.55
     hitRadius: 0.4
     hitHeight: 0.25
     hitColumnHeight: 2
@@ -226,8 +226,8 @@ MonoBehaviour:
     impactHold: 0.1
     recovery: 0.35
     damage: 4
-    length: 3
-    width: 3
+    length: 2
+    width: 1.5
     waveMaterial: {fileID: 2100000, guid: a9669291b16dafa46b90709e5f5e22af, type: 2}
     waveCount: 3
     waveDuration: 0.35
@@ -235,6 +235,27 @@ MonoBehaviour:
     waveSlant: 0.45
     waveWidth: 0.08
     waveColor: {r: 1, g: 0.95, b: 0.75, a: 0.9}
+  parry:
+    duration: 2
+    cooldown: 7
+    raiseTime: 0.08
+    coneAngle: 120
+    range: 1
+    projectileTag: BossProjectile
+    crashChargeReward: 1
+    parryEffect: {fileID: 11400000, guid: 8c765654a4db8374c93a6dc6e3c808a7, type: 2}
+    parryPopScale: 1.4
+    parryPopTime: 0.15
+    cymbalSpread: 0.45
+    shakeAmplitude: 0.025
+    shakeFrequency: 28
+    arcMaterial: {fileID: 2100000, guid: 066224fa8c70ab54d97655c5d00275b7, type: 2}
+    arcWidth: 0.06
+    arcSegments: 12
+    arcColor: {r: 0.8, g: 0.7607844, b: 0.6, a: 1}
+    glowRate: 2.5
+    dimAlpha: 0.35
+    glowWidth: 1.4
   weapon:
     restAngle: 60
     restDistance: 0.4
@@ -373,3 +394,5 @@ MonoBehaviour:
       m_ColorSpace: -1
       m_NumColorKeys: 2
       m_NumAlphaKeys: 2
+  showHitboxes: 1
+  hitboxFlashTime: 0.5

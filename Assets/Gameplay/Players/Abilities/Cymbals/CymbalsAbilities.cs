@@ -57,6 +57,16 @@ namespace Game50033
         private int _crashCharges = -1;
         private bool _crashVolumeReady;
 
+        // defensive: parry, a cone in front that destroys tagged projectiles; one reward per press.
+        private readonly HashSet<GameObject> _parriedThisFrame = new();
+        private Collider[] _parryBuffer = new Collider[32];
+        private Vector3 _parryDirection = Vector3.forward;
+        private float _parryStartedAt;
+        private float _parryReadyAt;
+        private int _lastDefensiveFrame = -10;
+        private bool _parryRewarded;
+        private float _debugParryAt = float.NegativeInfinity;
+
         // debug only: the areas hits actually queried, kept briefly so the gizmos can show them.
         private readonly List<(Vector3 point, float radius, float time)> _debugColumns = new();
         private float _debugCrashAt = float.NegativeInfinity;
@@ -72,6 +82,8 @@ namespace Game50033
         public bool IsCrashing => CurrentCrash != CrashState.None;
         public int CrashCharges => Mathf.Max(0, _crashCharges);
         public int MaxCrashCharges => tuning.crash.maxCharges;
+        public bool IsParrying { get; private set; }
+        public float ParryCooldownRemaining => Mathf.Max(0f, _parryReadyAt - Time.time);
         public float CrashRechargeRemaining => CrashCharges < MaxCrashCharges ? Mathf.Max(0f, _nextCrashChargeAt - Time.time) : 0f;
 
         // the apex window spans the end of the outbound and the start of the return.
@@ -156,6 +168,12 @@ namespace Game50033
         private void Update()
         {
             TickCrashRecharge();
+            if (IsParrying)
+            {
+                UpdateParry();
+                return;
+            }
+
             if (IsCrashing)
             {
                 UpdateCrash();
@@ -510,7 +528,133 @@ namespace Game50033
             BlocksAbilities = false;
             if (weaponVisual != null) weaponVisual.EndThrow();
         }
-        public override bool TryUseDefensive() => false;
+        // -----------------------------
+        // defensive: parry
+        // -----------------------------
+
+        public override bool TryUseDefensive()
+        {
+            // Player retries every frame while the button is held; only the first frame of a press counts,
+            // so holding Defensive through the cooldown never parries again by itself.
+            var fresh = Time.frameCount - _lastDefensiveFrame > 1;
+            _lastDefensiveFrame = Time.frameCount;
+            if (!isActiveAndEnabled || !fresh) return false;
+            // both cymbals are needed, so the thrown cymbal must be back.
+            if (!Player.CanUseAbilities || IsAttacking || IsThrowing || IsCrashing || IsParrying
+                || Time.time < _parryReadyAt) return false;
+
+            IsParrying = true;
+            _parryStartedAt = Time.time;
+            _parryRewarded = false;
+            _parryDirection = FlatAim();
+            // free movement and a dash-cancel; no other abilities while the cymbals hold the parry.
+            BlocksMovement = false;
+            BlocksDodge = false;
+            BlocksAbilities = true;
+            if (weaponVisual != null) weaponVisual.SetParryPose(_parryDirection, 0f);
+            return true;
+        }
+
+        private void UpdateParry()
+        {
+            if (Player.Health.IsDowned || !Player.HasActiveInput || Player.Movement.IsDodging)
+            {
+                EndParry();
+                return;
+            }
+
+            var settings = tuning.parry;
+            var elapsed = Time.time - _parryStartedAt;
+            _parryDirection = FlatAim();
+            ParryProjectiles(settings);
+            if (!IsParrying || !isActiveAndEnabled) return;
+            if (elapsed >= settings.duration)
+            {
+                EndParry();
+                return;
+            }
+            if (weaponVisual != null) weaponVisual.SetParryPose(_parryDirection, elapsed / settings.raiseTime);
+        }
+
+        // anything tagged inside the cone is destroyed before it can reach the player's body;
+        // the player's own damage is untouched, so hits from other directions still land.
+        private void ParryProjectiles(CymbalsTuning.ParrySettings settings)
+        {
+            if (string.IsNullOrEmpty(settings.projectileTag)) return;
+            var origin = transform.position;
+            var height = tuning.combo.hitColumnHeight;
+            Physics.SyncTransforms();
+            int count;
+            while (true)
+            {
+                count = Physics.OverlapCapsuleNonAlloc(origin, origin + Vector3.up * height, settings.range,
+                    _parryBuffer, ~0, QueryTriggerInteraction.Collide);
+                if (count < _parryBuffer.Length) break;
+                Array.Resize(ref _parryBuffer, _parryBuffer.Length * 2);
+            }
+
+            _parriedThisFrame.Clear();
+            var halfAngle = settings.coneAngle * 0.5f;
+            for (var i = 0; i < count; i++)
+            {
+                var candidate = _parryBuffer[i];
+                if (candidate == null) continue;
+                var projectile = FindTagged(candidate.transform, settings.projectileTag);
+                if (projectile == null || !_parriedThisFrame.Add(projectile)) continue;
+
+                // cone test on the ground plane, from the player's centre, generous by the projectile's size.
+                var bounds = candidate.bounds;
+                var offset = bounds.center - origin;
+                offset.y = 0f;
+                var distance = offset.magnitude;
+                if (distance < 0.0001f || distance > settings.range + Mathf.Max(bounds.extents.x, bounds.extents.z)) continue;
+                if (Vector3.Angle(_parryDirection, offset) > halfAngle) continue;
+
+                Parry(projectile, bounds.center, settings);
+                if (!IsParrying || !isActiveAndEnabled) return;
+            }
+        }
+
+        private static GameObject FindTagged(Transform from, string tag)
+        {
+            // string comparison, not CompareTag, so a tag missing from the project does not log errors every frame.
+            for (var t = from; t != null; t = t.parent)
+                if (t.gameObject.tag == tag) return t.gameObject;
+            return null;
+        }
+
+        private void Parry(GameObject projectile, Vector3 point, CymbalsTuning.ParrySettings settings)
+        {
+            // deactivate first so it cannot touch the player in a physics step before Destroy runs.
+            projectile.SetActive(false);
+            Destroy(projectile);
+            _debugParryAt = Time.time;
+            if (settings.parryEffect != null)
+                settings.parryEffect.Play(new HitEffectRequest(point, _parryDirection, 0f, true));
+            if (weaponVisual != null) weaponVisual.PlayParryPop();
+
+            if (_parryRewarded) return;
+            _parryRewarded = true;
+            for (var i = 0; i < settings.crashChargeReward; i++) AddCrashCharge();
+        }
+
+        private void EndParry()
+        {
+            IsParrying = false;
+            _parryReadyAt = Time.time + tuning.parry.cooldown;
+            _parriedThisFrame.Clear();
+            BlocksMovement = false;
+            BlocksDodge = false;
+            BlocksAbilities = false;
+            if (weaponVisual != null) weaponVisual.EndParry();
+        }
+
+        private Vector3 FlatAim()
+        {
+            var aim = Player.AimDirection;
+            aim.y = 0f;
+            return aim.sqrMagnitude > 0.0001f ? aim.normalized : Player.Movement.FacingDirection;
+        }
         // -----------------------------
         // special: crash
         // -----------------------------
@@ -740,6 +884,7 @@ namespace Game50033
         {
             if (IsThrowing) EndThrow(startCooldown: true);
             if (IsCrashing) EndCrash();
+            if (IsParrying) EndParry();
             EndAttackState();
             _nextHitIndex = 0;
             if (Player.Movement != null) Player.Movement.CancelDisplacement();
@@ -765,6 +910,7 @@ namespace Game50033
         {
             if (IsAttacking) return _direction;
             if (IsCrashing) return _crashDirection;
+            if (IsParrying) return _parryDirection;
             if (Player == null) return transform.forward;
             var aim = Player.AimDirection;
             aim.y = 0f;
@@ -805,6 +951,12 @@ namespace Game50033
                 DrawColumn(new Vector3(_cymbalPosition.x, feet, _cymbalPosition.z), tuning.cymbalThrow.hitRadius, height);
             }
 
+            // the parry cone: faint at the current aim, bright while up, red just after a parry.
+            var parry = tuning.parry;
+            Gizmos.color = now - _debugParryAt <= flash ? flashColor
+                : IsParrying ? new Color(0.5f, 0.95f, 1f) : new Color(0.5f, 0.95f, 1f, 0.25f);
+            DrawCone(transform.position, aim, parry.coneAngle, parry.range, height);
+
             // every column a hit actually queried recently (combo strikes, throw flight, recast dash).
             Gizmos.color = flashColor;
             for (var i = _debugColumns.Count - 1; i >= 0; i--)
@@ -828,6 +980,24 @@ namespace Game50033
             Gizmos.DrawLine(bottom - Vector3.forward * radius, top - Vector3.forward * radius);
             Gizmos.DrawLine(bottom + Vector3.right * radius, top + Vector3.right * radius);
             Gizmos.DrawLine(bottom - Vector3.right * radius, top - Vector3.right * radius);
+        }
+
+        private static void DrawCone(Vector3 origin, Vector3 aim, float angle, float range, float height)
+        {
+            const int segments = 16;
+            var up = Vector3.up * height;
+            var previous = origin;
+            for (var i = 0; i <= segments; i++)
+            {
+                var point = origin + Quaternion.AngleAxis(Mathf.Lerp(-angle * 0.5f, angle * 0.5f, i / (float)segments), Vector3.up) * aim * range;
+                Gizmos.DrawLine(previous, point);
+                Gizmos.DrawLine(previous + up, point + up);
+                if (i == 0 || i == segments) Gizmos.DrawLine(point, point + up);
+                previous = point;
+            }
+            Gizmos.DrawLine(previous, origin);
+            Gizmos.DrawLine(previous + up, origin + up);
+            Gizmos.DrawLine(origin, origin + up);
         }
 
         private static void DrawPrism(Vector3 tip, Vector3 left, Vector3 right, float height)

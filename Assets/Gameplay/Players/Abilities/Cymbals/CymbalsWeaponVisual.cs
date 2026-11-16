@@ -15,6 +15,7 @@ namespace Game50033
         [SerializeField] private TrailRenderer rightTrail;
         [SerializeField] private CymbalsTuning tuning;
         [SerializeField] private CymbalsCrashWaves crashWaves;
+        [SerializeField] private CymbalsParryArcs parryArcs;
 
         private Player _player;
         private bool _posing;
@@ -48,6 +49,15 @@ namespace Game50033
         private float _crashProgress;
         private Vector3 _leftCrashFrom;
         private Vector3 _rightCrashFrom;
+
+        // parry: both cymbals held together in front, following the aim; arcs pulse out from them.
+        private bool _parryPosing;
+        private bool _parryCaptured;
+        private Vector3 _parryDirection = Vector3.forward;
+        private float _parryProgress;
+        private float _parryPopAt = float.NegativeInfinity;
+        private Vector3 _leftParryFrom;
+        private Vector3 _rightParryFrom;
         private static readonly int SpriteRotationId = Shader.PropertyToID("_SpriteRotation");
         private static readonly int FlashAmountId = Shader.PropertyToID("_FlashAmount");
         private static readonly int FlashColorId = Shader.PropertyToID("_FlashColor");
@@ -56,6 +66,7 @@ namespace Game50033
         {
             _player = GetComponent<Player>();
             if (crashWaves == null) crashWaves = GetComponent<CymbalsCrashWaves>();
+            if (parryArcs == null) parryArcs = GetComponent<CymbalsParryArcs>();
         }
 
         private void OnEnable()
@@ -112,6 +123,34 @@ namespace Game50033
             _crashDirection = direction;
             _crashPhase = phase;
             _crashProgress = progress;
+        }
+
+        public void SetParryPose(Vector3 direction, float progress)
+        {
+            if (!_parryPosing)
+            {
+                _parryCaptured = false;
+                if (parryArcs != null) parryArcs.Begin();
+            }
+            _posing = false;
+            _crashPosing = false;
+            _parryPosing = true;
+            _parryDirection = direction;
+            _parryProgress = Mathf.Clamp01(progress);
+            if (parryArcs != null) parryArcs.SetDirection(direction);
+        }
+
+        public void PlayParryPop()
+        {
+            _parryPopAt = Time.time;
+            if (parryArcs != null) parryArcs.Flash();
+        }
+
+        public void EndParry()
+        {
+            _parryPosing = false;
+            _parryCaptured = false;
+            if (parryArcs != null) parryArcs.End();
         }
 
         public void PlayCrashWaves(Vector3 tip, Vector3 direction)
@@ -177,6 +216,13 @@ namespace Game50033
             if (_crashPosing)
             {
                 PlaceCrashPose();
+                _placed = true;
+                return;
+            }
+
+            if (_parryPosing)
+            {
+                PlaceParryPose();
                 _placed = true;
                 return;
             }
@@ -351,6 +397,49 @@ namespace Game50033
             SetTrail(rightTrail, false);
         }
 
+        private void PlaceParryPose()
+        {
+            var weapon = tuning.weapon;
+            var combo = tuning.combo;
+            var parry = tuning.parry;
+            if (!_parryCaptured)
+            {
+                _leftParryFrom = leftCymbal.transform.position - transform.position;
+                _rightParryFrom = rightCymbal.transform.position - transform.position;
+                _parryCaptured = true;
+            }
+
+            // held side by side at the hitting point, spread apart to cover the cone, turning with the aim.
+            var sideAxis = Vector3.Cross(Vector3.up, _parryDirection);
+            var side = sideAxis * (parry.cymbalSpread * 0.5f);
+            var hit = Offset(_parryDirection, 0f, combo.hitDistance, combo.hitHeight, 0f);
+            var t = weapon.windupEasing.Evaluate(_parryProgress);
+            var left = Vector3.LerpUnclamped(_leftParryFrom, hit - side + Shake(sideAxis, 0f), t);
+            var right = Vector3.LerpUnclamped(_rightParryFrom, hit + side + Shake(sideAxis, 7.3f), t);
+
+            var scale = weapon.spriteScale;
+            var pop = (Time.time - _parryPopAt) / parry.parryPopTime;
+            if (pop >= 0f && pop < 1f) scale *= Mathf.Lerp(parry.parryPopScale, 1f, pop);
+
+            leftCymbal.transform.position = transform.position + left;
+            rightCymbal.transform.position = transform.position + right;
+            leftCymbal.transform.localScale = Vector3.one * scale;
+            rightCymbal.transform.localScale = Vector3.one * scale;
+            SetTrail(leftTrail, false);
+            SetTrail(rightTrail, false);
+        }
+
+        // a small trembling offset in the screen-facing plane; each cymbal uses its own noise lane.
+        private Vector3 Shake(Vector3 sideAxis, float lane)
+        {
+            var parry = tuning.parry;
+            if (parry.shakeAmplitude <= 0f) return Vector3.zero;
+            var time = Time.time * parry.shakeFrequency;
+            var x = Mathf.PerlinNoise(time, lane) * 2f - 1f;
+            var y = Mathf.PerlinNoise(lane + 3.1f, time) * 2f - 1f;
+            return (sideAxis * x + Vector3.up * y) * parry.shakeAmplitude;
+        }
+
         private void ApplyRightCymbalProperties(float rotation, float flash)
         {
             if (rightCymbal == null || _rightProperties == null) return;
@@ -387,6 +476,7 @@ namespace Game50033
         {
             Cancel();
             EndThrow();
+            EndParry();
             if (leftCymbal != null) leftCymbal.enabled = false;
             if (rightCymbal != null) rightCymbal.enabled = false;
             SetTrail(leftTrail, false);
