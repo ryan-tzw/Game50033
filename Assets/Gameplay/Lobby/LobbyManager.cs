@@ -15,6 +15,8 @@ namespace Game50033
         [SerializeField] private CharacterRoster roster;
         [Tooltip("One panel per player slot, indexed by PlayerInput.playerIndex.")]
         [SerializeField] private CharacterSelectPanel[] panels = Array.Empty<CharacterSelectPanel>();
+        [Tooltip("Where each player appears after picking a character, indexed by PlayerInput.playerIndex.")]
+        [SerializeField] private Transform[] spawnPoints = Array.Empty<Transform>();
 
         private readonly List<PlayerCharacterSelect> _players = new();
         private readonly Dictionary<CharacterDefinition, PlayerCharacterSelect> _claims = new();
@@ -127,7 +129,7 @@ namespace Game50033
             var playerIndex = sourceInput.playerIndex;
             var splitScreenIndex = sourceInput.splitScreenIndex;
             var scheme = sourceInput.currentControlScheme;
-            var position = source.transform.position;
+            var position = GetSpawnPosition(sourceInput.playerIndex, source.transform.position);
             var rotation = source.transform.rotation;
             var completed = false;
             PlayerInput replacementInput = null;
@@ -210,6 +212,12 @@ namespace Game50033
                 }
             }
         }
+
+        /// <summary>The player's fixed lobby spawn point, or the fallback when none is assigned.</summary>
+        public Vector3 GetSpawnPosition(int playerIndex, Vector3 fallback) =>
+            playerIndex >= 0 && playerIndex < spawnPoints.Length && spawnPoints[playerIndex] != null
+                ? spawnPoints[playerIndex].position
+                : fallback;
 
         public CharacterSelectPanel GetPanel(int playerIndex) =>
             playerIndex >= 0 && playerIndex < panels.Length ? panels[playerIndex] : null;

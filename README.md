@@ -66,8 +66,9 @@ The D-pad is not bound to anything yet.
 |---|---|---|
 | Join | E | Bottom face button (A / ✕ / Switch B) |
 | Browse characters | A / D or ← / → | Left stick left / right |
-| Pick the highlighted character | E | Bottom face button |
+| Pick the highlighted character (you appear on your coloured ring in your panel's corner) | E | Bottom face button |
 | Back out of the lobby (while picking) | Q | Right face button (B / ○ / Switch A) |
+| Unready (change character after picking) | Stand in the cyan ring below the mic for 2 seconds; the countdown shows above your head. Leaving the ring cancels it | Same |
 | Hit the mic dummy | Left click | Left face button (X / □ / Switch Y) |
 | Start the game | Everyone who joined has picked and stands in the yellow zone by the door for 3 seconds | Same |
 
@@ -117,6 +118,7 @@ For a quick check, dodge in `GuitarPrimaryTest`, dodge into its wall, spend both
 | `Assets/Gameplay/Characters` | `CharacterDefinition` / `CharacterRoster` and their data assets (`Data/`) |
 | `Assets/Gameplay/Combat` | `IHittable` (shared "can be hit" interface), mic training dummy, shared REV/RES mechanics |
 | `Assets/Gameplay/Players/Abilities/Guitar` | Guitar Primary combo, Strum/empowerment, overhead Special, weapon/VFX, prefabs, tuning types and art |
+| `Assets/Gameplay/Players/Abilities/Cymbals` | Cymbals Primary combo, two-cymbal weapon motion, prefab variant and placeholder art |
 | `Assets/Gameplay/Flow` | Scene names, placeholder cutscene (`PlaceholderCutscene`) |
 | `Assets/Gameplay/Game` | Game scene entry: puts carried-over players on spawn points and gives them control |
 | `Assets/Rendering` | Pixel-art renderer feature and sprite / toon / dissolve shaders |
@@ -180,3 +182,33 @@ Tune **Defensive** in `Assets/Tuning/Instruments/Guitar/GuitarTuning.asset`: sta
 ### Melee smear pacing
 
 Primary and Defensive each use **Impact Fraction** in Guitar tuning: **0.5** makes damage and the initial crescent appear halfway through Active. The four held smear poses then span one full Active duration, so slowing the swing also lengthens the smear; final streaks can extend into Recovery. **VFX → Melee Smear → Frame Weights** controls their relative proportions rather than seconds. Each emitted smear snapshots its own timings; changing tuning or starting another swing does not retime existing smears. Local hitstop still pauses the weapon and smear together. Special and Secondary timing are unchanged.
+
+## 6. Testing Cymbals Primary
+
+Open `Assets/Scenes/TestScenes/CymbalsPrimaryTest.unity` and press Play. Join with E or the bottom gamepad face button; every join slot uses Cymbals. Stand about one unit from a dummy and hold Primary to run the chain: right forward bash, left slash, right slash, left slash, then both cymbals clash. Default damage is 1 per hit and 2.5 for the clash. Dash (Space / right trigger) during a hit's recovery and the next press continues with the following hit. Dash during a windup and that hit is cancelled; the next press repeats it. Select the player in the Scene view to see gizmos: the blue ring is every possible hitting point and the yellow circle is the damage area.
+
+Cymbal Throw is in the same scene. Stand about 2.5 units from a dummy and press Secondary (right click / top face button). The cymbal spins out, slows to a stop at the apex, flashes, then speeds back to you. It hits on the way out and on the way back (1.5 each by default). While it flies you can move and dash, but not use Primary. Press Secondary once more while it flashes to drop an orange Burst Reverberation at the cymbal and dash to it (2 damage to anything on the way). Pressing again before or after the flash only drops the Burst, and the cymbal keeps flying.
+
+Crash is Special (E / bottom face button). Both cymbals rise overhead and slam on the hitting point, and slanted waves sweep forward through a triangle (3 long, 3 wide at the far end by default). It deals 4 damage to everything in the triangle and sets off other players' Reverberations inside it. You have 2 charges, refilled one at a time (6 s each). Note: in this test scene, the button that joins you is also Special, so your first Crash charge may be spent on joining.
+
+Parry is Defensive (Q / right face button). The `Parry test turret` behind the dummies fires a grey ball at the nearest player every 1.2 s; each one that touches you deals 1 damage. Your aim locks onto the nearest dummy, so stand in front of the middle dummy and the parry cone faces the turret. Press Defensive and both cymbals spread out in front and shake, while a glowing arc marks the edge of the cone for 2 s: every ball entering the cone is destroyed, and the first one gives you a Crash charge. Shots from other directions still hit. A dash ends the parry early; either way the 7 s cooldown starts when it ends. Boss projectiles need the `BossProjectile` tag to be parried.
+
+Tune Cymbals in **`Assets/Tuning/Instruments/Cymbals/CymbalsTuning.asset`**:
+
+- **Combo / Hits**: per-hit windup, approach, follow-through and recovery times, damage, lunge, and for each hand whether it swings plus its start and end pose. A pose is X = degrees around the player relative to the aim (+ is aim-right) and Y = distance. Damage lands when the approach ends, and the swinging cymbal is always on the hitting point at that moment, whatever the poses.
+- **Combo / Hitting point**: `hitDistance` and `hitRadius` (the damage circle on the ground plane), shared by all five hits. `hitHeight` is only where the cymbals meet visually. `hitColumnHeight` is how tall the damage area is, measured from the feet, so tall or raised targets are still hit. Trigger colliders never count as hits.
+- **Throw**: windup, range, outbound and return time, and speed curves (by default it slows to a stop at the apex, then speeds up back to you). Also cooldown, flight damage and radius, apex window (total seconds around the apex in which a recast also dashes), the Burst Reverberation prefab and strength, dash speed, catch offset and damage, spin speed and minimum spin, and the apex flash.
+- **Parry**: duration, cooldown, raise time, cone angle and range, the projectile tag, Crash charges rewarded, the parry effect and cymbal pop, the stance (cymbal spread, shake amplitude and frequency), and the parry line (material, width, segments, colour, glow rate, dim brightness, glow width).
+- **Crash**: max charges and recharge time, windup, impact hold and recovery, damage, triangle length and far-end width, and the waves (material, count, duration, stagger, slant, width, colour).
+- **Debug**: Show Hitboxes draws every Cymbals hit area as gizmos in play mode (turn on Gizmos in the Game view toolbar); areas real hits used flash red for Hitbox Flash Time.
+- **Weapon**: guard pose, clash spacing, easing curves per phase, sprite and impact scale. **Slash trail** sets the streak behind each swinging cymbal: material (`Abilities/Cymbals/Art/CymbalsTrail.mat`), time (length), start and end width, and colour.
+- **Combo / Hits / Big Hit** chooses the big-hit style of the hit effect; it's on for the clash.
+
+Hit feedback is in **`Assets/Tuning/Instruments/Cymbals/CymbalsHitEffect.asset`**, an asset of the shared **Hit Effect** type (**Assets > Create > Game50033 > Tuning > Hit Effect**). Every section has a normal and a big style:
+
+- **Impact sprite**: a horizontal strip PNG of equal-width frames, plus frame count, frame duration, scale and tint. The placeholders are `Abilities/Cymbals/Art/CymbalImpactSpark.png` (4×20 px) and `CymbalImpactShockwave.png` (4×36 px).
+- **Particles**: an optional particle prefab for normal and big hits.
+- **Damage numbers**: a glyph strip (`Combat/HitEffects/Art/DamageDigits.png`, 5×7 px per glyph, in the order `0123456789.`), plus colour, scale, rise, lifetime, sideways jitter and spawn height.
+- **Sound**: clips picked at random, volume, pitch range, and an optional mixer group.
+
+Leave a section empty to turn it off. To redraw the art, keep the same strip layout, or change the frame count or glyph order to match the new strip.
