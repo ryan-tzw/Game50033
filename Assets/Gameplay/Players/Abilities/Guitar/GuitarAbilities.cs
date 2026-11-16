@@ -82,6 +82,11 @@ namespace Game50033
         public int ComboStep { get; private set; }
         public float PrimaryCooldownRemaining => Mathf.Max(0f, _readyAt - Time.time);
 
+        public override void ClearCooldowns()
+        {
+            _readyAt = _secondaryReadyAt = _defensiveReadyAt = _specialReadyAt = 0f;
+        }
+
         private void Awake()
         {
             if (weaponVisual == null) weaponVisual = GetComponent<GuitarWeaponVisual>();
@@ -102,7 +107,7 @@ namespace Game50033
         {
             if (!isActiveAndEnabled) return false;
             var attack = tuning.attack;
-            if (!Player.CanUseAbilities || IsAttacking || Time.time < _readyAt
+            if (!Player.CanUseAbilities || IsAttacking || (!IgnoreCooldowns && Time.time < _readyAt)
                 || attack.combo == null || attack.combo.Length == 0) return false;
 
             if (Time.time > _comboExpiresAt) _nextComboIndex = 0;
@@ -133,7 +138,7 @@ namespace Game50033
             ComboStep = _nextComboIndex + 1;
             _swingSign = _nextComboIndex % 2 == 0 ? 1f : -1f;
             _startedAt = Player.Hitstop.ActionTime;
-            _readyAt = Time.time + _swing.windup + _swing.active + _swing.recovery;
+            _readyAt = IgnoreCooldowns ? 0f : Time.time + _swing.windup + _swing.active + _swing.recovery;
             _activeFinished = false;
             _impactResolved = false;
             _hitThisSwing.Clear();
@@ -350,7 +355,7 @@ namespace Game50033
             if (_nextComboIndex >= attack.combo.Length)
             {
                 _nextComboIndex = 0;
-                _readyAt += attack.comboCooldown;
+                if (!IgnoreCooldowns) _readyAt += attack.comboCooldown;
                 if (weaponVisual != null) weaponVisual.Cancel();
             }
         }
@@ -494,7 +499,7 @@ namespace Game50033
 
         public override bool TryUseSecondary()
         {
-            if (!isActiveAndEnabled || !Player.CanUseAbilities || IsAttacking || Time.time < _secondaryReadyAt) return false;
+            if (!isActiveAndEnabled || !Player.CanUseAbilities || IsAttacking || (!IgnoreCooldowns && Time.time < _secondaryReadyAt)) return false;
             var secondary = tuning.secondary;
             if (secondary.wavePrefab == null) return false;
 
@@ -510,7 +515,7 @@ namespace Game50033
                 -_direction, secondary.backstepDistance, _strumActive, secondary.backstepEasing, _strumWindup)) return false;
 
             _startedAt = Player.Hitstop.ActionTime;
-            _secondaryReadyAt = Time.time + Mathf.Max(0f, secondary.cooldown);
+            _secondaryReadyAt = IgnoreCooldowns ? 0f : Time.time + Mathf.Max(0f, secondary.cooldown);
             _strumReleased = false;
             ComboStep = 0;
             _action = GuitarAction.Secondary;
@@ -521,7 +526,7 @@ namespace Game50033
         }
         public override bool TryUseDefensive()
         {
-            if (!isActiveAndEnabled || !Player.CanUseDefensive || Time.time < _defensiveReadyAt) return false;
+            if (!isActiveAndEnabled || !Player.CanUseDefensive || (!IgnoreCooldowns && Time.time < _defensiveReadyAt)) return false;
             var defensive = tuning.defensive;
             if (defensive.backstepDistance > 0f && (!Player.Movement.isActiveAndEnabled
                 || !GetComponent<CharacterController>().enabled)) return false;
@@ -534,7 +539,7 @@ namespace Game50033
                 if (comboIndex >= tuning.attack.combo.Length)
                 {
                     comboIndex = 0;
-                    _readyAt += tuning.attack.comboCooldown;
+                    if (!IgnoreCooldowns) _readyAt += tuning.attack.comboCooldown;
                 }
             }
             var empowered = HasEmpoweredAttack;
@@ -563,7 +568,7 @@ namespace Game50033
             _swingSign = 1f;
             _damageMultiplier = 1f;
             _startedAt = Player.Hitstop.ActionTime;
-            _defensiveReadyAt = Time.time + Mathf.Max(0f, defensive.cooldown);
+            _defensiveReadyAt = IgnoreCooldowns ? 0f : Time.time + Mathf.Max(0f, defensive.cooldown);
             _comboExpiresAt = Time.time + tuning.attack.comboResetDelay;
             _impactResolved = false;
             _activeFinished = false;
@@ -577,7 +582,7 @@ namespace Game50033
         }
         public override bool TryUseSpecial()
         {
-            if (!isActiveAndEnabled || !Player.CanUseAbilities || IsAttacking || Time.time < _specialReadyAt) return false;
+            if (!isActiveAndEnabled || !Player.CanUseAbilities || IsAttacking || (!IgnoreCooldowns && Time.time < _specialReadyAt)) return false;
             var special = tuning.special;
             _direction = Player.AimDirection;
             _direction.y = 0f;
@@ -593,7 +598,7 @@ namespace Game50033
             _damageMultiplier = HasEmpoweredAttack ? _empowerMultiplier : 1f;
             HasEmpoweredAttack = false;
             _startedAt = Player.Hitstop.ActionTime;
-            _specialReadyAt = Time.time + Mathf.Max(0f, special.cooldown);
+            _specialReadyAt = IgnoreCooldowns ? 0f : Time.time + Mathf.Max(0f, special.cooldown);
             _impactResolved = false;
             _hitThisSwing.Clear();
             _nextComboIndex = 0;

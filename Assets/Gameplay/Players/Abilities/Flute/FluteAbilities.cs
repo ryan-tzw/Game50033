@@ -37,6 +37,11 @@ namespace Game50033
             ? Mathf.Clamp01(_chargeElapsed / Mathf.Max(0.01f, maximumChargeDuration))
             : 0f;
 
+        public override void ClearCooldowns()
+        {
+            _secondaryReadyAt = _specialReadyAt = 0f;
+        }
+
         private void OnEnable()
         {
             // Ignore the join or confirm press until gameplay input is ready.
@@ -133,7 +138,7 @@ namespace Game50033
 
         public override bool TryUseSecondary()
         {
-            if (!CanStartAbility || Time.time < _secondaryReadyAt)
+            if (!CanStartAbility || (!IgnoreCooldowns && Time.time < _secondaryReadyAt))
             {
                 return false;
             }
@@ -157,13 +162,13 @@ namespace Game50033
                 Quaternion.LookRotation(direction, Vector3.up));
 
             projectile.InitializeSecondary(Player, direction, secondaryDamage);
-            _secondaryReadyAt = Time.time + secondaryCooldown;
+            _secondaryReadyAt = IgnoreCooldowns ? 0f : Time.time + secondaryCooldown;
             return true;
         }
 
         public override bool TryUseSpecial()
         {
-            if (!CanStartAbility || !Player.SpecialPressedThisFrame || Time.time < _specialReadyAt)
+            if (!CanStartAbility || !Player.SpecialPressedThisFrame || (!IgnoreCooldowns && Time.time < _specialReadyAt))
             {
                 return false;
             }
@@ -234,7 +239,7 @@ namespace Game50033
                 canResonate,
                 specialReverberationPrefab,
                 reverberationStrength);
-            _specialReadyAt = Time.time + specialCooldown;
+            _specialReadyAt = IgnoreCooldowns ? 0f : Time.time + specialCooldown;
             Cancel();
         }
 

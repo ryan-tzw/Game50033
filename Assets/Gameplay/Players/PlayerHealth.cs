@@ -11,6 +11,7 @@ namespace Game50033
         [SerializeField, Min(1)] private int reviveHealth = 1;
         [SerializeField, Min(0f)] private float revivalImmunityDuration = 1f;
 
+        private Player _player;
         private PlayerMovement _movement;
         private PlayerHitstop _hitstop;
         private float _abilityImmuneUntil;
@@ -24,7 +25,8 @@ namespace Game50033
         public float RevivalRemaining => IsDowned ? Mathf.Max(0f, _reviveAt - Time.time) : 0f;
         public float RevivalImmunityRemaining => Mathf.Max(0f, _immuneUntil - Time.time);
         public float AbilityInvulnerabilityRemaining => Mathf.Max(0f, _abilityImmuneUntil - (_hitstop != null ? _hitstop.ActionTime : Time.time));
-        public bool IsInvulnerable => RevivalImmunityRemaining > 0f || AbilityInvulnerabilityRemaining > 0f
+        public bool IsInvulnerable => (_player != null && _player.Session != null && _player.Session.Debug.Invincibility)
+            || RevivalImmunityRemaining > 0f || AbilityInvulnerabilityRemaining > 0f
             || (_movement != null && _movement.IsInvulnerable);
 
         public event Action<int, int> HealthChanged;
@@ -40,6 +42,7 @@ namespace Game50033
         {
             if (_initialized) return;
 
+            _player = GetComponent<Player>();
             _movement = GetComponent<PlayerMovement>();
             _hitstop = GetComponent<PlayerHitstop>();
             CurrentHealth = maxHealth;

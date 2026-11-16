@@ -46,12 +46,14 @@ namespace Game50033
             if (_attackAction == null || _attackAction.actionMap.asset != actions)
                 _attackAction = actions.FindAction("Player/Primary", true);
             if (Time.frameCount == _enabledFrame) return false;
-            if (!_attackAction.WasPressedThisFrame() || Time.time < _nextAttackTime) return false;
+            if (!_attackAction.WasPressedThisFrame() || (!IgnoreCooldowns && Time.time < _nextAttackTime)) return false;
 
-            _nextAttackTime = Time.time + cooldown;
+            _nextAttackTime = IgnoreCooldowns ? 0f : Time.time + cooldown;
             Attack();
             return true;
         }
+
+        public override void ClearCooldowns() => _nextAttackTime = 0f;
 
         public override bool TryUseSecondary() => false;
         public override bool TryUseDefensive() => false;

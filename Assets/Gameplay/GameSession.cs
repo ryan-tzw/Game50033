@@ -8,6 +8,10 @@ namespace Game50033
     [DisallowMultipleComponent]
     public sealed class GameSession : MonoBehaviour
     {
+        [SerializeField] private DebugMenu debugMenuPrefab;
+        private DebugState _debug;
+        public DebugState Debug => _debug ??= new DebugState(Players);
+
         private readonly List<Player> _players = new List<Player>();
         private IReadOnlyList<Player> _playersView;
         private bool _initialized;
@@ -31,6 +35,7 @@ namespace Game50033
             _initialized = true;
             transform.SetParent(null, true);
             DontDestroyOnLoad(gameObject);
+            if (debugMenuPrefab != null) Instantiate(debugMenuPrefab, transform).Initialize(this);
         }
 
         public void RegisterPlayer(Player player)
@@ -40,6 +45,7 @@ namespace Game50033
             if (player.Session != null) player.Session.UnregisterPlayer(player);
             _players.Add(player);
             player.Session = this;
+            if (Debug.NoCooldowns && player.Abilities != null) player.Abilities.ClearCooldowns();
             PlayerRegistered?.Invoke(player);
         }
 

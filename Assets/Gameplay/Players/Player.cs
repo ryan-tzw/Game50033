@@ -25,6 +25,7 @@ namespace Game50033
 
         private PlayerInput _playerInput;
         private InputActionAsset _boundActions;
+        private InputActionAsset _ownedActions;
         private InputAction _moveAction;
         private InputAction _dodgeAction;
         private InputAction _primaryAction;
@@ -68,6 +69,30 @@ namespace Game50033
             if (_initialized) return;
 
             _playerInput = GetComponent<PlayerInput>();
+            // the first PlayerInput otherwise pairs the project-wide asset itself, filtering global UI to that device.
+            var projectActions = InputSystem.actions;
+            if (projectActions != null && _playerInput.actions == projectActions)
+            {
+                var devices = new InputDevice[_playerInput.devices.Count];
+                for (var i = 0; i < devices.Length; i++) devices[i] = _playerInput.devices[i];
+                var scheme = _playerInput.currentControlScheme;
+                var actionMap = _playerInput.currentActionMap?.name;
+                var wasActive = _playerInput.inputIsActive;
+
+                _ownedActions = Instantiate(projectActions);
+                _playerInput.actions = _ownedActions;
+                // replacing actions clears device pairing; restore the existing player instead of letting E join again.
+                if (_playerInput.isActiveAndEnabled)
+                {
+                    if (!string.IsNullOrEmpty(scheme) && devices.Length > 0)
+                        _playerInput.SwitchCurrentControlScheme(scheme, devices);
+                    if (wasActive && !string.IsNullOrEmpty(actionMap)) _playerInput.SwitchCurrentActionMap(actionMap);
+                    if (!wasActive) _playerInput.DeactivateInput();
+                }
+                projectActions.devices = null;
+                projectActions.bindingMask = null;
+                projectActions.FindActionMap("UI", false)?.Enable();
+            }
             Movement = GetComponent<PlayerMovement>();
             Health = GetComponent<PlayerHealth>();
             Abilities = GetComponent<PlayerAbilities>();
@@ -114,12 +139,16 @@ namespace Game50033
                 // dodge is press-only; ability activation is retried while held.
                 if (_dodgeAction.WasPressedThisFrame()) Movement.TryDodge(CanDodge);
 
+                var blockMouseCombat = Session != null && Session.Debug.BlocksMouseCombat;
+
                 // defensive gets priority over held attacks, including instrument-defined cancellation windows.
                 if (CanUseDefensive && _defensiveAction.IsPressed()) Abilities.TryUseDefensive();
 
                 // each activation may change the restrictions for subsequent actions this frame.
-                if (CanUseAbilities && _primaryAction.IsPressed()) Abilities.TryUsePrimary();
-                if (CanUseAbilities && _secondaryAction.IsPressed()) Abilities.TryUseSecondary();
+                if (CanUseAbilities && _primaryAction.IsPressed()
+                    && (!blockMouseCombat || !(_primaryAction.activeControl?.device is Mouse))) Abilities.TryUsePrimary();
+                if (CanUseAbilities && _secondaryAction.IsPressed()
+                    && (!blockMouseCombat || !(_secondaryAction.activeControl?.device is Mouse))) Abilities.TryUseSecondary();
 
                 // Keep the press edge so a quick Special tap can still start charging.
                 if (CanUseAbilities && (_specialAction.IsPressed() || _specialAction.WasPressedThisFrame()))
@@ -173,6 +202,7 @@ namespace Game50033
 
         private void OnDestroy()
         {
+            if (_ownedActions != null) Destroy(_ownedActions);
             if (Health != null) Health.Downed -= HandleDowned;
             if (Session != null) Session.UnregisterPlayer(this);
         }

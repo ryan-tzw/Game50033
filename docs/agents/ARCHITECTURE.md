@@ -87,6 +87,14 @@ Lobby.unity -> Cutscene1.unity -> Game.unity (current first playable encounter)
 
 ## 4. Shared gameplay and combat contracts
 
+### Runtime debug tools
+
+`Assets/Gameplay/Debug/` owns `DebugMenu`, its UI Toolkit stylesheet/theme, `DebugPanelSettings` and `DebugMenu.prefab`. `GameSession` instantiates the serialized menu prefab once under the persistent session root. Session-owned plain `DebugState` holds global flags and uses the live read-only player roster for one-shot operations; it is neither a singleton nor a tuning asset. Scene transitions and menu visibility preserve state; a new session starts with cheats off. There is no development-build gate.
+
+`DebugMenu` handles F1, mouse controls and pointer-over-panel combat suppression, running before `Player` input routing. It changes no gameplay clocks. `Player` suppresses only mouse-sourced Primary/Secondary input over the open panel. During initialization, a player still referencing `InputSystem.actions` receives a runtime copy, destroyed with that player. Replacing `PlayerInput.actions` clears its device pairing, so initialization preserves and restores the existing paired devices, control scheme, active action map and activation state across that swap. The project-wide asset keeps an unfiltered, enabled UI map so an unpaired mouse can operate the menu with four gamepad players; gameplay continues reading each player's paired action asset. Player health combines global invincibility with existing immunity; movement skips charge gating/spending under Infinite Dodge while retaining normal state gates and recharge.
+
+Concrete `PlayerAbilities` implementations read protected `IgnoreCooldowns`, omit deadline checks/writes when enabled, and override `ClearCooldowns()` to clear only their cooldown deadlines. Enabling No Cooldowns calls that hook immediately for every player; registration also clears deadlines for newcomers while the cheat is active. Current Guitar, Flute, Trombone and training implementations support it. This must not cancel attacks, reset combos, refill other resources or bypass ability phases. Disabling the cheat does not restore previous deadlines. `DebugState.HealToFull()` heals living players only. Runtime hitbox visualization remains a separate task.
+
 ### Player API
 
 Prefer these existing public boundaries over inspecting private state or finding objects:
