@@ -52,7 +52,7 @@ Gamepad buttons are bound by **position**, not by the letter printed on them. Sw
 |---|---|---|---|---|---|---|
 | Move | WASD / arrow keys | Left stick | Left stick | Left stick | Left stick | ✅ Working |
 | Aim | Automatic | Automatic | — | — | — | Auto-targeting, with movement-facing fallback; Guitar snapshots this direction per strike |
-| Primary attack | Left click | Left face button | X | □ | Y | Guitar: three-hit sweeping combo; hold to continue/repeat. Other characters retain their current abilities/placeholders. |
+| Primary attack | Left click | Left face button | X | □ | Y | Guitar: three-hit sweeping combo; hold to continue/repeat. Cymbals: five-hit combo landing on one fixed hitting point; dash between hits keeps the chain. Other characters retain their current abilities/placeholders. |
 | Secondary attack | Right click | Top face button | Y | △ | X | Not implemented |
 | Special attack | E | Bottom face button | A | ✕ | B | Not implemented (used as **join / pick** in the lobby) |
 | Defensive | Q | Right face button | B | ○ | A | Not implemented (used as **back** in the lobby) |
@@ -103,6 +103,7 @@ Each character can only be picked by one player. Characters taken by someone els
 | `Assets/Gameplay/Characters` | `CharacterDefinition` / `CharacterRoster` and their data assets (`Data/`) |
 | `Assets/Gameplay/Combat` | `IHittable` (shared "can be hit" interface), mic training dummy, shared REV/RES mechanics |
 | `Assets/Gameplay/Players/Abilities/Guitar` | Guitar Primary combo, floating weapon motion, smear/impact feedback, prefab variant and art |
+| `Assets/Gameplay/Players/Abilities/Cymbals` | Cymbals Primary combo, two-cymbal weapon motion, prefab variant and placeholder art |
 | `Assets/Gameplay/Flow` | Scene names, placeholder cutscene (`PlaceholderCutscene`) |
 | `Assets/Gameplay/Game` | Game scene entry: puts carried-over players on spawn points and gives them control |
 | `Assets/Rendering` | Pixel-art renderer feature and sprite / toon / dissolve shaders |
@@ -123,3 +124,23 @@ Tune Guitar in **`Assets/Tuning/Instruments/Guitar/GuitarTuning.asset`**. Its th
 The `GuitarPlayer` prefab assigns the same tuning asset to `GuitarAbilities`, `GuitarWeaponVisual` and `GuitarVFX`. Those components keep their own runtime state; tuning the asset affects all users, while cancelling one player does not affect another. Renderer/transform wiring stays on the prefab. Create additional Guitar tuning assets through **Assets > Create > Game50033 > Tuning > Guitar** when an intentional configuration variant is needed.
 
 The weapon sprite is imported directly from the unpadded 20×39 `Abilities/Guitar/Art/guitar2.aseprite` source at 50 pixels per unit with a centred import pivot. `GuitarWeaponVisual` places its external grip three pixels above the artwork (`Sprite Grip Point = (0, 0.45)`) and uses an outward angle of −90° for the upright image. Sprite Scale defaults to 1; 50 PPU matches the test scene’s 360-pixel reference height and ortho size 3.6 before deliberate animation scaling. Secondary, Defensive and Special return false for Guitar. This Primary does not yet create or consume Reverberations.
+
+## 6. Testing Cymbals Primary
+
+Open `Assets/Scenes/TestScenes/CymbalsPrimaryTest.unity` and press Play. Join with E or the bottom gamepad face button; every join slot uses Cymbals. Stand about one unit from a dummy and hold Primary to run the chain: right forward bash, left slash, right slash, left slash, then both cymbals clash. Default damage is 1 per hit and 2.5 for the clash. Dash (Space / right trigger) during a hit's recovery and the next press continues with the following hit. Dash during a windup and that hit is cancelled; the next press repeats it. Select the player in the Scene view to see gizmos: the blue ring is every possible hitting point and the yellow circle is the damage area.
+
+Tune Cymbals in **`Assets/Tuning/Instruments/Cymbals/CymbalsTuning.asset`**:
+
+- **Combo / Hits**: per-hit windup, approach, follow-through and recovery times, damage, lunge, and for each hand whether it swings plus its start and end pose. A pose is X = degrees around the player relative to the aim (+ is aim-right) and Y = distance. Damage lands when the approach ends, and the swinging cymbal is always on the hitting point at that moment, whatever the poses.
+- **Combo / Hitting point**: `hitDistance` and `hitRadius` (the damage circle on the ground plane), shared by all five hits. `hitHeight` is only where the cymbals meet visually. `hitColumnHeight` is how tall the damage area is, measured from the feet, so tall or raised targets are still hit. Trigger colliders never count as hits.
+- **Weapon**: guard pose, clash spacing, easing curves per phase, sprite and impact scale. **Slash trail** sets the streak behind each swinging cymbal: material (`Abilities/Cymbals/Art/CymbalsTrail.mat`), time (length), start and end width, and colour.
+- **Combo / Hits / Big Hit** chooses the big-hit style of the hit effect; it's on for the clash.
+
+Hit feedback is in **`Assets/Tuning/Instruments/Cymbals/CymbalsHitEffect.asset`**, an asset of the shared **Hit Effect** type (**Assets > Create > Game50033 > Tuning > Hit Effect**). Every section has a normal and a big style:
+
+- **Impact sprite**: a horizontal strip PNG of equal-width frames, plus frame count, frame duration, scale and tint. The placeholders are `Abilities/Cymbals/Art/CymbalImpactSpark.png` (4×20 px) and `CymbalImpactShockwave.png` (4×36 px).
+- **Particles**: an optional particle prefab for normal and big hits.
+- **Damage numbers**: a glyph strip (`Combat/HitEffects/Art/DamageDigits.png`, 5×7 px per glyph, in the order `0123456789.`), plus colour, scale, rise, lifetime, sideways jitter and spawn height.
+- **Sound**: clips picked at random, volume, pitch range, and an optional mixer group.
+
+Leave a section empty to turn it off. To redraw the art, keep the same strip layout, or change the frame count or glyph order to match the new strip.
