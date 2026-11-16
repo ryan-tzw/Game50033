@@ -26,6 +26,22 @@ namespace Game50033
         private Vector3 _leftWindupFrom;
         private Vector3 _rightWindupFrom;
 
+        // cymbal throw: the right cymbal follows the gameplay-owned flight position.
+        private enum ThrowPose { None, Windup, Flying }
+        private ThrowPose _throwPose;
+        private Vector3 _throwDirection = Vector3.forward;
+        private float _throwWindupProgress;
+        private Vector3 _thrownPosition;
+        private float _thrownSpeed;
+        private bool _apexFlash;
+        private bool _charging;
+        private Vector3 _chargeDirection = Vector3.forward;
+        private float _spinAngle;
+        private MaterialPropertyBlock _rightProperties;
+        private static readonly int SpriteRotationId = Shader.PropertyToID("_SpriteRotation");
+        private static readonly int FlashAmountId = Shader.PropertyToID("_FlashAmount");
+        private static readonly int FlashColorId = Shader.PropertyToID("_FlashColor");
+
         private void Awake()
         {
             _player = GetComponent<Player>();
@@ -41,6 +57,7 @@ namespace Game50033
             }
             ApplyTrailSettings(leftTrail);
             ApplyTrailSettings(rightTrail);
+            _rightProperties ??= new MaterialPropertyBlock();
         }
 
         private void ApplyTrailSettings(TrailRenderer trail)
@@ -74,6 +91,39 @@ namespace Game50033
             _windupCaptured = false;
         }
 
+        public void SetThrowWindup(Vector3 direction, float progress)
+        {
+            Cancel();
+            _throwPose = ThrowPose.Windup;
+            _throwDirection = direction;
+            _throwWindupProgress = progress;
+        }
+
+        // position is owned by CymbalsAbilities; speed is 0..1 and drives the spin; flash marks the apex window.
+        public void SetThrownCymbal(Vector3 worldPosition, float normalizedSpeed, bool apexFlash)
+        {
+            _throwPose = ThrowPose.Flying;
+            _thrownPosition = worldPosition;
+            _thrownSpeed = normalizedSpeed;
+            _apexFlash = apexFlash;
+        }
+
+        // recast dash: the remaining cymbal leads at the hitting point.
+        public void SetCharge(Vector3 direction)
+        {
+            _charging = true;
+            _chargeDirection = direction;
+        }
+
+        public void EndThrow()
+        {
+            _throwPose = ThrowPose.None;
+            _charging = false;
+            _apexFlash = false;
+            _spinAngle = 0f;
+            ApplyRightCymbalProperties(0f, 0f);
+        }
+
         private void LateUpdate()
         {
             if (leftCymbal == null || rightCymbal == null) return;
@@ -86,6 +136,13 @@ namespace Game50033
                 _placed = false;
                 SetTrail(leftTrail, false);
                 SetTrail(rightTrail, false);
+                return;
+            }
+
+            if (_throwPose != ThrowPose.None)
+            {
+                PlaceThrowPose();
+                _placed = true;
                 return;
             }
 
@@ -160,6 +217,65 @@ namespace Game50033
             cymbal.transform.localScale = Vector3.one * scale;
         }
 
+        private void PlaceThrowPose()
+        {
+            var weapon = tuning.weapon;
+            var throwSettings = tuning.cymbalThrow;
+            var combo = tuning.combo;
+            var follow = 1f - Mathf.Exp(-weapon.followSharpness * Time.deltaTime);
+
+            // left hand: guard, or leading at the hitting point during the recast dash.
+            if (_charging)
+            {
+                leftCymbal.transform.position = transform.position + Offset(_chargeDirection, 0f, combo.hitDistance, combo.hitHeight, 0f);
+                leftCymbal.transform.localScale = Vector3.one * weapon.spriteScale * weapon.impactScale;
+                SetTrail(leftTrail, true);
+            }
+            else
+            {
+                var guard = Offset(_player.Movement.FacingDirection, -weapon.restAngle, weapon.restDistance, weapon.restHeight, 0f);
+                leftCymbal.transform.position = Vector3.Lerp(leftCymbal.transform.position, transform.position + guard, follow);
+                leftCymbal.transform.localScale = Vector3.one * weapon.spriteScale;
+                SetTrail(leftTrail, false);
+            }
+
+            var scale = weapon.spriteScale;
+            if (_throwPose == ThrowPose.Windup)
+            {
+                // pull the right cymbal back behind the throwing shoulder.
+                var from = Offset(_throwDirection, weapon.restAngle, weapon.restDistance, weapon.restHeight, 0f);
+                var back = Offset(_throwDirection, 140f, weapon.restDistance + 0.15f, combo.hitHeight, 0f);
+                rightCymbal.transform.position = transform.position + Vector3.LerpUnclamped(from, back, weapon.windupEasing.Evaluate(_throwWindupProgress));
+                rightCymbal.transform.localScale = Vector3.one * scale;
+                SetTrail(rightTrail, false);
+                ApplyRightCymbalProperties(0f, 0f);
+                return;
+            }
+
+            // flying: exact gameplay position; spin follows travel speed, so it visibly slows at the apex.
+            _spinAngle = Mathf.Repeat(_spinAngle + throwSettings.spinSpeed * Mathf.Lerp(throwSettings.minimumSpin, 1f, _thrownSpeed) * Time.deltaTime, 360f);
+            var flash = 0f;
+            if (_apexFlash)
+            {
+                flash = throwSettings.apexFlashAmount * (0.5f + 0.5f * Mathf.Sin(Time.time * throwSettings.apexFlashRate * Mathf.PI * 2f));
+                scale *= 1.15f;
+            }
+            rightCymbal.transform.position = _thrownPosition;
+            rightCymbal.transform.localScale = Vector3.one * scale;
+            SetTrail(rightTrail, true);
+            ApplyRightCymbalProperties(_spinAngle, flash);
+        }
+
+        private void ApplyRightCymbalProperties(float rotation, float flash)
+        {
+            if (rightCymbal == null || _rightProperties == null) return;
+            rightCymbal.GetPropertyBlock(_rightProperties);
+            _rightProperties.SetFloat(SpriteRotationId, rotation);
+            _rightProperties.SetFloat(FlashAmountId, flash);
+            _rightProperties.SetColor(FlashColorId, tuning.cymbalThrow.apexFlashColor);
+            rightCymbal.SetPropertyBlock(_rightProperties);
+        }
+
         private void SetTrail(TrailRenderer trail, bool emitting)
         {
             if (trail == null || trail.emitting == emitting) return;
@@ -185,6 +301,7 @@ namespace Game50033
         private void OnDisable()
         {
             Cancel();
+            EndThrow();
             if (leftCymbal != null) leftCymbal.enabled = false;
             if (rightCymbal != null) rightCymbal.enabled = false;
             SetTrail(leftTrail, false);

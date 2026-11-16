@@ -7,6 +7,7 @@ namespace Game50033
     public sealed class CymbalsTuning : ScriptableObject
     {
         public ComboSettings combo = new();
+        [InspectorName("Throw")] public ThrowSettings cymbalThrow = new();
         public WeaponSettings weapon = new();
 
         // a pose relative to the hit's locked aim: x = degrees around the player (+ = aim-right), y = distance.
@@ -108,6 +109,58 @@ namespace Game50033
             // the single definition of the hitting point, shared by damage and the weapon visual.
             public Vector3 GetHitPoint(Vector3 playerPosition, Vector3 aim) =>
                 playerPosition + Vector3.up * hitHeight + aim * hitDistance;
+        }
+
+        [Serializable]
+        public sealed class ThrowSettings
+        {
+            [Header("Throw")]
+            [Tooltip("Throw motion before the cymbal leaves the hand. A dash during it cancels the throw.")]
+            [Min(0.01f)] public float windup = 0.12f;
+            [Tooltip("Distance to the apex, along the aim at release.")]
+            [Min(0.1f)] public float range = 3.5f;
+            [Tooltip("Seconds from release to the apex.")]
+            [Min(0.05f)] public float outboundTime = 0.45f;
+            [Tooltip("Seconds from the apex back to the player.")]
+            [Min(0.05f)] public float returnTime = 0.45f;
+            [Tooltip("Progress to the apex over normalised time. The default slope falls from 2 to 0: fast out, stopping exactly at the apex.")]
+            public AnimationCurve outboundEasing = new(new Keyframe(0f, 0f, 2f, 2f), new Keyframe(1f, 1f, 0f, 0f));
+            [Tooltip("Progress from the apex to the player over normalised time. The default slope rises from 0: it speeds up on the way back.")]
+            public AnimationCurve returnEasing = new(new Keyframe(0f, 0f, 0f, 0f), new Keyframe(1f, 1f, 2f, 2f));
+            [Tooltip("Cooldown after the cymbal is caught.")]
+            [Min(0f)] public float cooldown = 0.6f;
+
+            [Header("Flight damage")]
+            [Tooltip("Damage once per target on the way out, and again on the way back.")]
+            [Min(0f)] public float damage = 1.5f;
+            [Tooltip("Radius of the flying cymbal's damage column on the ground plane.")]
+            [Min(0.01f)] public float hitRadius = 0.35f;
+
+            [Header("Recast")]
+            [Tooltip("Total seconds, centred on the apex, in which a recast also dashes to the cymbal.")]
+            [Min(0f)] public float apexWindow = 0.5f;
+            [Tooltip("Spawned at the cymbal on any recast.")]
+            public Reverberation burstReverberation;
+            [Min(0.01f)] public float burstStrength = 1f;
+
+            [Header("Recast dash")]
+            [Min(0.1f)] public float dashSpeed = 14f;
+            [Tooltip("The dash stops this far short of the cymbal, where it is caught.")]
+            [Min(0f)] public float catchOffset = 0.3f;
+            [Tooltip("Damage once per target, checked at the combo's hitting point every frame of the dash.")]
+            [Min(0f)] public float dashDamage = 2f;
+            public AnimationCurve dashEasing = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+            [Header("Visual")]
+            [Tooltip("Spin in degrees per second at full flight speed. Spin follows travel speed, slowing near the apex.")]
+            public float spinSpeed = 1440f;
+            [Tooltip("Share of the spin kept at zero speed, so the cymbal never looks frozen.")]
+            [Range(0f, 1f)] public float minimumSpin = 0.2f;
+            [Tooltip("Flash on the cymbal while the apex window is open.")]
+            public Color apexFlashColor = new(1f, 0.95f, 0.6f, 1f);
+            [Range(0f, 1f)] public float apexFlashAmount = 0.6f;
+            [Tooltip("Flash pulses per second while the apex window is open.")]
+            [Min(0f)] public float apexFlashRate = 10f;
         }
 
         [Serializable]

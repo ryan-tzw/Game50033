@@ -128,9 +128,100 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
+  cymbalThrow:
+    windup: 0.15
+    range: 3
+    outboundTime: 0.4
+    returnTime: 0.4
+    outboundEasing:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 2
+        outSlope: 2
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.75
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    returnEasing:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 2
+        outSlope: 2
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    cooldown: 2
+    damage: 1.5
+    hitRadius: 0.25
+    apexWindow: 0.3
+    burstReverberation: {fileID: 2889904791511872818, guid: b9c3d9e891a3c6b46bcaa981eac63eaf, type: 3}
+    burstStrength: 1
+    dashSpeed: 10
+    catchOffset: 0.2
+    dashDamage: 2
+    dashEasing:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    spinSpeed: 1440
+    minimumSpin: 0.2
+    apexFlashColor: {r: 1, g: 0.9801609, b: 0.8443396, a: 1}
+    apexFlashAmount: 0.4
+    apexFlashRate: 10
   weapon:
-    restAngle: 75
-    restDistance: 0.32
+    restAngle: 60
+    restDistance: 0.4
     restHeight: 0.3
     clashSpacing: 0.12
     windupEasing:

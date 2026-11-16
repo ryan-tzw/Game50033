@@ -53,7 +53,7 @@ Gamepad buttons are bound by **position**, not by the letter printed on them. Sw
 | Move | WASD / arrow keys | Left stick | Left stick | Left stick | Left stick | ✅ Working |
 | Aim | Automatic | Automatic | — | — | — | Auto-targeting, with movement-facing fallback; Guitar snapshots this direction per strike |
 | Primary attack | Left click | Left face button | X | □ | Y | Guitar: three-hit sweeping combo; hold to continue/repeat. Cymbals: five-hit combo landing on one fixed hitting point; dash between hits keeps the chain. Other characters retain their current abilities/placeholders. |
-| Secondary attack | Right click | Top face button | Y | △ | X | Not implemented |
+| Secondary attack | Right click | Top face button | Y | △ | X | Cymbals: Cymbal Throw. Press again once mid-flight to recast: a Burst Reverberation spawns at the cymbal, and if the cymbal is flashing near its apex you also dash to it, dealing damage. Others not implemented |
 | Special attack | E | Bottom face button | A | ✕ | B | Not implemented (used as **join / pick** in the lobby) |
 | Defensive | Q | Right face button | B | ○ | A | Not implemented (used as **back** in the lobby) |
 | Dash | Space | Right trigger | RT | R2 | ZR | Existing dodge: two charges, invulnerability, timed recharge |
@@ -130,10 +130,13 @@ The weapon sprite is imported directly from the unpadded 20×39 `Abilities/Guita
 
 Open `Assets/Scenes/TestScenes/CymbalsPrimaryTest.unity` and press Play. Join with E or the bottom gamepad face button; every join slot uses Cymbals. Stand about one unit from a dummy and hold Primary to run the chain: right forward bash, left slash, right slash, left slash, then both cymbals clash. Default damage is 1 per hit and 2.5 for the clash. Dash (Space / right trigger) during a hit's recovery and the next press continues with the following hit. Dash during a windup and that hit is cancelled; the next press repeats it. Select the player in the Scene view to see gizmos: the blue ring is every possible hitting point and the yellow circle is the damage area.
 
+Cymbal Throw is in the same scene. Stand about 2.5 units from a dummy and press Secondary (right click / top face button). The cymbal spins out, slows to a stop at the apex, flashes, then speeds back to you. It hits on the way out and on the way back (1.5 each by default). While it flies you can move and dash, but not use Primary. Press Secondary once more while it flashes to drop an orange Burst Reverberation at the cymbal and dash to it (2 damage to anything on the way). Pressing again before or after the flash only drops the Burst, and the cymbal keeps flying.
+
 Tune Cymbals in **`Assets/Tuning/Instruments/Cymbals/CymbalsTuning.asset`**:
 
 - **Combo / Hits**: per-hit windup, approach, follow-through and recovery times, damage, lunge, and for each hand whether it swings plus its start and end pose. A pose is X = degrees around the player relative to the aim (+ is aim-right) and Y = distance. Damage lands when the approach ends, and the swinging cymbal is always on the hitting point at that moment, whatever the poses.
 - **Combo / Hitting point**: `hitDistance` and `hitRadius` (the damage circle on the ground plane), shared by all five hits. `hitHeight` is only where the cymbals meet visually. `hitColumnHeight` is how tall the damage area is, measured from the feet, so tall or raised targets are still hit. Trigger colliders never count as hits.
+- **Throw**: windup, range, outbound and return time, and speed curves (by default it slows to a stop at the apex, then speeds up back to you). Also cooldown, flight damage and radius, apex window (total seconds around the apex in which a recast also dashes), the Burst Reverberation prefab and strength, dash speed, catch offset and damage, spin speed and minimum spin, and the apex flash.
 - **Weapon**: guard pose, clash spacing, easing curves per phase, sprite and impact scale. **Slash trail** sets the streak behind each swinging cymbal: material (`Abilities/Cymbals/Art/CymbalsTrail.mat`), time (length), start and end width, and colour.
 - **Combo / Hits / Big Hit** chooses the big-hit style of the hit effect; it's on for the clash.
 
