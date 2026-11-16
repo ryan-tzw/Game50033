@@ -10,9 +10,11 @@ namespace Game50033
     public sealed class DebugMenu : MonoBehaviour
     {
         [SerializeField] private StyleSheet styleSheet;
+        [SerializeField] private DebugVisualizationTuning visualizationTuning;
         private GameSession _session;
         private UIDocument _document;
         private VisualElement _panel;
+        private HitboxDebugOverlay _hitboxOverlay;
 
         public bool IsOpen { get; private set; }
 
@@ -34,6 +36,10 @@ namespace Game50033
             root.Clear();
             root.pickingMode = PickingMode.Ignore;
             if (styleSheet != null && !root.styleSheets.Contains(styleSheet)) root.styleSheets.Add(styleSheet);
+            if (visualizationTuning == null) Debug.LogError("DebugMenu requires a DebugVisualizationTuning asset.", this);
+            // keep the overlay below the controls and outside the panel whose visibility F1 toggles.
+            _hitboxOverlay = new HitboxDebugOverlay(_session.Debug, visualizationTuning);
+            root.Add(_hitboxOverlay);
             _panel = new VisualElement { name = "debug-panel", pickingMode = PickingMode.Position };
             _panel.AddToClassList("debug-panel");
             root.Add(_panel);
@@ -64,7 +70,28 @@ namespace Game50033
             {
                 name = "heal-to-full", text = "Heal living players to full", focusable = false
             });
+            var hitboxHeading = new Label("Hitboxes");
+            hitboxHeading.AddToClassList("debug-section");
+            _panel.Add(hitboxHeading);
+            var showHitboxes = new Toggle("Show hitboxes") { name = "show-hitboxes", focusable = false };
+            showHitboxes.SetEnabled(visualizationTuning != null);
+            showHitboxes.SetValueWithoutNotify(_session.Debug.ShowHitboxes);
+            showHitboxes.RegisterValueChangedCallback(evt => _session.Debug.ShowHitboxes = evt.newValue);
+            _panel.Add(showHitboxes);
+            var enemyHurtboxes = new Toggle("Enemy / dummy hurtboxes") { name = "enemy-hurtboxes", focusable = false };
+            enemyHurtboxes.SetValueWithoutNotify(_session.Debug.ShowEnemyHurtboxes);
+            enemyHurtboxes.RegisterValueChangedCallback(evt => _session.Debug.ShowEnemyHurtboxes = evt.newValue);
+            _panel.Add(enemyHurtboxes);
             _panel.style.display = IsOpen ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        private void LateUpdate()
+        {
+            if (_session == null || _hitboxOverlay == null) return;
+            var show = _session.Debug.ShowHitboxes && _session.Debug.ShowEnemyHurtboxes && visualizationTuning != null;
+            _hitboxOverlay.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+            // sample after gameplay movement; no polling or path generation is needed while hidden.
+            if (show) _hitboxOverlay.MarkDirtyRepaint();
         }
 
         private void Update()

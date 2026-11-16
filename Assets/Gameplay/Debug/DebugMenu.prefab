@@ -69,3 +69,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.DebugMenu
   styleSheet: {fileID: 7433441132597879392, guid: efe6fc1d16da6ce069a9f201edd567b4, type: 3}
+  visualizationTuning: {fileID: 11400000, guid: 76af4d67eeb3f2bdd9d28134adea3eb6, type: 2}

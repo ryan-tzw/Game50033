@@ -69,7 +69,7 @@ Press **F1** to open or close the mouse-operated debug panel. It is available in
 - **Infinite dodge:** allows dodging at zero charges without spending charges. Existing recharge continues; dodge timing, immunity and action restrictions remain unchanged.
 - **Heal living players to full:** restores health globally, leaving downed players down.
 
-Cheats also apply to newly joined players. Closing the panel or changing scenes preserves settings; starting a fresh play session resets them. This first menu version does not add runtime hitbox visualization.
+Cheats also apply to newly joined players. Closing the panel or changing scenes preserves settings; starting a fresh play session resets them. Enable **Show hitboxes** and **Enemy / dummy hurtboxes** to see existing `CombatHurtbox` capsules as green filled outlines over the game. They remain visible when F1 closes the menu, work in release builds, and do not require Gizmos. This currently covers enemy/dummy hurtboxes only; attack areas, sweet spots and dedicated player combat hurtboxes are not wired yet. Tune colour, opacity and outline width in `Assets/Tuning/Debug/DebugVisualizationTuning.asset`.
 
 ### Lobby
 

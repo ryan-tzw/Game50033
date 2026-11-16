@@ -10,6 +10,8 @@ namespace Game50033
         public bool NoCooldowns { get; private set; }
         public bool Invincibility { get; set; }
         public bool InfiniteDodge { get; set; }
+        public bool ShowHitboxes { get; set; }
+        public bool ShowEnemyHurtboxes { get; set; } = true;
         public bool BlocksMouseCombat { get; internal set; }
 
         public DebugState(IReadOnlyList<Player> players)
