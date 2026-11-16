@@ -36,6 +36,7 @@ namespace Game50033
 
         public PlayerMovement Movement { get; private set; }
         public PlayerHealth Health { get; private set; }
+        public PlayerHurtbox Hurtbox { get; private set; }
         public PlayerAbilities Abilities { get; private set; }
         public PlayerHitstop Hitstop { get; private set; }
         public GameSession Session { get; internal set; }
@@ -95,6 +96,7 @@ namespace Game50033
             }
             Movement = GetComponent<PlayerMovement>();
             Health = GetComponent<PlayerHealth>();
+            Hurtbox = GetComponent<PlayerHurtbox>();
             Abilities = GetComponent<PlayerAbilities>();
             Hitstop = GetComponent<PlayerHitstop>();
             if (avatarRenderer == null) avatarRenderer = GetComponentInChildren<SpriteRenderer>(true);

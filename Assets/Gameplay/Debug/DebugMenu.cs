@@ -38,7 +38,7 @@ namespace Game50033
             if (styleSheet != null && !root.styleSheets.Contains(styleSheet)) root.styleSheets.Add(styleSheet);
             if (visualizationTuning == null) Debug.LogError("DebugMenu requires a DebugVisualizationTuning asset.", this);
             // keep the overlay below the controls and outside the panel whose visibility F1 toggles.
-            _hitboxOverlay = new HitboxDebugOverlay(_session.Debug, visualizationTuning);
+            _hitboxOverlay = new HitboxDebugOverlay(_session.Debug, visualizationTuning, _session.Players);
             root.Add(_hitboxOverlay);
             _panel = new VisualElement { name = "debug-panel", pickingMode = PickingMode.Position };
             _panel.AddToClassList("debug-panel");
@@ -78,6 +78,14 @@ namespace Game50033
             showHitboxes.SetValueWithoutNotify(_session.Debug.ShowHitboxes);
             showHitboxes.RegisterValueChangedCallback(evt => _session.Debug.ShowHitboxes = evt.newValue);
             _panel.Add(showHitboxes);
+            var playerHurtboxes = new Toggle("Player hurtboxes")
+            {
+                name = "player-hurtboxes", focusable = false,
+                tooltip = "Shows damage-receiving players; hidden while downed or invulnerable (including Invincibility)."
+            };
+            playerHurtboxes.SetValueWithoutNotify(_session.Debug.ShowPlayerHurtboxes);
+            playerHurtboxes.RegisterValueChangedCallback(evt => _session.Debug.ShowPlayerHurtboxes = evt.newValue);
+            _panel.Add(playerHurtboxes);
             var enemyHurtboxes = new Toggle("Enemy / dummy hurtboxes") { name = "enemy-hurtboxes", focusable = false };
             enemyHurtboxes.SetValueWithoutNotify(_session.Debug.ShowEnemyHurtboxes);
             enemyHurtboxes.RegisterValueChangedCallback(evt => _session.Debug.ShowEnemyHurtboxes = evt.newValue);
@@ -103,7 +111,8 @@ namespace Game50033
             // expire even while hidden, so toggling the menu/filters cannot accumulate or replay old impacts.
             if (visualizationTuning != null) _session.Debug.ExpireAttackSnapshots(visualizationTuning.snapshotDuration);
             var show = _session.Debug.ShowHitboxes && visualizationTuning != null
-                && (_session.Debug.ShowEnemyHurtboxes || _session.Debug.ShowPlayerAttacks || _session.Debug.ShowSpecialZones);
+                && (_session.Debug.ShowPlayerHurtboxes || _session.Debug.ShowEnemyHurtboxes
+                    || _session.Debug.ShowPlayerAttacks || _session.Debug.ShowSpecialZones);
             _hitboxOverlay.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
             // sample after gameplay movement; no polling or path generation is needed while hidden.
             if (show) _hitboxOverlay.MarkDirtyRepaint();

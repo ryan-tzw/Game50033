@@ -6,6 +6,7 @@ namespace Game50033
     public sealed class DebugVisualizationTuning : ScriptableObject
     {
         [Header("Hurtboxes")]
+        public Color playerHurtboxColor = new Color(89f / 255f, 213f / 255f, 1f);
         public Color enemyHurtboxColor = new Color(112f / 255f, 230f / 255f, 155f / 255f);
 
         [Header("Impact snapshots")]

@@ -8,15 +8,17 @@ namespace Game50033
     {
         private readonly DebugState _state;
         private readonly DebugVisualizationTuning _tuning;
+        private readonly IReadOnlyList<Player> _players;
         private readonly List<Vector2> _contour = new(192);
         private readonly List<int> _contourEnds = new(128);
         private readonly Vector2[] _sweepPoints = new Vector2[4];
         private readonly Vector2[] _hull = new Vector2[8];
 
-        public HitboxDebugOverlay(DebugState state, DebugVisualizationTuning tuning)
+        public HitboxDebugOverlay(DebugState state, DebugVisualizationTuning tuning, IReadOnlyList<Player> players = null)
         {
             _state = state;
             _tuning = tuning;
+            _players = players;
             name = "hitbox-debug-overlay";
             pickingMode = PickingMode.Ignore;
             style.position = Position.Absolute;
@@ -32,9 +34,6 @@ namespace Game50033
             if (camera == null || !camera.orthographic) return;
 
             var painter = context.painter2D;
-            var color = _tuning.enemyHurtboxColor;
-            painter.fillColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.fillOpacity));
-            painter.strokeColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.outlineOpacity));
             painter.lineWidth = Mathf.Max(0f, _tuning.outlineWidth);
 
             var hurtboxes = CombatHurtbox.Active;
@@ -44,35 +43,8 @@ namespace Game50033
                 if (hurtbox == null || !hurtbox.isActiveAndEnabled || hurtbox.GetComponentInParent<Player>() != null) continue;
                 if (hurtbox.Target == null || hurtbox.Target is Behaviour target && !target.isActiveAndEnabled) continue;
 
-                // use the query's world capsule, including its authored anchor, rotation and nonuniform scale.
-                // orthographic projection preserves the round cross-section; only the capsule axis foreshortens.
                 hurtbox.GetWorldCapsule(out var worldBottom, out var worldTop, out var worldRadius);
-                var bottomDepth = Vector3.Dot(worldBottom - camera.transform.position, camera.transform.forward);
-                var topDepth = Vector3.Dot(worldTop - camera.transform.position, camera.transform.forward);
-                if (Mathf.Max(bottomDepth, topDepth) + worldRadius < camera.nearClipPlane
-                    || Mathf.Min(bottomDepth, topDepth) - worldRadius > camera.farClipPlane) continue;
-
-                var bottom = this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel, worldBottom, camera));
-                var top = this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel, worldTop, camera));
-                var edge = this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel,
-                    worldBottom + camera.transform.right * worldRadius, camera));
-                var radius = Vector2.Distance(bottom, edge);
-                var bounds = Rect.MinMaxRect(Mathf.Min(bottom.x, top.x) - radius, Mathf.Min(bottom.y, top.y) - radius,
-                    Mathf.Max(bottom.x, top.x) + radius, Mathf.Max(bottom.y, top.y) + radius);
-                if (radius <= 0f || !contentRect.Overlaps(bounds)) continue;
-
-                var axis = top - bottom;
-                axis = axis.sqrMagnitude > 0.000001f ? axis.normalized : Vector2.up;
-                var perpendicular = new Vector2(axis.y, -axis.x);
-                var angle = Mathf.Atan2(perpendicular.y, perpendicular.x) * Mathf.Rad2Deg;
-                painter.BeginPath();
-                painter.MoveTo(top + perpendicular * radius);
-                painter.Arc(top, radius, angle, angle + 180f);
-                painter.LineTo(bottom - perpendicular * radius);
-                painter.Arc(bottom, radius, angle + 180f, angle + 360f);
-                painter.ClosePath();
-                painter.Fill();
-                if (painter.lineWidth > 0f) painter.Stroke();
+                DrawCapsule(painter, camera, worldBottom, worldTop, worldRadius, _tuning.enemyHurtboxColor);
             }
 
             var snapshots = _state.AttackSnapshots;
@@ -104,6 +76,49 @@ namespace Game50033
                 if (!trace.Scene.isLoaded || !trace.IsFinished && trace.Frame != Time.frameCount) continue;
                 DrawProjectile(painter, camera, trace);
             }
+
+            // draw the small player shapes last so larger attack previews cannot cover their outlines.
+            for (var i = 0; _state.ShowPlayerHurtboxes && _players != null && i < _players.Count; i++)
+            {
+                var player = _players[i];
+                if (player == null || !player.isActiveAndEnabled || player.Hurtbox == null || !player.Hurtbox.IsAvailable
+                    || player.Health == null || player.Health.IsDowned || player.Health.IsInvulnerable) continue;
+                player.Hurtbox.GetWorldCapsule(out var bottom, out var top, out var radius);
+                DrawCapsule(painter, camera, bottom, top, radius, _tuning.playerHurtboxColor);
+            }
+        }
+
+        private void DrawCapsule(Painter2D painter, Camera camera, Vector3 worldBottom, Vector3 worldTop,
+            float radiusWorld, Color color)
+        {
+            painter.fillColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.fillOpacity));
+            painter.strokeColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.outlineOpacity));
+            var bottomDepth = Vector3.Dot(worldBottom - camera.transform.position, camera.transform.forward);
+            var topDepth = Vector3.Dot(worldTop - camera.transform.position, camera.transform.forward);
+            if (Mathf.Max(bottomDepth, topDepth) + radiusWorld < camera.nearClipPlane
+                || Mathf.Min(bottomDepth, topDepth) - radiusWorld > camera.farClipPlane) return;
+
+            var bottom = this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel, worldBottom, camera));
+            var top = this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel, worldTop, camera));
+            var edge = this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel,
+                worldBottom + camera.transform.right * radiusWorld, camera));
+            var radius = Vector2.Distance(bottom, edge);
+            var bounds = Rect.MinMaxRect(Mathf.Min(bottom.x, top.x) - radius, Mathf.Min(bottom.y, top.y) - radius,
+                Mathf.Max(bottom.x, top.x) + radius, Mathf.Max(bottom.y, top.y) + radius);
+            if (radius <= 0f || !contentRect.Overlaps(bounds)) return;
+
+            var axis = top - bottom;
+            axis = axis.sqrMagnitude > 0.000001f ? axis.normalized : Vector2.up;
+            var perpendicular = new Vector2(axis.y, -axis.x);
+            var angle = Mathf.Atan2(perpendicular.y, perpendicular.x) * Mathf.Rad2Deg;
+            painter.BeginPath();
+            painter.MoveTo(top + perpendicular * radius);
+            painter.Arc(top, radius, angle, angle + 180f);
+            painter.LineTo(bottom - perpendicular * radius);
+            painter.Arc(bottom, radius, angle + 180f, angle + 360f);
+            painter.ClosePath();
+            painter.Fill();
+            if (painter.lineWidth > 0f) painter.Stroke();
         }
 
         private void DrawSector(Painter2D painter, Camera camera, in DebugAttackSnapshot snapshot,

@@ -107,6 +107,7 @@ GameObject:
   - component: {fileID: 1544443953293736951}
   - component: {fileID: -2570218193996952752}
   - component: {fileID: 5036130649280889951}
+  - component: {fileID: 5353910712170470397}
   m_Layer: 0
   m_Name: TrombonePlayer
   m_TagString: Untagged
@@ -262,3 +263,16 @@ MonoBehaviour:
   tromboneSpecialCooldown: 3
   tromboneActionDuration: 0.25
   tromboneCommandZone: {fileID: 6468572833640993516, guid: c09bb9f647c664e4d8a551896fb86bf3, type: 3}
+--- !u!114 &5353910712170470397
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 057c096b191de7efdb94c618527c53b7, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHurtbox
+  tuning: {fileID: 11400000, guid: 0e6ae754d02acfe0da51e3e4e83be354, type: 2}

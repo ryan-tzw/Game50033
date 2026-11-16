@@ -21,3 +21,4 @@ MonoBehaviour:
   fillOpacity: 0.5
   outlineOpacity: 1
   outlineWidth: 3
+  playerHurtboxColor: {r: 0.34901962, g: 0.8352941, b: 1, a: 1}
