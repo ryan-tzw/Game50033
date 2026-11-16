@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5081907533051185615}
   - component: {fileID: 1627041761190954647}
+  - component: {fileID: 4919758599312896812}
   m_Layer: 11
   m_Name: SpriteRenderer
   m_TagString: Untagged
@@ -58,7 +59,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: e39654694528a45dc8b49632520197a4, type: 2}
+  - {fileID: 2100000, guid: 2f8b35dcc1999b685805acff9f7a1d5d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -91,6 +92,28 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!95 &4919758599312896812
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3231995453142075047}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 6775c215d4b36eeb5967f781479ade06, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage:
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &3885672621503035260
 GameObject:
   m_ObjectHideFlags: 0
@@ -107,6 +130,9 @@ GameObject:
   - component: {fileID: 1544443953293736951}
   - component: {fileID: 2439631078986181378}
   - component: {fileID: 5036130649280889951}
+  - component: {fileID: 7213515434291519152}
+  - component: {fileID: 794207836743235729}
+  - component: {fileID: 1823924041723711795}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -218,6 +244,7 @@ MonoBehaviour:
   dodgeDistance: 1
   dodgeDuration: 0.2
   maxDodgeCharges: 2
+  dodgeTuning: {fileID: 11400000, guid: d473bfd3cc677322896b629a1275ce92, type: 2}
   dodgeRechargeTime: 7
 --- !u!114 &1544443953293736951
 MonoBehaviour:
@@ -269,3 +296,45 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerCharacterSelect
   avatarVisual: {fileID: 3231995453142075047}
   navigateThreshold: 0.6
+--- !u!114 &7213515434291519152
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dff59e866ce1b7abdb381b46576a41f7, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHitstop
+--- !u!114 &794207836743235729
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df175d64acac5d45d85a1a45f62850d9, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerAnimation
+  animator: {fileID: 4919758599312896812}
+  controller: {fileID: 5018917414402032851}
+  hitstop: {fileID: 7213515434291519152}
+  tuning: {fileID: 11400000, guid: b1a889647cf31fa0eaf54b5ac05086b6, type: 2}
+--- !u!114 &1823924041723711795
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2f8dd350233c47b0a86c82dbdfaa9ff, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerDodgeVFX
+  avatarRenderer: {fileID: 1627041761190954647}
+  tuning: {fileID: 11400000, guid: d473bfd3cc677322896b629a1275ce92, type: 2}

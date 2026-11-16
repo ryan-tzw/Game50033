@@ -5,6 +5,7 @@ namespace Game50033
 
     [DisallowMultipleComponent]
     [RequireComponent(typeof(PlayerInput), typeof(PlayerMovement), typeof(PlayerHealth))]
+    [RequireComponent(typeof(PlayerHitstop))]
     public sealed class Player : MonoBehaviour
     {
         [SerializeField] private SpriteRenderer avatarRenderer;
@@ -35,6 +36,7 @@ namespace Game50033
         public PlayerMovement Movement { get; private set; }
         public PlayerHealth Health { get; private set; }
         public PlayerAbilities Abilities { get; private set; }
+        public PlayerHitstop Hitstop { get; private set; }
         public GameSession Session { get; internal set; }
         public int PlayerIndex { get; private set; } = -1;
         public Color PlayerColor { get; private set; } = Color.white;
@@ -46,12 +48,15 @@ namespace Game50033
         public bool SpecialPressedThisFrame => SpecialInputEnabled && _specialAction.WasPressedThisFrame();
         public bool SpecialHeld => SpecialInputEnabled && _specialAction.IsPressed();
 
-        public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDowned
+        public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDowned && !Hitstop.IsStopped
             && (Abilities == null || !Abilities.isActiveAndEnabled || !Abilities.BlocksMovement);
-        public bool CanDodge => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned
+        public bool CanDodge => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !Hitstop.IsStopped
             && Movement.CanDodge && (Abilities == null || !Abilities.isActiveAndEnabled || !Abilities.BlocksDodge);
-        public bool CanUseAbilities => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned
+        public bool CanUseAbilities => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !Hitstop.IsStopped
             && !Movement.IsDodging && Abilities != null && Abilities.isActiveAndEnabled && !Abilities.BlocksAbilities;
+
+        public bool CanUseDefensive => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !Hitstop.IsStopped
+            && !Movement.IsDodging && Abilities != null && Abilities.isActiveAndEnabled && !Abilities.BlocksDefensive;
 
         private void Awake()
         {
@@ -66,6 +71,7 @@ namespace Game50033
             Movement = GetComponent<PlayerMovement>();
             Health = GetComponent<PlayerHealth>();
             Abilities = GetComponent<PlayerAbilities>();
+            Hitstop = GetComponent<PlayerHitstop>();
             if (avatarRenderer == null) avatarRenderer = GetComponentInChildren<SpriteRenderer>(true);
             Movement.Initialize();
             Health.Initialize();
@@ -75,6 +81,7 @@ namespace Game50033
 
         private void Update()
         {
+            Hitstop.Tick(Time.deltaTime);
             // bind after player input has enabled and created its device-filtered action copy.
             if (_boundActions != _playerInput.actions)
             {
@@ -107,10 +114,12 @@ namespace Game50033
                 // dodge is press-only; ability activation is retried while held.
                 if (_dodgeAction.WasPressedThisFrame()) Movement.TryDodge(CanDodge);
 
+                // defensive gets priority over held attacks, including instrument-defined cancellation windows.
+                if (CanUseDefensive && _defensiveAction.IsPressed()) Abilities.TryUseDefensive();
+
                 // each activation may change the restrictions for subsequent actions this frame.
                 if (CanUseAbilities && _primaryAction.IsPressed()) Abilities.TryUsePrimary();
                 if (CanUseAbilities && _secondaryAction.IsPressed()) Abilities.TryUseSecondary();
-                if (CanUseAbilities && _defensiveAction.IsPressed()) Abilities.TryUseDefensive();
 
                 // Keep the press edge so a quick Special tap can still start charging.
                 if (CanUseAbilities && (_specialAction.IsPressed() || _specialAction.WasPressedThisFrame()))
@@ -120,7 +129,9 @@ namespace Game50033
             }
 
             // continue grounding and charge recovery while action input is blocked.
-            Movement.Tick(Time.deltaTime, CanMove);
+            var movementSpeedMultiplier = Abilities != null && Abilities.isActiveAndEnabled
+                ? Abilities.MovementSpeedMultiplier : 1f;
+            Movement.Tick(Hitstop.ActionDeltaTime, CanMove, movementSpeedMultiplier);
         }
 
         public Vector3 GetAttackDirection(
@@ -153,6 +164,7 @@ namespace Game50033
 
         private void OnDisable()
         {
+            if (Hitstop != null) Hitstop.Clear();
             Movement.CancelDodge();
             Movement.CancelDisplacement();
             Movement.ReadInput(Vector2.zero);
@@ -167,6 +179,7 @@ namespace Game50033
 
         private void HandleDowned()
         {
+            Hitstop.Clear();
             Movement.CancelDodge();
             Movement.CancelDisplacement();
             Movement.ReadInput(Vector2.zero);

@@ -9,7 +9,15 @@ float3 AdjustSaturation(float3 color, float saturation)
     return luminance.xxx + saturation.xxx * (color - luminance.xxx);
 }
 
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
+    // replace only the main-light shadow lookup used by URP lighting; retain its PBR and additional-light paths.
+    #include "../PlayerShadows/PlayerShadows.hlsl"
+    #define MainLightShadow PlayerMainLightShadow
+#endif
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
+    #undef MainLightShadow
+#endif
 
 #if defined(LOD_FADE_CROSSFADE)
     #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
@@ -47,6 +55,10 @@ struct Varyings
     float3 normalWS                 : TEXCOORD2;
 #if defined(REQUIRES_WORLD_SPACE_TANGENT_INTERPOLATOR)
     half4 tangentWS                : TEXCOORD3;    // xyz: tangent, w: sign
+#endif
+
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
+    float3 casterPositionWS         : TEXCOORD4;
 #endif
 
 #ifdef _ADDITIONAL_LIGHTS_VERTEX
@@ -106,7 +118,10 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
     inputData.normalWS = NormalizeNormalPerPixel(inputData.normalWS);
     inputData.viewDirectionWS = viewDirWS;
 
-#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
+    // characters sample their caster mesh; upright weapons provide their occlusion-plane position below.
+    inputData.shadowCoord = PlayerWorldToShadowCoord(input.casterPositionWS);
+#elif defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
     inputData.shadowCoord = input.shadowCoord;
 #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
     inputData.shadowCoord = TransformWorldToShadowCoord(inputData.positionWS);
@@ -172,6 +187,9 @@ Varyings LitPassVertex(Attributes input)
     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
     VertexPositionInputs vertexInput = GetVertexPositionInputs(input.positionOS.xyz);
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
+    output.casterPositionWS = vertexInput.positionWS;
+#endif
     
     // modifications start here
     
@@ -193,8 +211,9 @@ Varyings LitPassVertex(Attributes input)
 
     float3 billboardPositionWS = TransformViewToWorld(billboardPositionVS);
     float4 billboardPositionCS = TransformWViewToHClip(billboardPositionVS);
+    // modes 0/1 retain mesh/XZ depth; mode 2 uses a vertical plane through the grip.
     float4 depthCS = vertexInput.positionCS;
-    if (_SpriteFlatDepth > 0.5)
+    if (_SpriteFlatDepth > 0.5 && _SpriteFlatDepth < 1.5)
     {
         // project the visible vertex back onto the weapon's horizontal plane for depth.
         // otherwise a downward-rotated image can intersect the floor despite its mesh being above it.
@@ -206,6 +225,29 @@ Varyings LitPassVertex(Attributes input)
             float distance = (vertexInput.positionWS.y - billboardPositionWS.y) / rayWS.y;
             depthCS = TransformWorldToHClip(billboardPositionWS + rayWS * distance);
         }
+    }
+    if (_SpriteFlatDepth > 1.5)
+    {
+        // intersect the visible ray with a world-upright plane, facing only the camera's horizontal direction.
+        // depth follows world Y rather than the camera tilt; floor exclusion belongs to the weapon render pass.
+        float3 gripWS = TransformObjectToWorld(float3(_SpritePivot.xy, 0));
+        float3 cameraForwardWS = TransformViewToWorldDir(float3(0, 0, 1));
+        float3 planeNormal = float3(cameraForwardWS.x, 0, cameraForwardWS.z);
+        float3 rayWS = unity_OrthoParams.w > 0.5 ? cameraForwardWS : billboardPositionWS - GetCameraPositionWS();
+        float denominator = dot(rayWS, planeNormal);
+        float3 uprightPositionWS = billboardPositionWS;
+        if (abs(denominator) > 0.0001)
+        {
+            float distance = dot(gripWS - billboardPositionWS, planeNormal) / denominator;
+            uprightPositionWS += rayWS * distance;
+            depthCS = TransformWorldToHClip(uprightPositionWS);
+        }
+        else depthCS = billboardPositionCS;
+#if defined(_RECEIVE_WEAPON_SHADOWS)
+        // receive environment shadows at the same upright surface used for obstacle occlusion.
+        // the shadow-caster pass still uses the original mesh to cast onto the ground.
+        output.casterPositionWS = uprightPositionWS;
+#endif
     }
     billboardPositionCS.z = depthCS.z / depthCS.w * billboardPositionCS.w;
     

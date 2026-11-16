@@ -1,5 +1,6 @@
 namespace Game50033
 {
+    using System;
     using UnityEngine;
 
     [DisallowMultipleComponent]
@@ -10,9 +11,12 @@ namespace Game50033
         [SerializeField, Min(0f)] private float dodgeDistance = 1f;
         [SerializeField, Min(0.01f)] private float dodgeDuration = 0.2f;
         [SerializeField, Min(1)] private int maxDodgeCharges = 2;
+        [SerializeField] private PlayerDodgeTuning dodgeTuning;
+        [Tooltip("Legacy fallback for players without a shared dodge tuning asset.")]
         [SerializeField, Min(0.01f)] private float dodgeRechargeTime = 7f;
 
         private CharacterController _controller;
+        private PlayerHitstop _hitstop;
         private bool _initialized;
         private Vector2 _moveInput;
         private Vector3 _dodgeDirection;
@@ -28,13 +32,18 @@ namespace Game50033
         private float _curveStart;
         private float _curveSpan;
 
+        private float DodgeRechargeTime => Mathf.Max(0.01f, dodgeTuning != null ? dodgeTuning.rechargeTime : dodgeRechargeTime);
+
+        public event Action<Vector3> DodgeStarted;
+        public event Action<bool> DodgeEnded;
+
         public Vector3 MoveDirection { get; private set; }
         public Vector3 FacingDirection { get; private set; } = Vector3.forward;
         public bool IsDodging { get; private set; }
         public bool IsDisplacing { get; private set; }
         public bool IsInvulnerable => IsDodging && isActiveAndEnabled && _controller != null && _controller.enabled;
         public bool CanDodge => isActiveAndEnabled && _controller != null && _controller.enabled
-            && !IsDodging && !IsDisplacing && DodgeCharges > 0;
+            && !IsDodging && !IsDisplacing && DodgeCharges > 0 && (_hitstop == null || !_hitstop.IsStopped);
         public int DodgeCharges { get; private set; }
         public int MaxDodgeCharges => maxDodgeCharges;
         public float DodgeRechargeRemaining => DodgeCharges < maxDodgeCharges
@@ -50,6 +59,7 @@ namespace Game50033
             if (_initialized) return;
 
             _controller = GetComponent<CharacterController>();
+            _hitstop = GetComponent<PlayerHitstop>();
             DodgeCharges = maxDodgeCharges;
             _initialized = true;
         }
@@ -72,30 +82,34 @@ namespace Game50033
         {
             if (!allowed || !CanDodge) return false;
 
-            if (DodgeCharges == maxDodgeCharges) _nextChargeAt = Time.time + dodgeRechargeTime;
+            if (DodgeCharges == maxDodgeCharges) _nextChargeAt = Time.time + DodgeRechargeTime;
             DodgeCharges--;
             _dodgeDirection = FacingDirection;
             _dodgeElapsed = 0f;
             IsDodging = true;
+            DodgeStarted?.Invoke(_dodgeDirection);
             return true;
         }
 
         internal void CancelDodge()
         {
+            if (!IsDodging) return;
             IsDodging = false;
+            DodgeEnded?.Invoke(false);
         }
 
         public bool TryStartDisplacement(Vector3 direction, float distance, float duration, AnimationCurve easing, float delay = 0f)
         {
             direction.y = 0f;
             if (!isActiveAndEnabled || _controller == null || !_controller.enabled
+                || _hitstop != null && _hitstop.IsStopped
                 || IsDodging || IsDisplacing || direction.sqrMagnitude < 0.0001f || duration <= 0f) return false;
 
             _displacementDirection = direction.normalized;
             _displacementDistance = distance;
             _displacementDuration = duration;
             _displacementElapsed = 0f;
-            _displacementStartsAt = Time.time + Mathf.Max(0f, delay);
+            _displacementStartsAt = (_hitstop != null ? _hitstop.ActionTime : Time.time) + Mathf.Max(0f, delay);
             _displacementCurve = easing;
             _curveStart = easing != null ? easing.Evaluate(0f) : 0f;
             _curveSpan = easing != null ? easing.Evaluate(1f) - _curveStart : 0f;
@@ -108,7 +122,7 @@ namespace Game50033
             IsDisplacing = false;
         }
 
-        internal void Tick(float deltaTime, bool canMove)
+        internal void Tick(float deltaTime, bool canMove, float movementSpeedMultiplier = 1f)
         {
             if (!isActiveAndEnabled) return;
 
@@ -116,7 +130,7 @@ namespace Game50033
             while (DodgeCharges < maxDodgeCharges && Time.time >= _nextChargeAt)
             {
                 DodgeCharges++;
-                _nextChargeAt += dodgeRechargeTime;
+                _nextChargeAt += DodgeRechargeTime;
             }
 
             if (!_controller.enabled)
@@ -125,9 +139,12 @@ namespace Game50033
                 CancelDisplacement();
                 return;
             }
+            // recharge uses world time above, but a frozen player must not move or depenetrate.
+            if (_hitstop != null && _hitstop.IsStopped) return;
 
             var displacement = Vector3.zero;
-            if (IsDodging)
+            var dodging = IsDodging;
+            if (dodging)
             {
                 var previousProgress = Mathf.Clamp01(_dodgeElapsed / dodgeDuration);
                 _dodgeElapsed += deltaTime;
@@ -140,7 +157,7 @@ namespace Game50033
             else if (IsDisplacing)
             {
                 var previousProgress = Mathf.Clamp01(_displacementElapsed / _displacementDuration);
-                _displacementElapsed = Time.time - _displacementStartsAt;
+                _displacementElapsed = (_hitstop != null ? _hitstop.ActionTime : Time.time) - _displacementStartsAt;
                 var progress = Mathf.Clamp01(_displacementElapsed / _displacementDuration);
 
                 // normalize the endpoints to preserve total distance while allowing curve overshoot.
@@ -155,15 +172,18 @@ namespace Game50033
                 displacement = _displacementDirection * (_displacementDistance * (currentDistance - previousDistance));
                 if (progress >= 1f) IsDisplacing = false;
             }
-            else if (canMove)
+            // walking can be slowed independently of a skill's fixed displacement, even during its delay.
+            // use the dodge state from this tick's start so its final frame cannot also add walking.
+            if (canMove && !dodging)
             {
-                displacement = MoveDirection * (moveSpeed * deltaTime);
+                displacement += MoveDirection * (moveSpeed * Mathf.Max(0f, movementSpeedMultiplier) * deltaTime);
             }
 
             // retain grounding while horizontal actions are blocked, including while downed.
             _verticalSpeed = _controller.isGrounded ? -2f : Mathf.Max(-30f, _verticalSpeed + Physics.gravity.y * deltaTime);
             displacement.y = _verticalSpeed * deltaTime;
             _controller.Move(displacement);
+            if (dodging && !IsDodging) DodgeEnded?.Invoke(true);
         }
     }
 }

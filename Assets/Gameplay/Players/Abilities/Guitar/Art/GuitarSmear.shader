@@ -33,6 +33,7 @@ Shader "Game50033/Guitar Smear"
                 float3 positionOS : POSITION;
                 float2 uv : TEXCOORD0;
                 float4 pose : TEXCOORD1;
+                float3 shape : TEXCOORD2;
             };
             struct Varyings
             {
@@ -40,6 +41,7 @@ Shader "Game50033/Guitar Smear"
                 float2 uv : TEXCOORD0;
                 float4 pose : TEXCOORD1;
                 float3 positionWS : TEXCOORD2;
+                float3 shape : TEXCOORD3;
             };
             Varyings Vert(Attributes input)
             {
@@ -48,6 +50,7 @@ Shader "Game50033/Guitar Smear"
                 output.positionWS = TransformObjectToWorld(input.positionOS);
                 output.uv = input.uv;
                 output.pose = input.pose;
+                output.shape = input.shape;
                 return output;
             }
             half4 Frag(Varyings input) : SV_Target
@@ -71,7 +74,10 @@ Shader "Game50033/Guitar Smear"
                     clip(along - (0.5 + stagger * 0.15));
                     clip(0.94 - along - stagger * 0.08);
                 }
-                float distanceFromOrigin = length(input.positionWS.xz - input.pose.xy);
+                float2 offset = input.positionWS.xz - input.pose.xy;
+                // classify in the same unstretched sector used by damage checks.
+                offset -= input.shape.xy * (dot(offset, input.shape.xy) * (1.0 - input.shape.z));
+                float distanceFromOrigin = length(offset);
                 half3 color = distanceFromOrigin >= input.pose.z ? _SweetSpotColor.rgb : _BodyColor.rgb;
                 return half4(color, 1);
             }

@@ -1,5 +1,19 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-1890295674201841326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 749e4f0cfee4675c7b03403ec3a03670, type: 3}
+  m_Name: Player Shadows
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerShadowRendererFeature
+  m_Active: 1
+  tuning: {fileID: 11400000, guid: cc7df0e7a8ff3c87294d20f850f81bdb, type: 2}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -26,7 +40,9 @@ MonoBehaviour:
     probeVolumeBlendStatesCS: {fileID: 7200000, guid: b9a23f869c4fd45f19c5ada54dd82176, type: 3}
   m_RendererFeatures:
   - {fileID: 2735157961076751394}
-  m_RendererFeatureMap: 22bc8f92ac3bf525
+  - {fileID: -1890295674201841326}
+  - {fileID: 2735391630531975498}
+  m_RendererFeatureMap: 22bc8f92ac3bf52552e1bd7a1952c4e54a596ffb3110f625
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -86,15 +102,36 @@ MonoBehaviour:
   resolution: {x: 640, y: 360}
   worldLayers:
     serializedVersion: 2
-    m_Bits: 1025
+    m_Bits: 17409
   toonLayers:
     serializedVersion: 2
-    m_Bits: 1024
+    m_Bits: 17408
   spriteLayers:
     serializedVersion: 2
-    m_Bits: 2048
+    m_Bits: 10240
+  weaponLayers:
+    serializedVersion: 2
+    m_Bits: 8192
+  floorLayers:
+    serializedVersion: 2
+    m_Bits: 16384
   transparentWorldLayers:
     serializedVersion: 2
     m_Bits: 4096
   toonOverrideShader: {fileID: -6465566751694194690, guid: b72474f93ef419a61aa8df86484fb3d4, type: 3}
   edgeDetectMat: {fileID: 2100000, guid: d6d77d9bd80b6c8c89d15e5e3bf6e1df, type: 2}
+--- !u!114 &2735391630531975498
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66953479222fbb3ce9738f7db65da9ae, type: 3}
+  m_Name: Dodge Shockwaves
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.DodgeShockwaveRendererFeature
+  m_Active: 1
+  material: {fileID: 2100000, guid: f21da2e45cbd2442c9542648acc8617a, type: 2}
+  pixelArtRenderer: {fileID: 2735157961076751394}
