@@ -16,10 +16,8 @@ namespace Game50033
         [SerializeField] private List<Player> _targetedPlayers = new List<Player>();
 
         [Header("Projectile Attributes for Projectile-based Targeted Attacks")]
-        public bool homing;
-        public bool destroyOnArrival;
-        public bool bouncy;
-        public bool blockedByObstacles;
+        public GameObject lingeringObject;
+        public bool homing, destroyOnArrival, bouncy, blockedByObstacles, lingeringEffect;
         [SerializeField, Min(0.1f)] public float projectileSpeed;
         [SerializeField] public float projectileHomingHeight = 0f;
 

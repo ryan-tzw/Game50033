@@ -12,18 +12,11 @@ namespace Game50033
         private TargetedBossAttack _targetedBossAttack;
         private bool _initialized;
 
-        private Vector3 _start;
-        private Vector3 _target;
-        private Vector3 _targetDirection;
-        private float _windUpDuration;
-        private float _activeDuration;
-        private float _elapsed;
-        private float _projectileSpeed;
+        private Vector3 _start, _target, _targetDirection;
+        private float _windUpDuration, _activeDuration, _elapsed, _projectileSpeed;
         private Player _targetedPlayer;
-        private bool _destroyOnArrival;
-        private bool _homing;
-        private bool _bouncy;
-        private bool _blockedByObstacles;
+        private bool _destroyOnArrival, _homing, _bouncy, _blockedByObstacles, _lingeringEffect;
+        private GameObject _lingeringObject;
 
         private Vector3 _lockedPosition;
         private bool _lockPosition;
@@ -42,6 +35,7 @@ namespace Game50033
             _projectileSpeed = targetedBossAttack.projectileSpeed;
             _bouncy = targetedBossAttack.bouncy;
             _blockedByObstacles = targetedBossAttack.blockedByObstacles;
+            _lingeringEffect = targetedBossAttack.lingeringEffect;
 
             try { _animator = GetComponentInChildren<Animator>(); }
             catch { CanDestroy = true; }
@@ -157,10 +151,21 @@ namespace Game50033
                 {
                     _animator.Play("Hit");
                     yield return new WaitUntil(() => _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1.0f);
+                    CheckLingeringEffect();
                     CanDestroy = true;
                 }
             }
-            else CanDestroy = true;
+            else 
+            {
+                if (_lingeringEffect) Instantiate(_lingeringObject, transform.position, Quaternion.identity);
+                CheckLingeringEffect();
+                CanDestroy = true;
+            }
+        }
+
+        private void CheckLingeringEffect()
+        {
+            if (_lingeringEffect) Instantiate(_lingeringObject, transform.position, Quaternion.identity);
         }
     }
 }
