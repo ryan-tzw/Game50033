@@ -58,6 +58,7 @@ MonoBehaviour:
   bouncy: 0
   blockedByObstacles: 1
   lingeringEffect: 0
+  piercing: 0
   projectileSpeed: 8
   projectileHomingHeight: 0
   spreadAngle: 45

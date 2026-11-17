@@ -19,7 +19,7 @@ namespace Game50033
         [Header("Projectile Attributes for Projectile-based Targeted Attacks")]
         public GameObject lingeringObject;
         public bool homing, destroyOnArrival, bouncy, blockedByObstacles, lingeringEffect, piercing;
-        [Min(0.1f)] public float projectileSpeed;
+        [Min(0)] public float projectileSpeed;
         public float projectileHomingHeight = 0f;
         [SerializeField] private float spreadAngle;
         [SerializeField] private float spreadRadius;
@@ -37,17 +37,19 @@ namespace Game50033
 
         private void CalculateTargets()
         {
-            _players = new(FindFirstObjectByType<BaseBoss>().players);
+            _targetedPlayers.Clear();
+            //if (_numberOfTargets == 0) return;
+
+            _players = new List<Player>(boss.players);
+            if (_players.Count == 0) return;
+
             int clampedTargets = Mathf.Clamp(_numberOfTargets, 1, _players.Count);
 
             for (int i = 0; i < clampedTargets; i++)
             {
-                Player _targetPlayer = _players[Random.Range(0, _players.Count)];
-                if (!_targetedPlayers.Contains(_targetPlayer))
-                {
-                    _targetedPlayers.Add(_targetPlayer);
-                    _players.Remove(_targetPlayer);
-                }
+                Player _targetPlayer = _players[Random.Range(0, _players.Count)];   
+                _targetedPlayers.Add(_targetPlayer);
+                _players.Remove(_targetPlayer);
             }
         }
 
@@ -57,10 +59,10 @@ namespace Game50033
             if (TriggerAttack) { Attack(); TriggerAttack = false; }
         }
 
-        protected void OnEnable()
-        {
-            CalculateTargets();
-        }
+        //protected void OnEnable()
+        //{
+        //    CalculateTargets();
+        //}
 
         public override void Cancel()
         {
@@ -138,7 +140,11 @@ namespace Game50033
 
         protected virtual Vector3 GetTelegraphEnd(Vector3 from, Vector3 target)
         {
+            if (_numberOfTargets == 0) return boss.transform.position;
+
             if (!extendToWall) return target;
+
+            
 
             Vector3 direction = target - from;
             direction.y = 0f;
@@ -148,7 +154,8 @@ namespace Game50033
             foreach (var hit in Physics.RaycastAll(from, direction, maxDistance))
             {
                 bool isWall = hit.collider.CompareTag("Wall") || (hit.collider.transform.parent != null && hit.collider.transform.parent.CompareTag("Wall"));
-                closest = Mathf.Max(hit.distance - 0.5f, 0f);
+                if (isWall && hit.distance - 0.5f < closest)
+                    closest = Mathf.Max(hit.distance - 0.5f, 0f);
             }
             return from + direction * closest;
         }

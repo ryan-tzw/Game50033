@@ -6,15 +6,8 @@ using UnityEngine;
 
 namespace Game50033
 {
-    [System.Serializable]
-    public struct WeightedAttack
-    {
-        public GameObject attack;
-        [Min(0)] public int count;   
-    }
     public class BossAttackStack : MonoBehaviour
     {
-        [SerializeField] private int numberOfAttacks = 4;
         Stack<GameObject> bossAttackStack = new Stack<GameObject>();
         List<AttackEntry> bossAttackList = new List<AttackEntry>();
 
@@ -28,8 +21,6 @@ namespace Game50033
                 Debug.LogWarning("No attacks registered in boss stack");
             }
         }
-
-       
 
         private void ShuffleStack()
         {

@@ -28,6 +28,8 @@ namespace Game50033
         protected TrailRenderer _trail;
         private bool _destroying;
 
+        private static readonly int HitStateId = Animator.StringToHash("Hit");
+
         public void InitializeProjectile(Player player, BaseBoss boss, Vector3 target, TargetedBossAttack targetedBossAttack)
         {
             _targetedPlayer = player;
@@ -89,6 +91,7 @@ namespace Game50033
             if (other.TryGetComponent(out Player player))
             {
                 player.Health.TryTakeDamage(1);
+                Debug.Log("Player damaged");
 
                 if (!_piercing) DestroyProjectile();
                 return;
@@ -172,7 +175,7 @@ namespace Game50033
 
             if (_trail) _trail.enabled = false;
 
-            if (_animator)
+            if (_animator != null && _animator.HasState(0, HitStateId))
             {
                 StartCoroutine(PlayHitThenDestroy());
             }
@@ -186,7 +189,7 @@ namespace Game50033
         }
         private IEnumerator PlayHitThenDestroy()
         {
-            _animator.Play("Hit");
+            _animator.Play(HitStateId);
             yield return null;
             yield return new WaitUntil(() => _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f);
             CheckLingeringEffect();
