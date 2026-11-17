@@ -25,6 +25,19 @@ The two new opacities are normalized independently across the active sheet count
 
 The fragment combines the components using alpha-over compositing, then converts to straight alpha for the material's existing blend mode. The foreground's noise, motion and brightness bands are unchanged. Background/midground opacity stays soft; no extra foreground gradient is introduced. Added work is scalar arithmetic and colour compositing, with no extra noise samples. The original performance table below predates this refinement and is not a new shader timing measurement.
 
+## Animated boundary
+
+**Boundary Motion** in the field tuning asset has two controls:
+
+- **Edge Distortion Strength** (0–0.35, initially 0.18): amplitude of local perimeter expansion/contraction in normalized field coordinates. Zero restores the original mask exactly.
+- **Edge Distortion Speed** (initially 0.3): speed of the additional edge noise, independent of internal Flow Speed. Zero freezes the added deformation; the original subtle flow-driven boundary irregularity is still present if internal flow is moving.
+
+A single additional low-frequency sample reuses the existing value-noise function. It uses sheet UVs and a shared animation phase, rather than per-sheet seeds, so the layers follow a coherent boundary shape. A slight inward bias leaves room for expansion while keeping the overall footprint near its authored size. The resulting mask affects background, midground and foreground together; Edge Falloff still controls the main transition softness. Foreground noise, colour bands and flow calculations are unchanged.
+
+With deformation enabled, an additional soft guard fades the last 10% of normalized distance to each quad edge, preventing a hard mesh cut at maximum strength. This reserves a small outer margin, and may constrain expansion at the extremities. The original mask bypasses this guard at strength zero for exact compatibility. Layer heights and tilts still create small projected differences; this remains a surface-based volume approximation.
+
+There are four noise evaluations per fragment with boundary distortion enabled (three internal plus one boundary), versus the previous three. No geometry, materials, draw calls, CPU mesh animation or renderer changes were added. The old performance table is not a measurement of this refinement.
+
 ## Optional bloom preview
 
 The test scene starts with `Bloom Preview` enabled. Toggle that GameObject to compare bloom on/off without changing the field. Edit `Assets/Tuning/Experiments/ReverberationEnergyFieldBloom.asset` for Intensity (initially 1), Threshold (0.8) and Scatter (0.65). The camera has HDR and post-processing enabled. This is ordinary scene-wide URP bloom after pixel upscaling: it adds a soft glow to bright pixels, including any bright environment objects, and does not pixelate the glow itself. The shader and field prefab remain independent of bloom.
@@ -57,6 +70,8 @@ Measured in Unity 6000.3.24f1 Editor batch Play mode, URP 17.3, OpenGL 4.5 on NV
 The frame-wide GC counter median was 246 bytes in every case; this includes the Editor/test sampler and does not establish per-effect allocation cost. Hardware GPU frame timing was unavailable, so no GPU milliseconds or speedup claim is made. Each four-layer instance adds four measured draw calls. Profile a release build on target hardware after approving the visual direction.
 
 ## Checks and limitations
+
+- Animated boundary compiled/rendered in isolated Unity Play mode. Strength zero matched the previous shader exactly at 1080p (0 changed RGB pixels). With internal Flow Speed zero, moving boundary noise changed 62,489 pixels over two simulation seconds; also zeroing Edge Distortion Speed produced identical captures. Maximum-strength output was rendered and inspected for soft mesh-edge fading. These checks do not establish shader GPU cost or visual quality at every view/setting.
 
 - Background/midground refinement compiled and rendered in isolated Unity Play mode. With both new opacities zero, the 1080p capture matched the original shader exactly (maximum RGB difference 0/255). Property-block opacity normalization was checked at 1/4/8 layers. New shader GPU cost and subjective motion/appearance still require manual evaluation.
 

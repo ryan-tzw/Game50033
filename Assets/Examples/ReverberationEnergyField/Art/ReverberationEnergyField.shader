@@ -11,6 +11,8 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
         _FlowSpeed("Flow Speed", Float) = 0.12
         _Turbulence("Turbulence", Float) = 0.8
         _EdgeFalloff("Edge Falloff", Range(0, 1)) = 0.55
+        _EdgeDistortionStrength("Edge Distortion Strength", Range(0, 0.35)) = 0
+        _EdgeDistortionSpeed("Edge Distortion Speed", Float) = 0.3
         _BackgroundColor("Background Color", Color) = (0.12, 0.035, 0.22, 1)
         _BackgroundLayerOpacity("Background Layer Opacity", Range(0, 1)) = 0
         _BackgroundVariation("Background Variation", Range(0, 1)) = 0.5
@@ -37,6 +39,7 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
                 half4 _EnergyColor, _BackgroundColor;
                 float _BackgroundLayerOpacity, _BackgroundVariation, _MidgroundLayerOpacity, _MidgroundWidth;
                 float _Density, _LayerOpacity, _Emission, _BrightnessBands;
+                float _EdgeDistortionStrength, _EdgeDistortionSpeed;
                 float _NoiseScale, _FlowSpeed, _Turbulence, _EdgeFalloff, _Layer;
             CBUFFER_END
             struct Attributes { float3 positionOS : POSITION; float2 uv : TEXCOORD0; };
@@ -84,8 +87,22 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
                 float energy = (currents * 0.9 + 0.08) * concentration;
 
                 // fade through the interior before reaching a quad edge, without drawing a hollow rim.
-                float radial = length(input.uv * 2 - 1) + (warp.y - 0.5) * 0.16;
+                float2 edgeUV = input.uv * 2 - 1;
+                float radial = length(edgeUV) + (warp.y - 0.5) * 0.16;
+                if (_EdgeDistortionStrength > 0)
+                {
+                    // shared uv phase keeps neighbouring sheets coherent; the new clock does not use Flow Speed.
+                    float edgeTime = _Time.y * _EdgeDistortionSpeed;
+                    float edgeNoise = Noise(edgeUV * 1.6 + float2(5.2, 9.7) + edgeTime * float2(0.37, -0.29));
+                    // a slight inward bias leaves room for localized expansion without enlarging the mesh.
+                    radial += (edgeNoise - 0.25) * _EdgeDistortionStrength;
+                }
                 float envelope = 1 - smoothstep(1 - _EdgeFalloff, 1, radial);
+                if (_EdgeDistortionStrength > 0)
+                {
+                    // fade out before the square mesh edge even at peak outward displacement; disabled is exactly legacy.
+                    envelope *= 1 - smoothstep(0.9, 1, max(abs(edgeUV.x), abs(edgeUV.y)));
+                }
                 float alpha = saturate(energy * _LayerOpacity * _EnergyColor.a) * envelope;
 
                 float bands = max(2, _BrightnessBands) - 1;

@@ -12,6 +12,12 @@ namespace Game50033.Examples
         [Range(0f, 10f)] public float layerTilt = 3f;
         [Range(0.05f, 0.95f)] public float edgeFalloff = 0.55f;
 
+        [Header("Boundary motion")]
+        [Tooltip("Radial deformation in normalized field coordinates. Zero restores the original boundary.")]
+        [Range(0f, 1f)] public float edgeDistortionStrength = 0.18f;
+        [Tooltip("Boundary noise motion, independent of internal Flow Speed.")]
+        [Min(0f)] public float edgeDistortionSpeed = 0.3f;
+
         [Header("Energy appearance")]
         public Color energyColor = new(0.62f, 0.22f, 0.95f, 1f);
         [Range(0.1f, 3f)] public float density = 1f;

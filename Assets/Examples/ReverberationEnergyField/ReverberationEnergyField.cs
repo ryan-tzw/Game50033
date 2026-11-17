@@ -22,6 +22,8 @@ namespace Game50033.Examples
         private static readonly int SpeedId = Shader.PropertyToID("_FlowSpeed");
         private static readonly int TurbulenceId = Shader.PropertyToID("_Turbulence");
         private static readonly int FalloffId = Shader.PropertyToID("_EdgeFalloff");
+        private static readonly int EdgeStrengthId = Shader.PropertyToID("_EdgeDistortionStrength");
+        private static readonly int EdgeSpeedId = Shader.PropertyToID("_EdgeDistortionSpeed");
         private static readonly int BackgroundColorId = Shader.PropertyToID("_BackgroundColor");
         private static readonly int BackgroundOpacityId = Shader.PropertyToID("_BackgroundLayerOpacity");
         private static readonly int BackgroundVariationId = Shader.PropertyToID("_BackgroundVariation");
@@ -69,6 +71,8 @@ namespace Game50033.Examples
             _properties.SetFloat(MidgroundOpacityId,
                 1f - Mathf.Pow(1f - Mathf.Clamp(tuning.midgroundOpacity, 0f, 0.98f), 1f / count));
             _properties.SetFloat(MidgroundWidthId, Mathf.Clamp(tuning.midgroundWidth, 0.01f, 1f));
+            _properties.SetFloat(EdgeStrengthId, Mathf.Clamp(tuning.edgeDistortionStrength, 0f, 1f));
+            _properties.SetFloat(EdgeSpeedId, Mathf.Max(0f, tuning.edgeDistortionSpeed));
             _properties.SetFloat(FalloffId, Mathf.Clamp(tuning.edgeFalloff, 0.05f, 0.95f));
 
             // ==================================================
