@@ -5,6 +5,10 @@ namespace Game50033
     [CreateAssetMenu(menuName = "Crescendo/Players/Aim Tuning")]
     public sealed class PlayerAimTuning : ScriptableObject
     {
+        [Header("Auto facing")]
+        [Tooltip("Seconds between nearest-target searches for presentation. Active attacks still request fresh aim.")]
+        [Min(0.02f)] public float autoFacingRefreshInterval = 0.1f;
+
         [Header("Auto cursor")]
         public Texture2D autoCursor;
         [Tooltip("Click position in pixels from the texture's top-left corner.")]

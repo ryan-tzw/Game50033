@@ -11,7 +11,7 @@ namespace Game50033
             // selection happens only on request, so no registry or per-frame physics scan is needed.
             foreach (var boss in Object.FindObjectsByType<BaseBoss>(FindObjectsSortMode.None))
             {
-                if (!boss.isActiveAndEnabled || boss.IsDead) continue;
+                if (!IsValidTarget(boss)) continue;
                 var distanceSquared = (boss.transform.position - origin).sqrMagnitude;
                 if (distanceSquared >= nearestDistanceSquared) continue;
                 nearest = boss;
@@ -23,17 +23,25 @@ namespace Game50033
             {
                 var hurtbox = hurtboxes[i];
                 if (hurtbox == null || !hurtbox.isActiveAndEnabled
-                    || hurtbox.Target is not Behaviour target || !target.isActiveAndEnabled
-                    || target.GetComponentInParent<Player>() != null
-                    || target.GetComponentInParent<Reverberation>() != null) continue;
-                var boss = target.GetComponentInParent<BaseBoss>();
-                if (boss != null && (!boss.isActiveAndEnabled || boss.IsDead)) continue;
+                    || hurtbox.Target is not Behaviour target || !IsValidTarget(target)) continue;
                 var distanceSquared = (target.transform.position - origin).sqrMagnitude;
                 if (distanceSquared >= nearestDistanceSquared) continue;
                 nearest = target;
                 nearestDistanceSquared = distanceSquared;
             }
             return nearest;
+        }
+
+        public static bool IsValidTarget(Behaviour target)
+        {
+            if (target == null || !target.isActiveAndEnabled
+                || target.GetComponentInParent<Player>() != null
+                || target.GetComponentInParent<Reverberation>() != null) return false;
+            var boss = target.GetComponentInParent<BaseBoss>();
+            if (boss != null && (!boss.isActiveAndEnabled || boss.IsDead)) return false;
+            if (target is BaseBoss) return true;
+            var hurtbox = target.GetComponent<CombatHurtbox>();
+            return hurtbox != null && hurtbox.isActiveAndEnabled && ReferenceEquals(hurtbox.Target, target);
         }
 
         public static Vector3 GetAimPoint(Behaviour target, Vector3 origin)

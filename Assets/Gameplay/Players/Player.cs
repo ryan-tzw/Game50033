@@ -32,6 +32,8 @@ namespace Game50033
         private InputAction _specialAction;
         private InputAction _toggleAimModeAction;
         private bool _manualMouseAim;
+        private Behaviour _autoFacingTarget;
+        private float _autoFacingRefreshAt;
         private bool _ownsCursor;
         private Texture2D _cursorTexture;
         private Vector2 _cursorHotspot;
@@ -165,9 +167,30 @@ namespace Game50033
                 ? Abilities.MovementSpeedMultiplier : 1f;
             Movement.Tick(Hitstop.ActionDeltaTime, CanMove, movementSpeedMultiplier);
 
-            // presentation follows live manual input after movement, without acquiring automatic targets.
-            AimDirection = TryGetManualAimDirection(transform.position + Vector3.up * 0.25f, out var manualDirection)
-                ? manualDirection : Movement.FacingDirection;
+            var aimOrigin = transform.position + Vector3.up * 0.25f;
+            AimDirection = Movement.FacingDirection;
+            if (TryGetManualAimDirection(aimOrigin, out var manualDirection))
+            {
+                AimDirection = manualDirection;
+            }
+            else if (HasActiveInput && !Health.IsDowned && aimTuning != null)
+            {
+                // follow the cached target every frame, but only search periodically or when it becomes invalid.
+                // a failed search keeps the deadline too, so an empty arena cannot trigger a scan every frame.
+                var validTarget = AttackTargeting.IsValidTarget(_autoFacingTarget);
+                if (Time.time >= _autoFacingRefreshAt || _autoFacingTarget != null && !validTarget)
+                {
+                    _autoFacingTarget = AttackTargeting.FindNearestTarget(aimOrigin);
+                    _autoFacingRefreshAt = Time.time + Mathf.Max(0.02f, aimTuning.autoFacingRefreshInterval);
+                    validTarget = AttackTargeting.IsValidTarget(_autoFacingTarget);
+                }
+                if (validTarget)
+                {
+                    var direction = AttackTargeting.GetAimPoint(_autoFacingTarget, aimOrigin) - aimOrigin;
+                    direction.y = 0f;
+                    if (direction.sqrMagnitude > 0.0001f) AimDirection = direction.normalized;
+                }
+            }
 
             // only the paired keyboard/mouse player owns the one system cursor; gamepads never overwrite it.
             if (Application.isFocused && HasActiveInput && _playerInput.currentControlScheme == "Keyboard&Mouse" && aimTuning != null)
@@ -261,6 +284,8 @@ namespace Game50033
 
         private void OnDisable()
         {
+            _autoFacingTarget = null;
+            _autoFacingRefreshAt = 0f;
             if (_ownsCursor) Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
             _ownsCursor = false;
             if (Hitstop != null) Hitstop.Clear();

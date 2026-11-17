@@ -16,3 +16,4 @@ MonoBehaviour:
   autoHotspot: {x: 5, y: 5}
   manualCursor: {fileID: 2800000, guid: a931c0451975e2d67a58aef740b29089, type: 3}
   manualHotspot: {x: 16, y: 16}
+  autoFacingRefreshInterval: 0.1
