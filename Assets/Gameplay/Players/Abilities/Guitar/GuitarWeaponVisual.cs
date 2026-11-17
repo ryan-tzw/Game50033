@@ -124,7 +124,7 @@ namespace Game50033
             // show the impact pose on its request frame, then hold all weapon motion during stopped frames.
             if (_player.Hitstop.IsStopped && _player.Hitstop.ActionDeltaTime <= 0f) return;
 
-            var facing = _player.Movement.FacingDirection;
+            var facing = _player.AimDirection;
             if (_camera == null) return;
 
             var handSide = Vector3.Dot(facing, _camera.transform.right) >= -0.0001f ? 1f : -1f;
