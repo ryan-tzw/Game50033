@@ -6,48 +6,62 @@ using UnityEngine;
 
 namespace Game50033
 {
-    public class BossAttackStack : MonoBehaviour //In progess: Have not updated yet
+    [System.Serializable]
+    public struct WeightedAttack
+    {
+        public GameObject attack;
+        [Min(0)] public int count;   
+    }
+    public class BossAttackStack : MonoBehaviour
     {
         [SerializeField] private int numberOfAttacks = 4;
         Stack<GameObject> bossAttackStack = new Stack<GameObject>();
-        List<GameObject> bossAttackList = new List<GameObject>();
+        List<AttackEntry> bossAttackList = new List<AttackEntry>();
 
-        public void RegisterAttacks(List<GameObject> attackList) // list format -> attackList[basicAttackOne, basicAttackTwo, secondaryAttack, specialAttack]
+        public void RegisterAttacks(List<AttackEntry> attacks) // list format -> attackList[basicAttackOne, basicAttackTwo, secondaryAttack, specialAttack]
         {
-            bossAttackList = attackList;
+            bossAttackList = attacks ?? new List<AttackEntry>();
+            bossAttackStack.Clear();
+
+            if (bossAttackList.Count == 0)
+            {
+                Debug.LogWarning("No attacks registered in boss stack");
+            }
         }
 
        
 
         private void ShuffleStack()
         {
-            List<GameObject> bossNormalAttacks = bossAttackList.GetRange(0, numberOfAttacks - 2);
-            GameObject bossSpecialAttack = bossAttackList[numberOfAttacks - 1];
-
             var sequence = new List<GameObject>();
 
-            for(int i = 0; i < 9; i++)
+            foreach(AttackEntry entry in bossAttackList)
             {
-                int randomAttack = UnityEngine.Random.Range(0, bossNormalAttacks.Count);
-                sequence.Add(bossNormalAttacks[randomAttack]);
+                if (entry.attack == null) continue;
+                for (int c = 0; c < entry.count; c++)
+                {
+                    sequence.Add(entry.attack);
+                }
             }
 
-            int randomPlacement = UnityEngine.Random.Range(0,bossAttackStack.Count + 1);
-            sequence.Insert(randomPlacement, bossSpecialAttack);
-
-            bossAttackList.Clear();
-            for (int i = sequence.Count - 1; i >= 0; i--)
+            for (int i = sequence.Count - 1; i > 0; i--)
             {
-                bossAttackStack.Push(sequence[i]);
+                int j = UnityEngine.Random.Range(0, i + 1);
+                (sequence[i], sequence[j]) = (sequence[j], sequence[i]);
             }
-            
+
+            bossAttackStack.Clear();
+            foreach(GameObject attack in sequence)
+            {
+                bossAttackStack.Push(attack);
+            }
         }
 
-        public void TriggerAttack()
+        public GameObject GetNext()
         {
             if (bossAttackStack.Count == 0) ShuffleStack();
-
-            GameObject attack = bossAttackStack.Pop();
+            if (bossAttackStack.Count == 0) return null;
+            return bossAttackStack.Pop();
             
         }
 

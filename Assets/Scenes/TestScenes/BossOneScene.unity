@@ -271,6 +271,10 @@ PrefabInstance:
       value: BossOne
       objectReference: {fileID: 0}
     - target: {fileID: 5523050214618524635, guid: 553ccd152ab5b914b832c5bd3e9c6bbb, type: 3}
+      propertyPath: phase1
+      value: 
+      objectReference: {fileID: 11400000, guid: 4c5557e70fe0b1043b5795fc1d3b5c5e, type: 2}
+    - target: {fileID: 5523050214618524635, guid: 553ccd152ab5b914b832c5bd3e9c6bbb, type: 3}
       propertyPath: p1Attacks.Array.size
       value: 2
       objectReference: {fileID: 0}
