@@ -79,6 +79,9 @@ namespace Game50033
         {
             base.Attack();
 
+            if (_targetedPlayers.Count > 0)
+                boss.Movement.FaceTowards(RetrievePlayerPosition(_targetedPlayers[0]));
+
             foreach (Player player in _targetedPlayers)
             {
                 for (projectileCount = 1; projectileCount <= _numberOfProjectiles; projectileCount++)

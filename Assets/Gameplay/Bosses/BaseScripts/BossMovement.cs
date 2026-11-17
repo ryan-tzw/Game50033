@@ -125,5 +125,14 @@ namespace Game50033
             _sr.flipX = !faceLeft;
         }
 
+        public void FaceTowards(Vector3 position)
+        {
+            float x = position.x - _rb.position.x;
+            if (Mathf.Abs(x) < 0.01f) return;
+
+            bool faceLeft = x < 0f;
+            _sr.flipX = !faceLeft;
+        }
+
     }
 }
