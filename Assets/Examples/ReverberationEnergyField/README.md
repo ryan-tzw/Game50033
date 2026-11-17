@@ -9,7 +9,21 @@ This is an isolated visual experiment. It does not reference, replace or spawn g
 3. Edit `Assets/Tuning/Experiments/ReverberationEnergyFieldTuning.asset`. Inspector changes refresh active instances and the editor preview automatically. Flow animates in Play mode; Scene view animation also depends on the editor's animated-material/refresh settings.
 4. The reusable prefab is `Prefabs/ReverberationEnergyField.prefab` in this folder. Place its root at the ground position. Dimensions are local units before root scaling; the initial width/depth/height is 3 × 2 × 0.6.
 
-Parameters are grouped into Field Shape, Energy Appearance and Flow. Lower Noise Scale makes larger structures. Density widens/populates the currents; Opacity controls their transparency independently of Emission brightness. Brightness Bands quantizes the energy's brightness while opacity and edge fading remain soft. Field Dimensions, Layer Count (1–8), Layer Tilt and Edge Falloff control the approximate volume. All authored appearance parameters belong to the tuning SO; the material is shared wiring, not a second preset.
+Parameters are grouped into Field Shape, Energy Appearance, Background, Midground and Flow. Lower Noise Scale makes larger structures. Density widens/populates the currents; Opacity controls their transparency independently of Emission brightness. Brightness Bands quantizes the energy's brightness while opacity and edge fading remain soft. Field Dimensions, Layer Count (1–8), Layer Tilt and Edge Falloff control the approximate volume. All authored appearance parameters belong to the tuning SO; the material is shared wiring, not a second preset.
+
+## Background and midground
+
+The field now composites three components in the existing shader: a diffuse base from the two broad warp channels, wider connecting concentrations from the existing contour, and the original banded foreground on top. There are still three noise evaluations per fragment, the same sheets and the same draw calls. The new components share the existing Flow Speed. No additional meshes, materials or render passes are needed.
+
+- **Background Color:** diffuse base colour, independent of foreground Emission so bright currents remain distinct. Its alpha also scales the background opacity.
+- **Background Opacity:** strength of the ambient fill (initially 0.2).
+- **Background Variation:** degree of broad colour/opacity fluctuation. At zero the base is uniform within the irregular edge envelope.
+- **Midground Opacity:** strength of broader concentrations (initially 0.15). These inherit Energy Color, its alpha and Emission, at an intermediate brightness.
+- **Midground Width:** how far the softer concentrations extend around the existing current contours (initially 0.4).
+
+The two new opacities are normalized independently across the active sheet count, using the same formula as the original opacity. Spatial noise and alpha compositing still make the appearance differ between layer counts; normalization avoids simply multiplying each component's authored strength. All three components use the existing soft boundary envelope. Setting both new opacities to zero restores the original field. Existing authored foreground settings are preserved.
+
+The fragment combines the components using alpha-over compositing, then converts to straight alpha for the material's existing blend mode. The foreground's noise, motion and brightness bands are unchanged. Background/midground opacity stays soft; no extra foreground gradient is introduced. Added work is scalar arithmetic and colour compositing, with no extra noise samples. The original performance table below predates this refinement and is not a new shader timing measurement.
 
 ## Optional bloom preview
 
@@ -44,8 +58,10 @@ The frame-wide GC counter median was 246 bytes in every case; this includes the 
 
 ## Checks and limitations
 
+- Background/midground refinement compiled and rendered in isolated Unity Play mode. With both new opacities zero, the 1080p capture matched the original shader exactly (maximum RGB difference 0/255). Property-block opacity normalization was checked at 1/4/8 layers. New shader GPU cost and subjective motion/appearance still require manual evaluation.
+
 - Inspector tuning verified at 1/5/8/4 layers, including dimensions and property blocks; disable/re-enable lifecycle, shared material wiring and collider-free sheets checked.
 - Unity compilation and shader rendering checked in an isolated project copy; captured 1080p stills through the real low-resolution renderer, including 1/4/8 instances and two times for flow comparison.
 - This approximates depth with surfaces, not participating-media integration. It is tuned for the fixed gameplay camera; other viewing angles, intersections or overlapping fields may expose layering/sorting.
-- The current baseline is sparse, broad, gently moving purple currents with faint interior energy. It does not reproduce Control's fluid solver or Numen's raymarched strands. Those references guide appearance only; their assets/code were not imported.
+- The initial baseline used sparse, broad purple currents; the new background/midground controls fill the gaps, and the authored tuning remains user-controlled. It does not reproduce Control's fluid solver or Numen's raymarched strands. Those references guide appearance only; their assets/code were not imported.
 - For milestone 2, judge current continuity, density and motion first. More convincing curls/branching or less visible layering can then be explored. No spawn, consumption, resonance or lifetime animation is implemented.

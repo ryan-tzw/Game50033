@@ -22,5 +22,10 @@ MonoBehaviour:
   emission: 7
   brightnessBands: 2
   noiseScale: 1.52
+  backgroundColor: {r: 0.12, g: 0.035, b: 0.22, a: 1}
+  backgroundOpacity: 0.2
+  backgroundVariation: 0.5
+  midgroundOpacity: 0.15
+  midgroundWidth: 0.4
   flowSpeed: 0.3
   turbulence: 1.184

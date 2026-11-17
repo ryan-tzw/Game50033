@@ -11,6 +11,11 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
         _FlowSpeed("Flow Speed", Float) = 0.12
         _Turbulence("Turbulence", Float) = 0.8
         _EdgeFalloff("Edge Falloff", Range(0, 1)) = 0.55
+        _BackgroundColor("Background Color", Color) = (0.12, 0.035, 0.22, 1)
+        _BackgroundLayerOpacity("Background Layer Opacity", Range(0, 1)) = 0
+        _BackgroundVariation("Background Variation", Range(0, 1)) = 0.5
+        _MidgroundLayerOpacity("Midground Layer Opacity", Range(0, 1)) = 0
+        _MidgroundWidth("Midground Width", Range(0.01, 1)) = 0.4
         _Layer("Layer", Float) = 0
     }
     SubShader
@@ -29,7 +34,8 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
-                half4 _EnergyColor;
+                half4 _EnergyColor, _BackgroundColor;
+                float _BackgroundLayerOpacity, _BackgroundVariation, _MidgroundLayerOpacity, _MidgroundWidth;
                 float _Density, _LayerOpacity, _Emission, _BrightnessBands;
                 float _NoiseScale, _FlowSpeed, _Turbulence, _EdgeFalloff, _Layer;
             CBUFFER_END
@@ -81,11 +87,28 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
                 float radial = length(input.uv * 2 - 1) + (warp.y - 0.5) * 0.16;
                 float envelope = 1 - smoothstep(1 - _EdgeFalloff, 1, radial);
                 float alpha = saturate(energy * _LayerOpacity * _EnergyColor.a) * envelope;
-                clip(alpha - 0.001);
+
                 float bands = max(2, _BrightnessBands) - 1;
                 float brightness = floor(saturate(currents) * bands + 0.5) / bands;
                 half3 color = _EnergyColor.rgb * (0.28 + brightness * 0.85) * _Emission;
-                return half4(color, alpha);
+
+                // reuse the broad warp for a diffuse base and the contour for softer connecting concentrations.
+                // background colour stays independent of foreground emission, keeping high-emission currents distinct.
+                float ambient = lerp(1, 0.35 + 0.65 * (warp.x * 0.6 + warp.y * 0.4), _BackgroundVariation);
+                float backgroundAlpha = saturate(_BackgroundLayerOpacity * _BackgroundColor.a * ambient) * envelope;
+                half3 backgroundColor = _BackgroundColor.rgb * lerp(1, 0.7 + 0.3 * warp.y, _BackgroundVariation);
+                float broadCurrents = smoothstep(max(0, 1 - width * 2 - _MidgroundWidth), 1 - width * 0.25, ridge);
+                float midgroundAlpha = saturate(broadCurrents * concentration * _MidgroundLayerOpacity * _EnergyColor.a) * envelope;
+                half3 midgroundColor = _EnergyColor.rgb * 0.48 * _Emission;
+
+                // composite background, midground, then the unchanged foreground within this single draw.
+                // convert back to straight alpha for the existing SrcAlpha blend; zero new opacities restores the old result.
+                float underAlpha = midgroundAlpha + backgroundAlpha * (1 - midgroundAlpha);
+                half3 underColor = midgroundColor * midgroundAlpha + backgroundColor * backgroundAlpha * (1 - midgroundAlpha);
+                float combinedAlpha = alpha + underAlpha * (1 - alpha);
+                half3 combinedColor = (color * alpha + underColor * (1 - alpha)) / max(combinedAlpha, 0.000001);
+                clip(combinedAlpha - 0.001);
+                return half4(combinedColor, combinedAlpha);
             }
             ENDHLSL
         }

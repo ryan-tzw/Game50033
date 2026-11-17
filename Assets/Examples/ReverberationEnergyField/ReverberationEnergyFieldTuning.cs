@@ -19,6 +19,16 @@ namespace Game50033.Examples
         [Min(0f)] public float emission = 1.15f;
         [Range(2, 5)] public int brightnessBands = 3;
 
+        [Header("Background")]
+        public Color backgroundColor = new(0.12f, 0.035f, 0.22f, 1f);
+        [Range(0f, 0.98f)] public float backgroundOpacity = 0.2f;
+        [Range(0f, 1f)] public float backgroundVariation = 0.5f;
+
+        [Header("Midground")]
+        [Range(0f, 0.98f)] public float midgroundOpacity = 0.15f;
+        [Tooltip("Additional contour width around the bright currents. Higher values make broader concentrations.")]
+        [Range(0.01f, 1f)] public float midgroundWidth = 0.4f;
+
         [Header("Flow")]
         [Tooltip("Noise cycles per world unit. Lower values produce larger structures.")]
         [Min(0.05f)] public float noiseScale = 1.3f;

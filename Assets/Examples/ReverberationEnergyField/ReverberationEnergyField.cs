@@ -22,6 +22,11 @@ namespace Game50033.Examples
         private static readonly int SpeedId = Shader.PropertyToID("_FlowSpeed");
         private static readonly int TurbulenceId = Shader.PropertyToID("_Turbulence");
         private static readonly int FalloffId = Shader.PropertyToID("_EdgeFalloff");
+        private static readonly int BackgroundColorId = Shader.PropertyToID("_BackgroundColor");
+        private static readonly int BackgroundOpacityId = Shader.PropertyToID("_BackgroundLayerOpacity");
+        private static readonly int BackgroundVariationId = Shader.PropertyToID("_BackgroundVariation");
+        private static readonly int MidgroundOpacityId = Shader.PropertyToID("_MidgroundLayerOpacity");
+        private static readonly int MidgroundWidthId = Shader.PropertyToID("_MidgroundWidth");
         private static readonly int LayerId = Shader.PropertyToID("_Layer");
 
         private void OnEnable()
@@ -56,6 +61,14 @@ namespace Game50033.Examples
             _properties.SetFloat(ScaleId, Mathf.Max(0.05f, tuning.noiseScale));
             _properties.SetFloat(SpeedId, Mathf.Max(0f, tuning.flowSpeed));
             _properties.SetFloat(TurbulenceId, Mathf.Clamp(tuning.turbulence, 0f, 2f));
+            // normalize each new component independently so its opacity does not multiply with sheet count.
+            _properties.SetColor(BackgroundColorId, tuning.backgroundColor);
+            _properties.SetFloat(BackgroundOpacityId,
+                1f - Mathf.Pow(1f - Mathf.Clamp(tuning.backgroundOpacity, 0f, 0.98f), 1f / count));
+            _properties.SetFloat(BackgroundVariationId, Mathf.Clamp01(tuning.backgroundVariation));
+            _properties.SetFloat(MidgroundOpacityId,
+                1f - Mathf.Pow(1f - Mathf.Clamp(tuning.midgroundOpacity, 0f, 0.98f), 1f / count));
+            _properties.SetFloat(MidgroundWidthId, Mathf.Clamp(tuning.midgroundWidth, 0.01f, 1f));
             _properties.SetFloat(FalloffId, Mathf.Clamp(tuning.edgeFalloff, 0.05f, 0.95f));
 
             // ==================================================
