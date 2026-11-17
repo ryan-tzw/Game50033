@@ -1,5 +1,6 @@
 namespace Game50033
 {
+    using System;
     using UnityEngine;
     using UnityEngine.InputSystem;
 
@@ -49,6 +50,8 @@ namespace Game50033
         public Color PlayerColor { get; private set; } = Color.white;
         public CharacterDefinition Character { get; private set; }
         public Vector3 AimDirection { get; private set; } = Vector3.forward;
+        public Behaviour AutoTarget { get; private set; }
+        public event Action<Player, Behaviour> AutoTargetChanged;
         public bool HasActiveInput =>
             _playerInput != null && _playerInput.isActiveAndEnabled && _playerInput.inputIsActive;
         public bool SpecialInputEnabled => HasActiveInput && _specialAction != null && _specialAction.enabled;
@@ -118,7 +121,7 @@ namespace Game50033
             if (_boundActions != _playerInput.actions)
             {
                 _boundActions = _playerInput.actions;
-                if (_boundActions == null) return;
+                if (_boundActions == null) { PublishAutoTarget(null); return; }
 
                 _moveAction = _boundActions.FindAction("Player/Move", true);
                 _dodgeAction = _boundActions.FindAction("Player/Dodge", true);
@@ -129,7 +132,7 @@ namespace Game50033
                 _toggleAimModeAction = _boundActions.FindAction("Player/ToggleAimMode", true);
             }
 
-            if (_boundActions == null) return;
+            if (_boundActions == null) { PublishAutoTarget(null); return; }
 
             // update movement facing before abilities acquire aim or dodge reads its direction.
             var acceptsInput = _playerInput.isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned;
@@ -167,6 +170,7 @@ namespace Game50033
                 ? Abilities.MovementSpeedMultiplier : 1f;
             Movement.Tick(Hitstop.ActionDeltaTime, CanMove, movementSpeedMultiplier);
 
+            Behaviour autoTarget = null;
             var aimOrigin = transform.position + Vector3.up * 0.25f;
             AimDirection = Movement.FacingDirection;
             if (TryGetManualAimDirection(aimOrigin, out var manualDirection))
@@ -186,11 +190,14 @@ namespace Game50033
                 }
                 if (validTarget)
                 {
+                    autoTarget = _autoFacingTarget;
                     var direction = AttackTargeting.GetAimPoint(_autoFacingTarget, aimOrigin) - aimOrigin;
                     direction.y = 0f;
                     if (direction.sqrMagnitude > 0.0001f) AimDirection = direction.normalized;
                 }
             }
+
+            PublishAutoTarget(autoTarget);
 
             // only the paired keyboard/mouse player owns the one system cursor; gamepads never overwrite it.
             if (Application.isFocused && HasActiveInput && _playerInput.currentControlScheme == "Keyboard&Mouse" && aimTuning != null)
@@ -275,6 +282,14 @@ namespace Game50033
             return true;
         }
 
+        private void PublishAutoTarget(Behaviour target)
+        {
+            // reference equality also notices a destroyed Unity target changing to a real null.
+            if (ReferenceEquals(AutoTarget, target)) return;
+            AutoTarget = target;
+            AutoTargetChanged?.Invoke(this, target);
+        }
+
         private void OnApplicationFocus(bool focused)
         {
             if (focused || !_ownsCursor) return;
@@ -284,6 +299,7 @@ namespace Game50033
 
         private void OnDisable()
         {
+            PublishAutoTarget(null);
             _autoFacingTarget = null;
             _autoFacingRefreshAt = 0f;
             if (_ownsCursor) Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
@@ -304,6 +320,7 @@ namespace Game50033
 
         private void HandleDowned()
         {
+            PublishAutoTarget(null);
             Hitstop.Clear();
             Movement.CancelDodge();
             Movement.CancelDisplacement();

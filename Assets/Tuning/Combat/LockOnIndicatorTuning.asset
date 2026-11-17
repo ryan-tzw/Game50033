@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a32cbac52f9ad905c8cd5111d836c30b, type: 3}
+  m_Name: LockOnIndicatorTuning
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.LockOnIndicatorTuning
+  radius: 0.5
+  thickness: 0.03
+  arcsPerPlayer: 4
+  coverage: 0.6
+  rotationDegrees: 0
+  groundOffset: 0.015
+  opacity: 0.85
+  acquireDuration: 0.15
+  acquireScale: 1.35
+  overridePlayerColors: 0
+  playerColors:
+  - {r: 0.35999995, g: 0.5759999, b: 0.9, a: 1}
+  - {r: 0.9, g: 0.35999995, b: 0.35999995, a: 1}
+  - {r: 0.9, g: 0.684, b: 0.35999995, a: 1}
+  - {r: 0.46799994, g: 0.9, b: 0.35999995, a: 1}
+  editorPreviewPlayers: 0
