@@ -4,7 +4,6 @@ namespace Game50033
     public abstract class BaseBossAttack : MonoBehaviour
     {
         protected int _attackDamage = 1;
-
         protected float startTime;
         public float windUpTime;
         public float activeTime;

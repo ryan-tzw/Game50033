@@ -20,6 +20,7 @@ namespace Game50033
         public GameObject lingeringObject;
         public bool homing, destroyOnArrival, bouncy, blockedByObstacles, lingeringEffect, piercing;
         [Min(0)] public float projectileSpeed;
+        public float projectileSpeedMultiplier = 1f;
         public float projectileHomingHeight = 0f;
         [SerializeField] private float spreadAngle;
         [SerializeField] private float spreadRadius;
@@ -28,6 +29,11 @@ namespace Game50033
         [SerializeField] private float maxDistance = 30f;
 
         private int projectileCount;
+
+        protected override void Awake()
+        {
+            base.Awake();
+        }
 
         public override void Setup(BaseBoss owner)
         {
@@ -118,6 +124,8 @@ namespace Game50033
             Vector3 from = boss.transform.position;
             Vector3 end = GetTelegraphEnd(from, target);
 
+            Vector3 basePosition = player != null ? RetrievePlayerPosition(player) : from;
+
             BaseTelegraph telegraph = null;
             if (telegraphPrefab != null && windUpTime > 0f)
             {
@@ -125,7 +133,20 @@ namespace Game50033
                 telegraph.Begin(from, end, windUpTime);
             }
 
-            yield return new WaitForSeconds(windUpTime);
+            //yield return new WaitForSeconds(windUpTime);
+            float waited = 0f;
+            while (waited < windUpTime)
+            {
+                waited += Time.deltaTime;
+
+                if (homing && player != null)
+                {
+                    end = RetrievePlayerPosition(player);   // follow the player during the wind-up
+                    if (telegraph != null) telegraph.SetTarget(from, end);
+                }
+                yield return null;
+            }
+
 
             if (telegraph != null) Destroy(telegraph.gameObject);
 
@@ -158,6 +179,11 @@ namespace Game50033
                     closest = Mathf.Max(hit.distance - 0.5f, 0f);
             }
             return from + direction * closest;
+        }
+
+        public void SetProjectileSpeedMultiplier(float multiplierValue)
+        {
+            projectileSpeedMultiplier = multiplierValue;
         }
     }
 }

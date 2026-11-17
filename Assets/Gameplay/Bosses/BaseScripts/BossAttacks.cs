@@ -27,7 +27,10 @@ namespace Game50033
         // [SerializeField] private float attackDuration = 1f;
         [SerializeField] private float BossAttackInterval = 3f;
         protected float bossAttackIntervalTimer;
-        public int CurrentPhase { get; private set; } = 1;
+        public int CurrentPhase = 1;
+
+        private float projectileSpeedMultiplier = 1f;
+
 
         internal void Initialize()
         {
@@ -69,6 +72,10 @@ namespace Game50033
             StartedAttack?.Invoke();
             GameObject currentAttack = Instantiate(nextAttack, transform.position, Quaternion.identity);
             var attack = currentAttack.GetComponent<BaseBossAttack>();
+            if(attack is TargetedBossAttack targeted)
+            {
+                targeted.SetProjectileSpeedMultiplier(projectileSpeedMultiplier);
+            }
             attack.Setup(_boss);
             attack.Attack();
             bossAttackIntervalTimer = BossAttackInterval;
@@ -86,6 +93,17 @@ namespace Game50033
         {
             if (CurrentPhase == phase) return;
             CurrentPhase = phase;
+            _stack.RegisterAttacks(GetPhaseAttacks());
+        }
+
+        public void SetAttackIntervalTime(float intervalTime)
+        {
+            BossAttackInterval = intervalTime;
+        }
+
+        public void SetProjectileSpeed(float value)
+        {
+            projectileSpeedMultiplier = value; 
         }
 
         private List<AttackEntry> GetPhaseAttacks()

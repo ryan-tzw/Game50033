@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5140483181450731375
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 838936992929877539}
+  - component: {fileID: 9146840075912230080}
+  m_Layer: 0
+  m_Name: Fetch
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &838936992929877539
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5140483181450731375}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.05741, y: -19.82786, z: 13.84137}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &9146840075912230080
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5140483181450731375}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f84c3e1209467f44a247eb2347738c7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.TargetedBossAttack
+  windUpTime: 3
+  activeTime: 0.5
+  recoveryTime: 1
+  _projectile: {fileID: 5460919325267313009, guid: 0c9477eba3e50b94e90b7a0152aa30e2, type: 3}
+  _numberOfProjectiles: 1
+  _numberOfTargets: 4
+  TriggerAttack: 0
+  _targetedPlayers: []
+  lingeringObject: {fileID: 0}
+  homing: 1
+  destroyOnArrival: 1
+  bouncy: 0
+  blockedByObstacles: 0
+  lingeringEffect: 0
+  piercing: 0
+  projectileSpeed: 75
+  projectileSpeedMultiplier: 1
+  projectileHomingHeight: 10
+  spreadAngle: 0
+  spreadRadius: 0
+  telegraphPrefab: {fileID: 682573474394280341, guid: 6565387fa135b234b90e8771fd2f3f16, type: 3}
+  extendToWall: 0
+  maxDistance: 30

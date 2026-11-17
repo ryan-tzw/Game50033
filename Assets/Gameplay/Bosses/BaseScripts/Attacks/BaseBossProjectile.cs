@@ -14,7 +14,7 @@ namespace Game50033
         protected bool _initialized;
 
         protected Vector3 _start, _target, _targetDirection;
-        protected float _windUpDuration, _activeDuration, _elapsed, _projectileSpeed, _windUpTimer;
+        protected float _windUpDuration, _activeDuration, _elapsed, _projectileSpeed, _windUpTimer, _projectileSpeedMultiplier;
         protected Player _targetedPlayer;
         protected BaseBoss _boss;
         protected bool _destroyOnArrival, _homing, _bouncy, _blockedByObstacles, _lingeringEffect, _piercing;
@@ -36,7 +36,7 @@ namespace Game50033
             _targetedBossAttack = targetedBossAttack;
             _destroyOnArrival = targetedBossAttack.destroyOnArrival;
             _homing = targetedBossAttack.homing;
-            _projectileSpeed = targetedBossAttack.projectileSpeed;
+            _projectileSpeed = targetedBossAttack.projectileSpeed * targetedBossAttack.projectileSpeedMultiplier;
             _bouncy = targetedBossAttack.bouncy;
             _blockedByObstacles = targetedBossAttack.blockedByObstacles;
             _lingeringEffect = targetedBossAttack.lingeringEffect;
@@ -55,9 +55,21 @@ namespace Game50033
 
         protected void Initialize(Vector3 target)
         {
-            _start = transform.position + new Vector3(0f, 0.15f, 0f);
-            transform.position = _start;
+
             _target = target + new Vector3(0f, 0.15f, 0f);
+
+            float dropHeight = _targetedBossAttack.projectileHomingHeight;
+            if(dropHeight > 0f)
+            {
+                _start = _target + Vector3.up * dropHeight;
+            }
+            else
+            {
+                _start = transform.position + new Vector3(0f, 0.15f, 0f);
+            }
+
+            transform.position = _start;
+
 
             float _distanceToTarget = Vector3.Distance(_start, _target);
             _targetDirection = (_target - _start).normalized;
@@ -146,10 +158,9 @@ namespace Game50033
 
             Vector3 position;
 
-            if (_homing)
+            if (_targetedBossAttack.projectileHomingHeight > 0f)
             {
-                Vector3 _newTarget = _target - new Vector3(0f, _targetedBossAttack.projectileHomingHeight, 0f);
-                position = Vector3.Lerp(_target, _newTarget, t);
+                position = Vector3.Lerp(_start, _target, t * t);
             }
             else
             {

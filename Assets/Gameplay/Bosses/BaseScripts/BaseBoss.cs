@@ -16,7 +16,6 @@ namespace Game50033
         public BossMovement Movement { get; private set; }
         public BossHealth Health { get; private set; }
         public BossAttacks Attacks { get; private set; }
-        public BossAttackStack AttackStack { get; private set; }
         private bool _initialized;
 
         private GameSession _session;
@@ -118,6 +117,7 @@ namespace Game50033
             Attacks.Initialize();
             Health.HealthChanged += HandleHealthChange;
             Health.Dead += Die;
+            Health.ChangePhase += HandlePhaseChange;
 
             _initialized = true;
         }
@@ -180,6 +180,13 @@ namespace Game50033
             CancelInvoke();
             Movement.StopMovement();
             gameObject.SetActive(false);
+        }
+
+        private void HandlePhaseChange(int phaseNumber)
+        {
+            Attacks.SetPhase(phaseNumber);
+            Attacks.SetAttackIntervalTime(2);
+            Attacks.SetProjectileSpeed(1.5f);
         }
 
         //Will clean up and use a new script for boss1 later on, this is temporary for checkoff

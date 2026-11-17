@@ -25,6 +25,7 @@ namespace Game50033
 
         public event Action<float, float> HealthChanged;
         public event Action Dead;
+        public event Action<int> ChangePhase;
 
         internal void Initialize()
         {
@@ -37,7 +38,6 @@ namespace Game50033
 
             _hitProperties = new MaterialPropertyBlock();
             _sr = GetComponentInChildren<SpriteRenderer>();
-
             _initialized = true;
         }
 
@@ -60,6 +60,12 @@ namespace Game50033
             SetHitFlash(1f);
 
             HealthChanged?.Invoke(CurrentHealth, MaxHealth);
+            if (_bossCurrentHealth <= MaxHealth / 2)
+            {
+                ChangePhase?.Invoke(2);
+            }
+
+
             if (_bossCurrentHealth <= 0f)
             {
                 IsDead = true;

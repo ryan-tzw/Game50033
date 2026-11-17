@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.AttackSet
   attacks:
   - attack: {fileID: 785287634830322638, guid: 0ecd8e78b463c49449d7c3225cb42a6c, type: 3}
-    count: 4
+    count: 5
   - attack: {fileID: 457981121925336926, guid: 2028e8a3d7206fc4c94157b92a7ecad9, type: 3}
     count: 4
   - attack: {fileID: 60677986734354813, guid: 167d3f2106e500c4b8b5281645c28698, type: 3}
-    count: 2
+    count: 1
