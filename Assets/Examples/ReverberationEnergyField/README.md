@@ -1,0 +1,51 @@
+# Reverberation energy field — milestone 1
+
+This is an isolated visual experiment. It does not reference, replace or spawn gameplay Reverberations, apply damage, or interact with ResonanceResolver. Stop here for visual evaluation before refining the motion or adding depth/polish systems.
+
+## Run and tune
+
+1. Open `Assets/Scenes/TestScenes/ReverberationEnergyFieldTest.unity` and enter Play.
+2. `01 - Single field (default)` starts active. Disable it before enabling `04 - Four fields` or `08 - Eight fields` to compare instance counts. These are ordinary hierarchy groups; no input/controller setup is needed.
+3. Edit `Assets/Tuning/Experiments/ReverberationEnergyFieldTuning.asset`. Inspector changes refresh active instances and the editor preview automatically. Flow animates in Play mode; Scene view animation also depends on the editor's animated-material/refresh settings.
+4. The reusable prefab is `Prefabs/ReverberationEnergyField.prefab` in this folder. Place its root at the ground position. Dimensions are local units before root scaling; the initial width/depth/height is 3 × 2 × 0.6.
+
+Parameters are grouped into Field Shape, Energy Appearance and Flow. Lower Noise Scale makes larger structures. Density widens/populates the currents; Opacity controls their transparency independently of Emission brightness. Brightness Bands quantizes the energy's brightness while opacity and edge fading remain soft. Field Dimensions, Layer Count (1–8), Layer Tilt and Edge Falloff control the approximate volume. All authored appearance parameters belong to the tuning SO; the material is shared wiring, not a second preset.
+
+## Optional bloom preview
+
+The test scene starts with `Bloom Preview` enabled. Toggle that GameObject to compare bloom on/off without changing the field. Edit `Assets/Tuning/Experiments/ReverberationEnergyFieldBloom.asset` for Intensity (initially 1), Threshold (0.8) and Scatter (0.65). The camera has HDR and post-processing enabled. This is ordinary scene-wide URP bloom after pixel upscaling: it adds a soft glow to bright pixels, including any bright environment objects, and does not pixelate the glow itself. The shader and field prefab remain independent of bloom.
+
+## Implementation
+
+`ReverberationEnergyField` controls a fixed pool of eight quad renderers, with four enabled by default. All sheets reuse Unity's built-in quad mesh and one material. Geometry placement and property blocks are updated only when the tuning asset/revision changes or the component is enabled. In steady state its CPU callback performs only a revision check. No materials or meshes are created every frame.
+
+The shader evaluates two low-frequency warp channels and one contour-noise sample, with no octave loop, textures or fluid simulation. Contours provide luminous currents throughout the interior rather than a hollow ring. Broad noise modulates density, and a soft irregular elliptical mask fades well before the sheet boundary. Each height layer has a different seed, direction and speed; world-space noise gives separated instances different patterns. Three brightness bands are the default. GPU shader time drives the continuous flow.
+
+The sheets are slightly tilted at different heights. Ordinary back-to-front transparency approximates the shallow volume for the fixed 45° camera. Depth-tested alpha blending uses `ZWrite Off`, `ZTest LEqual` and no shadows, distortion, particles, raymarching or VFX Graph. Bloom is an optional scene-level comparison.
+
+## Pixel renderer
+
+Every layer is on `PixelWorldVFX` (layer 12). Existing `PC_Renderer` already includes this layer in `transparentWorldLayers` (4096) and excludes it from URP's later Transparent Layer Mask (4294963199). Thus each sheet is rendered once at 640×360 before nearest-neighbour upscale. The test camera uses the actual 45° orthographic view with size 3.6. No renderer feature, renderer asset, pipeline setting or existing gameplay prefab was modified.
+
+The floor, capsule and pillar are static depth/scale references, with a shared prototype environment material. The only authored post-processing override is the optional Bloom Preview volume.
+
+## Measured baseline (without bloom)
+
+Measured in Unity 6000.3.24f1 Editor batch Play mode, URP 17.3, OpenGL 4.5 on NVIDIA GeForce RTX 5070 Ti. Camera target: 1920×1080; internal world rendering: 640×360. VSync disabled; 60 warmup frames and 120 sampled frames per case. These are total-scene Editor CPU measurements, not standalone-build or isolated GPU shader timings.
+
+| Instances | Active field sheets | Median PlayerLoop CPU | Median main thread | Total draw calls | Median wall frame |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 0 | 0.933 ms | 0.982 ms | 28 | 0.984 ms |
+| 1 | 4 | 1.035 ms | 1.083 ms | 32 | 1.085 ms |
+| 4 | 16 | 1.072 ms | 1.124 ms | 44 | 1.127 ms |
+| 8 | 32 | 1.119 ms | 1.170 ms | 60 | 1.171 ms |
+
+The frame-wide GC counter median was 246 bytes in every case; this includes the Editor/test sampler and does not establish per-effect allocation cost. Hardware GPU frame timing was unavailable, so no GPU milliseconds or speedup claim is made. Each four-layer instance adds four measured draw calls. Profile a release build on target hardware after approving the visual direction.
+
+## Checks and limitations
+
+- Inspector tuning verified at 1/5/8/4 layers, including dimensions and property blocks; disable/re-enable lifecycle, shared material wiring and collider-free sheets checked.
+- Unity compilation and shader rendering checked in an isolated project copy; captured 1080p stills through the real low-resolution renderer, including 1/4/8 instances and two times for flow comparison.
+- This approximates depth with surfaces, not participating-media integration. It is tuned for the fixed gameplay camera; other viewing angles, intersections or overlapping fields may expose layering/sorting.
+- The current baseline is sparse, broad, gently moving purple currents with faint interior energy. It does not reproduce Control's fluid solver or Numen's raymarched strands. Those references guide appearance only; their assets/code were not imported.
+- For milestone 2, judge current continuity, density and motion first. More convincing curls/branching or less visible layering can then be explored. No spawn, consumption, resonance or lifetime animation is implemented.
