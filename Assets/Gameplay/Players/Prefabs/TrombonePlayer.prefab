@@ -198,6 +198,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 066ec035c6c1431c3a352198077b0c38, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.Player
+  aimTuning: {fileID: 11400000, guid: 2fa779bc418f42ab4a8528680f553e4a, type: 2}
 --- !u!114 &1544443953293736950
 MonoBehaviour:
   m_ObjectHideFlags: 0

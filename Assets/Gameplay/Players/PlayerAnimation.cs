@@ -15,13 +15,13 @@ namespace Game50033
         private static readonly int SpeedId = Animator.StringToHash("Speed");
         private static readonly int AttackPhaseId = Animator.StringToHash("AttackPhase");
 
-        private PlayerMovement _movement;
+        private Player _player;
         private PlayerAbilities _abilities;
         private SpriteRenderer _sprite;
 
         private void Awake()
         {
-            _movement = GetComponent<PlayerMovement>();
+            _player = GetComponent<Player>();
             _abilities = GetComponent<PlayerAbilities>();
             _sprite = animator.GetComponent<SpriteRenderer>();
         }
@@ -35,8 +35,9 @@ namespace Game50033
             animator.speed = hitstop.IsStopped ? 0f : 1f;
             if (hitstop.IsStopped) return;
 
-            var horizontalInput = _movement.MoveDirection.x;
-            if (Mathf.Abs(horizontalInput) > 0.01f) _sprite.flipX = horizontalInput < 0f;
+            var camera = Camera.main;
+            var horizontalAim = camera != null ? Vector3.Dot(_player.AimDirection, camera.transform.right) : _player.AimDirection.x;
+            if (Mathf.Abs(horizontalAim) > 0.01f) _sprite.flipX = horizontalAim < 0f;
 
             var velocity = controller.enabled ? controller.velocity : Vector3.zero;
             velocity.y = 0f;

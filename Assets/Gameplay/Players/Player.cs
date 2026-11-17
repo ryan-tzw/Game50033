@@ -1,5 +1,6 @@
 namespace Game50033
 {
+    using System;
     using UnityEngine;
     using UnityEngine.InputSystem;
 
@@ -9,9 +10,7 @@ namespace Game50033
     public sealed class Player : MonoBehaviour
     {
         [SerializeField] private SpriteRenderer avatarRenderer;
-        [SerializeField, Min(0.01f)] private float autoAimRange = 14f;
-        [Tooltip("Non-player IHittable targets and boss prototypes on these layers can be selected automatically.")]
-        [SerializeField] private LayerMask enemyTargetMask = ~0;
+        [SerializeField] private PlayerAimTuning aimTuning;
 
         private static readonly int PlayerTintId = Shader.PropertyToID("_PlayerTint");
 
@@ -32,6 +31,13 @@ namespace Game50033
         private InputAction _secondaryAction;
         private InputAction _defensiveAction;
         private InputAction _specialAction;
+        private InputAction _toggleAimModeAction;
+        private bool _manualMouseAim;
+        private Behaviour _autoFacingTarget;
+        private float _autoFacingRefreshAt;
+        private bool _ownsCursor;
+        private Texture2D _cursorTexture;
+        private Vector2 _cursorHotspot;
         private bool _initialized;
 
         public PlayerMovement Movement { get; private set; }
@@ -44,6 +50,8 @@ namespace Game50033
         public Color PlayerColor { get; private set; } = Color.white;
         public CharacterDefinition Character { get; private set; }
         public Vector3 AimDirection { get; private set; } = Vector3.forward;
+        public Behaviour AutoTarget { get; private set; }
+        public event Action<Player, Behaviour> AutoTargetChanged;
         public bool HasActiveInput =>
             _playerInput != null && _playerInput.isActiveAndEnabled && _playerInput.inputIsActive;
         public bool SpecialInputEnabled => HasActiveInput && _specialAction != null && _specialAction.enabled;
@@ -113,7 +121,7 @@ namespace Game50033
             if (_boundActions != _playerInput.actions)
             {
                 _boundActions = _playerInput.actions;
-                if (_boundActions == null) return;
+                if (_boundActions == null) { PublishAutoTarget(null); return; }
 
                 _moveAction = _boundActions.FindAction("Player/Move", true);
                 _dodgeAction = _boundActions.FindAction("Player/Dodge", true);
@@ -121,22 +129,20 @@ namespace Game50033
                 _secondaryAction = _boundActions.FindAction("Player/Secondary", true);
                 _defensiveAction = _boundActions.FindAction("Player/Defensive", true);
                 _specialAction = _boundActions.FindAction("Player/Special", true);
+                _toggleAimModeAction = _boundActions.FindAction("Player/ToggleAimMode", true);
             }
 
-            if (_boundActions == null) return;
+            if (_boundActions == null) { PublishAutoTarget(null); return; }
 
-            // update movement facing before resolving aim and dodge direction.
+            // update movement facing before abilities acquire aim or dodge reads its direction.
             var acceptsInput = _playerInput.isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned;
             var moveInput = acceptsInput ? _moveAction.ReadValue<Vector2>() : Vector2.zero;
             Movement.ReadInput(moveInput);
-            AimDirection = Movement.FacingDirection;
 
             if (acceptsInput)
             {
-                AimDirection = GetAttackDirection(
-                    transform.position + Vector3.up * 0.25f,
-                    autoAimRange,
-                    Physics.AllLayers);
+                if (_playerInput.currentControlScheme == "Keyboard&Mouse" && _toggleAimModeAction.WasPressedThisFrame())
+                    _manualMouseAim = !_manualMouseAim;
 
                 // dodge is press-only; ability activation is retried while held.
                 if (_dodgeAction.WasPressedThisFrame()) Movement.TryDodge(CanDodge);
@@ -163,7 +169,65 @@ namespace Game50033
             var movementSpeedMultiplier = Abilities != null && Abilities.isActiveAndEnabled
                 ? Abilities.MovementSpeedMultiplier : 1f;
             Movement.Tick(Hitstop.ActionDeltaTime, CanMove, movementSpeedMultiplier);
+
+            Behaviour autoTarget = null;
+            var aimOrigin = transform.position + Vector3.up * 0.25f;
+            AimDirection = Movement.FacingDirection;
+            if (TryGetManualAimDirection(aimOrigin, out var manualDirection))
+            {
+                AimDirection = manualDirection;
+            }
+            else if (HasActiveInput && !Health.IsDowned && aimTuning != null)
+            {
+                // follow the cached target every frame, but only search periodically or when it becomes invalid.
+                // a failed search keeps the deadline too, so an empty arena cannot trigger a scan every frame.
+                var validTarget = AttackTargeting.IsValidTarget(_autoFacingTarget);
+                if (Time.time >= _autoFacingRefreshAt || _autoFacingTarget != null && !validTarget)
+                {
+                    _autoFacingTarget = AttackTargeting.FindNearestTarget(aimOrigin);
+                    _autoFacingRefreshAt = Time.time + Mathf.Max(0.02f, aimTuning.autoFacingRefreshInterval);
+                    validTarget = AttackTargeting.IsValidTarget(_autoFacingTarget);
+                }
+                if (validTarget)
+                {
+                    autoTarget = _autoFacingTarget;
+                    var direction = AttackTargeting.GetAimPoint(_autoFacingTarget, aimOrigin) - aimOrigin;
+                    direction.y = 0f;
+                    if (direction.sqrMagnitude > 0.0001f) AimDirection = direction.normalized;
+                }
+            }
+
+            PublishAutoTarget(autoTarget);
+
+            // only the paired keyboard/mouse player owns the one system cursor; gamepads never overwrite it.
+            if (Application.isFocused && HasActiveInput && _playerInput.currentControlScheme == "Keyboard&Mouse" && aimTuning != null)
+            {
+                var texture = _manualMouseAim ? aimTuning.manualCursor : aimTuning.autoCursor;
+                var hotspot = texture == null ? Vector2.zero
+                    : _manualMouseAim ? aimTuning.manualHotspot : aimTuning.autoHotspot;
+                if (texture != null)
+                {
+                    hotspot.x = Mathf.Clamp(hotspot.x, 0f, texture.width - 1f);
+                    hotspot.y = Mathf.Clamp(hotspot.y, 0f, texture.height - 1f);
+                }
+                if (!_ownsCursor || texture != _cursorTexture || hotspot != _cursorHotspot)
+                {
+                    Cursor.SetCursor(texture, hotspot, CursorMode.Auto);
+                    _cursorTexture = texture;
+                    _cursorHotspot = hotspot;
+                    _ownsCursor = true;
+                }
+            }
+            else if (_ownsCursor)
+            {
+                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+                _ownsCursor = false;
+            }
         }
+
+        // abilities request the shared defaults after their activation checks; idle facing never queries physics.
+        public Vector3 GetAttackDirection() => GetAttackDirection(
+            transform.position + Vector3.up * 0.25f, float.PositiveInfinity);
 
         public Vector3 GetAttackDirection(
             Vector3 origin,
@@ -172,29 +236,74 @@ namespace Game50033
             Collider attackVolume = null,
             ResonatingAttack resonatingAttack = null)
         {
-            var target = AttackTargeting.FindTarget(
-                this,
-                origin,
-                Mathf.Min(range, autoAimRange),
-                enemyTargetMask,
-                collisionMask,
-                attackVolume,
-                resonatingAttack);
+            if (TryGetManualAimDirection(origin, out var manualDirection)) return manualDirection;
 
+            // legacy range/collision/REV arguments remain source-compatible; they no longer limit auto-aim.
+            // projectile travel and collision still belong to the individual attacks.
+            var target = AttackTargeting.FindNearestTarget(origin);
             if (target != null)
             {
                 var offset = AttackTargeting.GetAimPoint(target, origin) - origin;
-                if (offset.sqrMagnitude > 0.0001f)
+                if (offset.sqrMagnitude > 0.0001f) return offset.normalized;
+            }
+            return Movement != null ? Movement.FacingDirection : Vector3.forward;
+        }
+
+        private bool TryGetManualAimDirection(Vector3 origin, out Vector3 direction)
+        {
+            direction = Movement != null ? Movement.FacingDirection : Vector3.forward;
+            if (!HasActiveInput) return false;
+
+            // use the current paired action copy, including after device or character reconfiguration.
+            var aimAction = _playerInput.actions?.FindAction("Player/Aim", false);
+            if (_playerInput.currentControlScheme == "Gamepad" && aimAction != null && aimAction.enabled)
+            {
+                var stick = aimAction.ReadValue<Vector2>();
+                // the stick control already applies its deadzone; neutral returns to Auto, never the old aim.
+                if (stick.sqrMagnitude <= 0f) return false;
+                direction = new Vector3(stick.x, 0f, stick.y).normalized;
+                return true;
+            }
+            if (_playerInput.currentControlScheme != "Keyboard&Mouse" || !_manualMouseAim) return false;
+
+            var camera = Camera.main;
+            if (camera != null && aimAction != null && aimAction.enabled)
+            {
+                var ray = camera.ScreenPointToRay(aimAction.ReadValue<Vector2>());
+                var plane = new Plane(Vector3.up, transform.position);
+                if (plane.Raycast(ray, out var distance))
                 {
-                    return offset.normalized;
+                    var offset = ray.GetPoint(distance) - origin;
+                    offset.y = 0f;
+                    if (offset.sqrMagnitude > 0.0001f) direction = offset.normalized;
                 }
             }
+            // an invalid manual projection still counts as Manual; never silently snap to an automatic target.
+            return true;
+        }
 
-            return Movement != null ? Movement.FacingDirection : Vector3.forward;
+        private void PublishAutoTarget(Behaviour target)
+        {
+            // reference equality also notices a destroyed Unity target changing to a real null.
+            if (ReferenceEquals(AutoTarget, target)) return;
+            AutoTarget = target;
+            AutoTargetChanged?.Invoke(this, target);
+        }
+
+        private void OnApplicationFocus(bool focused)
+        {
+            if (focused || !_ownsCursor) return;
+            Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+            _ownsCursor = false;
         }
 
         private void OnDisable()
         {
+            PublishAutoTarget(null);
+            _autoFacingTarget = null;
+            _autoFacingRefreshAt = 0f;
+            if (_ownsCursor) Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+            _ownsCursor = false;
             if (Hitstop != null) Hitstop.Clear();
             Movement.CancelDodge();
             Movement.CancelDisplacement();
@@ -211,6 +320,7 @@ namespace Game50033
 
         private void HandleDowned()
         {
+            PublishAutoTarget(null);
             Hitstop.Clear();
             Movement.CancelDodge();
             Movement.CancelDisplacement();

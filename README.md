@@ -51,7 +51,8 @@ Gamepad buttons are bound by **position**, not by the letter printed on them. Sw
 | Action | Keyboard & mouse | Gamepad position | Xbox | PlayStation | Switch Pro | Status |
 |---|---|---|---|---|---|---|
 | Move | WASD / arrow keys | Left stick | Left stick | Left stick | Left stick | ✅ Working |
-| Aim | Automatic | Automatic | — | — | — | Auto-targeting, with movement-facing fallback; Guitar snapshots this direction per strike |
+| Aim | Auto by default; mouse cursor in Manual mode | Right stick; Auto when released | Right stick | Right stick | Right stick | Manual aim overrides Auto. Auto selects the nearest living boss or training dummy, otherwise movement-facing. Ability direction locks are unchanged. |
+| Toggle aim mode | Left Shift | — | — | — | — | Toggles keyboard/mouse Auto ↔ Manual; the choice persists on that player across scene transitions. |
 | Primary attack | Left click | Left face button | X | □ | Y | Guitar: three-hit sweeping combo; hold to continue/repeat. Other characters retain their current abilities/placeholders. |
 | Secondary attack | Right click | Top face button | Y | △ | X | Guitar: travelling Strum wave; empowers the next Primary. |
 | Special attack | E | Bottom face button | A | ✕ | B | Not implemented (used as **join / pick** in the lobby) |
@@ -86,6 +87,16 @@ Cheats also apply to newly joined players. Closing the panel or changing scenes 
 Each character can only be picked by one player. Characters taken by someone else are greyed out and show **TAKEN**.
 
 ---
+
+Automatic aiming considers active, living `BaseBoss` instances and damageable training targets with a `CombatHurtbox`, regardless of distance, layers or obstructions. It chooses the nearest eligible target, excludes players and REVs, and falls back to movement-facing when none exists. REVs require manual aim. Right-stick X/Y maps directly to world X/Z using the existing stick deadzone; releasing it returns immediately to Auto. Mouse aim projects the paired mouse cursor through the gameplay camera onto the horizontal plane at the player's feet. Both aiming modes continuously orient the resting Guitar and the character's left/right facing independently of movement. Auto follows the selected boss/dummy's current position each frame and refreshes nearest-target selection every 0.1 seconds by default (Auto Facing Refresh Interval in `PlayerAimTuning`). Manual takes priority. Active attacks retain their captured direction and still acquire fresh aim on activation. The keyboard/mouse cursor is `pointer` in Auto and `target` in Manual; textures and pixel hotspots are configured in `Assets/Tuning/Players/PlayerAimTuning.asset`. SVG sources and their 32×32 raster cursor copies live in `Assets/Art/UI/Cursors/`. Automatic selection is requested by abilities and the slower presentation refresh, with no per-frame target search or targeting physics query. Projectile range and collision still apply normally.
+
+### Auto-target ground indicator
+
+`GuitarPrimaryTest` has one reusable lock-on quad at each dummy's feet. Four arc segments per targeting player are interleaved evenly around the target (4/8/12/16 total arcs for 1/2/3/4 players). Colours follow player identity, irrespective of acquisition order. Only Auto targets show arcs: manual mouse/right-stick aim, downing, disabled players and lost input release that player's indicator. Returning to Auto or switching targets starts only that player's short oversized-to-normal, transparent-to-visible acquisition animation; existing players' animation clocks are retained when the angular layout redistributes.
+
+Tune radius, thickness, coverage, arc count, rotation, opacity, acquisition duration/scale and optional identity-colour overrides in `Assets/Tuning/Combat/LockOnIndicatorTuning.asset`. **Editor Preview Players** is a bit mask: `1`, `3`, `7`, `15` preview the first 1–4 players without Play mode; return it to `0` to hide the preview. It is ignored at runtime. The indicator uses the existing `PixelWorldVFX` transparent path, with ordinary depth testing and no extra render pass.
+
+For another boss, place `Assets/Gameplay/Combat/LockOn/Prefabs/LockOnIndicator.prefab` as a root in its encounter scene. Assign **Target** to the Behaviour selected by auto-targeting and **Ground Anchor** to a transform at its feet. Keep the quad out of a scaled boss hierarchy so its radius remains in world units. **Session** may reference the persistent GameSession; if omitted, the component resolves it once on startup. It observes the roster and player target-change events, never selects a target or applies damage.
 
 ## 3. Testing local multiplayer
 
@@ -202,7 +213,7 @@ Cymbal Throw is in the same scene. Stand about 2.5 units from a dummy and press 
 
 Crash is Special (E / bottom face button). Both cymbals rise overhead and slam on the hitting point, and slanted waves sweep forward through a triangle (3 long, 3 wide at the far end by default). It deals 4 damage to everything in the triangle and sets off other players' Reverberations inside it. You have 2 charges, refilled one at a time (6 s each). Note: in this test scene, the button that joins you is also Special, so your first Crash charge may be spent on joining.
 
-Parry is Defensive (Q / right face button). The `Parry test turret` behind the dummies fires a grey ball at the nearest player every 1.2 s; each one that touches you deals 1 damage. Your aim locks onto the nearest dummy, so stand in front of the middle dummy and the parry cone faces the turret. Press Defensive and both cymbals spread out in front and shake, while a glowing arc marks the edge of the cone for 2 s: every ball entering the cone is destroyed, and the first one gives you a Crash charge. Shots from other directions still hit. A dash ends the parry early; either way the 7 s cooldown starts when it ends. Boss projectiles need the `BossProjectile` tag to be parried.
+Parry is Defensive (Q / right face button). The `Parry test turret` behind the dummies fires a grey ball at the nearest player every 1.2 s; each one that touches you deals 1 damage. Auto can aim toward the training dummies; use mouse Manual mode (Left Shift) or the right stick when you want to aim elsewhere. Parry retains that initial direction for its duration. Press Defensive and both cymbals spread out in front and shake, while a glowing arc marks the edge of the cone for 2 s: every ball entering the cone is destroyed, and the first one gives you a Crash charge. Shots from other directions still hit. A dash ends the parry early; either way the 7 s cooldown starts when it ends. Boss projectiles need the `BossProjectile` tag to be parried.
 
 Tune Cymbals in **`Assets/Tuning/Instruments/Cymbals/CymbalsTuning.asset`**:
 

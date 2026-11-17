@@ -229,6 +229,7 @@ MonoBehaviour:
   enemyTargetMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  aimTuning: {fileID: 11400000, guid: 2fa779bc418f42ab4a8528680f553e4a, type: 2}
 --- !u!114 &1544443953293736950
 MonoBehaviour:
   m_ObjectHideFlags: 0
