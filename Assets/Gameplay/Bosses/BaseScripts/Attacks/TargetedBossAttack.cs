@@ -18,8 +18,12 @@ namespace Game50033
         [Header("Projectile Attributes for Projectile-based Targeted Attacks")]
         public GameObject lingeringObject;
         public bool homing, destroyOnArrival, bouncy, blockedByObstacles, lingeringEffect;
-        [SerializeField, Min(0.1f)] public float projectileSpeed;
-        [SerializeField] public float projectileHomingHeight = 0f;
+        [Min(0.1f)] public float projectileSpeed;
+        public float projectileHomingHeight = 0f;
+        [SerializeField] private float spreadAngle;
+        [SerializeField] private float spreadRadius;
+
+        private int projectileCount;
 
         public override void Setup(BaseBoss owner)
         {
@@ -65,19 +69,36 @@ namespace Game50033
 
             foreach (Player player in _targetedPlayers)
             {
-                for (int i = 0; i < _numberOfProjectiles; i++)
+                for (projectileCount = 1; projectileCount <= _numberOfProjectiles; projectileCount++)
                 {
                     FireAttack(player);
                 }
+                projectileCount = 1;
             }
         }
 
         protected Vector3 CalculateBulletSpread(Vector3 currentPosition)
         {
-            if (homing || _numberOfProjectiles == 1) { return currentPosition; }
+            float spreadX;
+            float spreadY;
 
-            Vector2 spread = Random.insideUnitCircle * 1.5f;
-            return currentPosition + new Vector3(spread.x, 0f, spread.y);
+            // Note: my math isn't great, please help to fix if there's any issues - Joyce
+            if (homing || _numberOfProjectiles == 1 || projectileCount == 1) { return currentPosition; }
+
+            if (projectileCount % 2 == 0)
+            {
+                spreadAngle = spreadAngle * (projectileCount / 2);
+                spreadX = spreadRadius * Mathf.Cos(spreadAngle);
+                spreadY = spreadRadius * Mathf.Sin(spreadAngle);
+            }
+            else
+            {
+                spreadAngle = spreadAngle * Mathf.Floor(projectileCount / 2);
+                spreadX = -spreadRadius * Mathf.Cos(spreadAngle);
+                spreadY = -spreadRadius * Mathf.Sin(spreadAngle);
+            }
+
+            return currentPosition + new Vector3(spreadX, 0f, spreadY);
         }
 
         protected void FireAttack(Player player)
