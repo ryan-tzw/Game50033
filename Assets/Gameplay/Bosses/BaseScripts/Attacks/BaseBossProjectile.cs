@@ -14,10 +14,10 @@ namespace Game50033
         protected bool _initialized;
 
         protected Vector3 _start, _target, _targetDirection;
-        protected float _windUpDuration, _activeDuration, _elapsed, _projectileSpeed;
+        protected float _windUpDuration, _activeDuration, _elapsed, _projectileSpeed, _windUpTimer;
         protected Player _targetedPlayer;
         protected BaseBoss _boss;
-        protected bool _destroyOnArrival, _homing, _bouncy, _blockedByObstacles, _lingeringEffect;
+        protected bool _destroyOnArrival, _homing, _bouncy, _blockedByObstacles, _lingeringEffect, _piercing;
         private GameObject _lingeringObject;
 
         protected Vector3 _lockedPosition;
@@ -39,6 +39,7 @@ namespace Game50033
             _blockedByObstacles = targetedBossAttack.blockedByObstacles;
             _lingeringEffect = targetedBossAttack.lingeringEffect;
             _lingeringObject = targetedBossAttack.lingeringObject;
+            _piercing = targetedBossAttack.piercing;
             _boss = boss;
             SetSpriteDirection();
 
@@ -59,7 +60,10 @@ namespace Game50033
             float _distanceToTarget = Vector3.Distance(_start, _target);
             _targetDirection = (_target - _start).normalized;
 
-            _windUpDuration = _homing ? _targetedBossAttack.windUpTime : 0f;
+            //_windUpDuration = _homing ? _targetedBossAttack.windUpTime : 0f;
+            //_windUpDuration = _targetedBossAttack.windUpTime;
+            _windUpDuration = 0f;
+            _windUpTimer = 0f;
             _activeDuration = _destroyOnArrival ? Mathf.Max(_distanceToTarget / _projectileSpeed, 0.01f) : _targetedBossAttack.activeTime;
             _elapsed = 0f;
             _initialized = true;
@@ -86,7 +90,7 @@ namespace Game50033
             {
                 player.Health.TryTakeDamage(1);
 
-                if (_destroyOnArrival) DestroyProjectile();
+                if (!_piercing) DestroyProjectile();
                 return;
             }
 
@@ -113,6 +117,8 @@ namespace Game50033
                 else if (_blockedByObstacles) DestroyProjectile();
 
             }
+
+
         }
 
         protected virtual void WindUpAttack()
@@ -125,12 +131,13 @@ namespace Game50033
             }
         }
 
+
         protected virtual void MoveTowards(Vector3 position)
         {
             transform.position = position;
         }
 
-        protected void StrikePosition()
+        protected virtual void StrikePosition()
         {
             float t = Mathf.Clamp01((_elapsed - _windUpDuration) / _activeDuration);
 
@@ -145,7 +152,7 @@ namespace Game50033
             {
                 position = transform.position + (_targetDirection * _projectileSpeed * Time.deltaTime);
             }
-
+            HideBoss();
             MoveTowards(position);
             // Debug.Log($"Projectile: {_target} to {_newTarget}, moving towards {position}");
 
@@ -153,10 +160,10 @@ namespace Game50033
             if (_elapsed >= _windUpDuration + _activeDuration + 0.1f) DestroyProjectile();
         }
 
+        protected virtual void HideBoss() { } //Mainly for Charge
+
         protected virtual void DestroyProjectile()
         {
-            Debug.Log($"Destroying projectile {name}...");
-
             if (_destroying) return;
             _destroying = true;
 
@@ -174,6 +181,8 @@ namespace Game50033
                 CheckLingeringEffect();
                 Destroy(gameObject);
             }
+
+            _windUpTimer = _windUpDuration;
         }
         private IEnumerator PlayHitThenDestroy()
         {

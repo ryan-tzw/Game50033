@@ -1,5 +1,4 @@
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
 
 namespace Game50033
 {
@@ -11,6 +10,7 @@ namespace Game50033
         private void Awake()
         {
             _sr = GetComponentInChildren<SpriteRenderer>();
+
         }
 
         protected override void SetSpriteDirection()
@@ -25,24 +25,16 @@ namespace Game50033
             _boss.SetVisibility(true);
             
         }
-        protected override void WindUpAttack()
+        protected override void HideBoss()
         {
-            if (_elapsed >= _windUpDuration) {
-                if (!_bossHidden)
-                {
-                    _boss.SetVisibility(false);
-                    _bossHidden = true;
-                }
-                StrikePosition();
-                Vector3 follow = transform.position;
-                follow.y = _boss.transform.position.y;
-                _boss.SetPosition(follow);
-            }
-            else
+            if (!_bossHidden)
             {
-                _target = _targetedBossAttack.RetrievePlayerPosition(_targetedPlayer) + new Vector3(0f, _targetedBossAttack.projectileHomingHeight, 0f);
-                MoveTowards(_target);
+                _boss.SetVisibility(false);
+                _bossHidden = true;
             }
+            Vector3 follow = transform.position;
+            follow.y = _boss.transform.position.y;
+            _boss.SetPosition(follow);
         }
     }
 }

@@ -182,6 +182,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e512cb98544040d459b633bddaf8d3ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.ChargeProjectile
+  telegraphPrefab: {fileID: 133819519238865925, guid: 42ce7bdac8a64254fbbcc73e6d0a06f0, type: 3}
 --- !u!54 &5060948077741906430
 Rigidbody:
   m_ObjectHideFlags: 0

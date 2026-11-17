@@ -53,8 +53,9 @@ namespace Game50033
                 _currentAttackIdx++;
                 if (_currentAttackIdx >= p1Attacks.Count) _currentAttackIdx = 0;
                 bossAttackIntervalTimer = BossAttackInterval;
-                Invoke(nameof(EndAttack), currentAttack.GetComponent<BaseBossAttack>().recoveryTime);
-                Destroy(currentAttack);
+                float recovery = attack.windUpTime + attack.recoveryTime;
+                Invoke(nameof(EndAttack), recovery);
+                Destroy(currentAttack, recovery);
             }
         }
 

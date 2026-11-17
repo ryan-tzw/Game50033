@@ -1,5 +1,6 @@
 namespace Game50033
 {
+    using System.Collections;
     using System.Collections.Generic;
     using Unity.VisualScripting;
     using UnityEngine;
@@ -17,11 +18,14 @@ namespace Game50033
 
         [Header("Projectile Attributes for Projectile-based Targeted Attacks")]
         public GameObject lingeringObject;
-        public bool homing, destroyOnArrival, bouncy, blockedByObstacles, lingeringEffect;
+        public bool homing, destroyOnArrival, bouncy, blockedByObstacles, lingeringEffect, piercing;
         [Min(0.1f)] public float projectileSpeed;
         public float projectileHomingHeight = 0f;
         [SerializeField] private float spreadAngle;
         [SerializeField] private float spreadRadius;
+        [SerializeField] private BaseTelegraph telegraphPrefab;
+        [SerializeField] private bool extendToWall = false;
+        [SerializeField] private float maxDistance = 30f;
 
         private int projectileCount;
 
@@ -79,23 +83,23 @@ namespace Game50033
 
         protected Vector3 CalculateBulletSpread(Vector3 currentPosition)
         {
+            float angle;
             float spreadX;
             float spreadY;
 
-            // Note: my math isn't great, please help to fix if there's any issues - Joyce
             if (homing || _numberOfProjectiles == 1 || projectileCount == 1) { return currentPosition; }
-
+            
             if (projectileCount % 2 == 0)
             {
-                spreadAngle = spreadAngle * (projectileCount / 2);
-                spreadX = spreadRadius * Mathf.Cos(spreadAngle);
-                spreadY = spreadRadius * Mathf.Sin(spreadAngle);
+                angle = spreadAngle * (projectileCount / 2) * Mathf.Deg2Rad;
+                spreadX = spreadRadius * Mathf.Cos(angle);
+                spreadY = spreadRadius * Mathf.Sin(angle);
             }
             else
             {
-                spreadAngle = spreadAngle * Mathf.Floor(projectileCount / 2);
-                spreadX = -spreadRadius * Mathf.Cos(spreadAngle);
-                spreadY = -spreadRadius * Mathf.Sin(spreadAngle);
+                angle = spreadAngle * (projectileCount / 2) * Mathf.Deg2Rad;
+                spreadX = -spreadRadius * Mathf.Cos(angle);
+                spreadY = -spreadRadius * Mathf.Sin(angle);
             }
 
             return currentPosition + new Vector3(spreadX, 0f, spreadY);
@@ -103,16 +107,50 @@ namespace Game50033
 
         protected void FireAttack(Player player)
         {
-            Vector3 currentPlayerPosition = RetrievePlayerPosition(player);
-            Vector3 target = CalculateBulletSpread(currentPlayerPosition);
+            StartCoroutine(FireAfterWindUp(player));
+        }
+
+        private IEnumerator FireAfterWindUp(Player player)
+        {
+            Vector3 target = CalculateBulletSpread(RetrievePlayerPosition(player));
+            Vector3 from = boss.transform.position;
+            Vector3 end = GetTelegraphEnd(from, target);
+
+            BaseTelegraph telegraph = null;
+            if (telegraphPrefab != null && windUpTime > 0f)
+            {
+                telegraph = Instantiate(telegraphPrefab);
+                telegraph.Begin(from, end, windUpTime);
+            }
+
+            yield return new WaitForSeconds(windUpTime);
+
+            if (telegraph != null) Destroy(telegraph.gameObject);
 
             var projectile = Instantiate(_projectile, transform.position, Quaternion.identity);
-            projectile.InitializeProjectile(player, boss, target, this);
+            projectile.InitializeProjectile(player, boss, end, this);
         }
 
         public Vector3 RetrievePlayerPosition(Player player)
         {
             return player.transform.position;
+        }
+
+        protected virtual Vector3 GetTelegraphEnd(Vector3 from, Vector3 target)
+        {
+            if (!extendToWall) return target;
+
+            Vector3 direction = target - from;
+            direction.y = 0f;
+            direction.Normalize();
+
+            float closest = maxDistance;
+            foreach (var hit in Physics.RaycastAll(from, direction, maxDistance))
+            {
+                bool isWall = hit.collider.CompareTag("Wall") || (hit.collider.transform.parent != null && hit.collider.transform.parent.CompareTag("Wall"));
+                closest = Mathf.Max(hit.distance - 0.5f, 0f);
+            }
+            return from + direction * closest;
         }
     }
 }
