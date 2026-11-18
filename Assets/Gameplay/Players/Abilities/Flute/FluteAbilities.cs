@@ -366,6 +366,7 @@ namespace Game50033
             _actionStartedAt = Player.Hitstop.ActionTime;
             _activeDuration = activeDuration;
             _recoveryDuration = recoveryDuration;
+            BlocksMovement = action == Action.Evasive;
             BlocksAbilities = true;
             BlocksDodge = action == Action.Evasive;
         }
