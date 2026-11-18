@@ -1,180 +1,224 @@
 namespace Game50033
 {
     using UnityEngine;
+    using UnityEngine.SceneManagement;
 
-    public class TromboneAbilities : PlayerAbilities
+    [DefaultExecutionOrder(100)]
+    [DisallowMultipleComponent]
+    public sealed class TromboneAbilities : PlayerAbilities
     {
-        [SerializeField, Min(0.01f)] private float trombonePrimaryCooldown = 0.5f;
-        [SerializeField, Min(0.01f)] private float tromboneSecondaryCooldown = 1f;
-        [SerializeField, Min(0.01f)] private float tromboneDefensiveCooldown = 2f;
-        [SerializeField, Min(0.01f)] private float tromboneSpecialCooldown = 3f;
-        [SerializeField, Min(0.01f)] private float tromboneActionDuration = 0.25f;
+        [SerializeField] private TromboneTuning tuning;
+        [SerializeField] private Transform projectileOrigin;
+        [SerializeField] private TromboneProjectile primaryProjectilePrefab;
+        [SerializeField] private TromboneProjectile specialProjectilePrefab;
+        [SerializeField] private Reverberation specialReverberationPrefab;
+        [SerializeField] private TromboneCommandZone commandZonePrefab;
 
-        private float _trombonePrimaryReadyAt;
-        private float _tromboneSecondaryReadyAt;
-        private float _tromboneDefensiveReadyAt;
-        private float _tromboneSpecialReadyAt;
-        private float _tromboneActiveUntil;
-        private TromboneCommandZone _activeCommandZone;
-        public GameObject tromboneCommandZone;
+        private TromboneCommandZone _commandZone;
+        private float _primaryReadyAt;
+        private float _secondaryReadyAt;
+        private float _defensiveReadyAt;
+        private float _specialReadyAt;
+        private float _activeUntil;
+        private float _guardUntil;
+        private float _lastAttackAt = float.NegativeInfinity;
+        private float _pressure;
+        private bool _primaryResonates;
+        private Vector3 _previousPosition;
 
-        public bool IsInCommandZone => _activeCommandZone != null && _activeCommandZone.IsOwnerInside;
-        public float PressureAccumulationMultiplier => _activeCommandZone != null
-            ? _activeCommandZone.PressureAccumulationMultiplier : 1f;
-        public float PressureDecayMultiplier => _activeCommandZone != null
-            ? _activeCommandZone.PressureDecayMultiplier : 1f;
+        private float ActionTime => Player.Hitstop.ActionTime;
+        private Vector3 ProjectilePosition => projectileOrigin != null
+            ? projectileOrigin.position : transform.position + Vector3.up * 0.25f;
+        private bool HasControl => Player.isActiveAndEnabled && Player.HasActiveInput && !Player.Health.IsDowned;
+        private bool CanActivate => isActiveAndEnabled && HasControl && !Player.Movement.IsDodging
+            && !Player.Hitstop.IsStopped && !BlocksAbilities;
 
-        enum TromboneAbilitiesType
+        public float Pressure => _pressure;
+        public float PressureNormalized => tuning != null
+            ? Mathf.Clamp01(_pressure / Mathf.Max(0.01f, tuning.pressure.maximum)) : 0f;
+        public bool IsInCommandZone => _commandZone != null && _commandZone.IsOwnerInside;
+        public bool IsGuarding => _guardUntil > ActionTime;
+        public bool PrimaryResonates => _primaryResonates;
+        public override float MovementSpeedMultiplier => IsGuarding ? tuning.defensive.movementSpeedMultiplier : 1f;
+
+        private void OnEnable()
         {
-            TrombonePrimary,
-            TromboneSecondary,
-            TromboneDefensive,
-            TromboneSpecial
-        }
-        void Update()
-        {
-            if (_tromboneActiveUntil > 0f && Time.time >= _tromboneActiveUntil) Cancel();
-        }
-
-        public override bool TryUsePrimary() =>
-            TryActivate(TromboneAbilitiesType.TrombonePrimary, ref _trombonePrimaryReadyAt, trombonePrimaryCooldown, blockMovement: true, blockDodge: false);
-
-        public override bool TryUseSecondary()
-        {
-            if (!CanCreateCommandZone())
+            Player.Initialize();
+            if (tuning == null)
             {
-                return false;
-            }
-
-            return TryActivate(
-                TromboneAbilitiesType.TromboneSecondary,
-                ref _tromboneSecondaryReadyAt,
-                tromboneSecondaryCooldown,
-                blockMovement: false,
-                blockDodge: false);
-        }
-
-        public override bool TryUseDefensive() =>
-            TryActivate(TromboneAbilitiesType.TromboneDefensive, ref _tromboneDefensiveReadyAt, tromboneDefensiveCooldown, blockMovement: false, blockDodge: true);
-
-        public override bool TryUseSpecial() =>
-            TryActivate(TromboneAbilitiesType.TromboneSpecial, ref _tromboneSpecialReadyAt, tromboneSpecialCooldown, blockMovement: true, blockDodge: true);
-
-        private bool TryActivate(TromboneAbilitiesType ability, ref float readyAt, float cooldown, bool blockMovement, bool blockDodge)
-        {
-            if (!isActiveAndEnabled || Player.Health.IsDowned || Player.Movement.IsDodging
-                || BlocksAbilities || (!IgnoreCooldowns && Time.time < readyAt)) return false;
-
-            readyAt = IgnoreCooldowns ? 0f : Time.time + cooldown;
-            _tromboneActiveUntil = Time.time + tromboneActionDuration;
-            BlocksMovement = blockMovement;
-            BlocksDodge = blockDodge;
-            BlocksAbilities = true;
-
-            switch (ability)
-            {
-                case TromboneAbilitiesType.TrombonePrimary:
-                    TrombonePrimaryAbility();
-                    break;
-                case TromboneAbilitiesType.TromboneSecondary:
-                    CreateCommandZone();
-                    break;
-                case TromboneAbilitiesType.TromboneDefensive:
-                    TromboneDefensiveAbility();
-                    break;
-                case TromboneAbilitiesType.TromboneSpecial:
-                    TromboneSpecialAbility();
-                    break;
-            }
-
-            Debug.Log($"{Player.name}: example {ability} activated.", this);
-            return true;
-        }
-        public void TrombonePrimaryAbility()
-        {
-
-        }
-        public void TromboneSecondaryAbility()
-        {
-            // Make a command zone at player location, if player leave command zone, zone destroyed, Reverberation zone created
-            if (!CanCreateCommandZone())
-            {
+                Debug.LogError("TromboneAbilities requires Trombone tuning.", this);
+                enabled = false;
                 return;
             }
 
-            CreateCommandZone();
-        }
-
-        private void CreateCommandZone()
-        {
-            var commandZone = Instantiate(tromboneCommandZone, transform.position, Quaternion.identity);
-            _activeCommandZone = commandZone.GetComponent<TromboneCommandZone>();
-            _activeCommandZone.Initialize(Player);
-        }
-
-        private bool CanCreateCommandZone()
-        {
-            if (_activeCommandZone != null && _activeCommandZone.IsActive)
-            {
-                return false;
-            }
-
-            if (tromboneCommandZone == null || !tromboneCommandZone.activeSelf)
-            {
-                return false;
-            }
-
-            var zone = tromboneCommandZone.GetComponent<TromboneCommandZone>();
-            if (zone == null || !zone.enabled)
-            {
-                return false;
-            }
-
-            // Reject an incomplete Sustain setup before starting the cooldown.
-            var reverberation = zone.SustainReverberationPrefab;
-            if (reverberation == null || !reverberation.enabled || !reverberation.gameObject.activeSelf)
-            {
-                return false;
-            }
-
-            if (!(reverberation.Effect is SustainEffect sustain) || !sustain.IsConfigured)
-            {
-                return false;
-            }
-
-            return zone.GetComponentInChildren<Reverberation>(true) == null;
+            Player.Health.AbilityHitAvoided += HandleGuardedHit;
+            SceneManager.activeSceneChanged += HandleSceneChanged;
+            _previousPosition = transform.position;
         }
 
         protected override void OnDisable()
         {
-            if (_activeCommandZone != null)
-            {
-                _activeCommandZone.CancelZone();
-            }
-
-            _activeCommandZone = null;
+            Player.Health.AbilityHitAvoided -= HandleGuardedHit;
+            SceneManager.activeSceneChanged -= HandleSceneChanged;
+            ClearCommandZone();
+            _pressure = 0f;
             base.OnDisable();
         }
 
-        public void TromboneDefensiveAbility()
+        private void Update()
         {
-            
-        }
-        public void TromboneSpecialAbility()
-        {
+            if (!HasControl)
+            {
+                Cancel();
+                ClearCommandZone();
+                _previousPosition = transform.position;
+                return;
+            }
 
+            // Completing the short cast must not cancel an independently active guard.
+            if (_activeUntil > 0f && ActionTime >= _activeUntil) EndAction();
+            if (_guardUntil > 0f && !IsGuarding) EndGuard();
+
+            var movement = transform.position - _previousPosition;
+            movement.y = 0f;
+            _previousPosition = transform.position;
+            if (Time.time - _lastAttackAt >= tuning.pressure.consecutiveAttackInterval
+                || movement.sqrMagnitude > 0.000001f)
+            {
+                var multiplier = IsInCommandZone ? tuning.commandZone.pressureDecayMultiplier : 1f;
+                _pressure = Mathf.Max(0f, _pressure - tuning.pressure.decayPerSecond * multiplier * Time.deltaTime);
+            }
         }
-        public override void ClearCooldowns()
+
+        public override bool TryUsePrimary()
         {
-            _trombonePrimaryReadyAt = _tromboneSecondaryReadyAt = _tromboneDefensiveReadyAt = _tromboneSpecialReadyAt = 0f;
+            if (!CanActivate || primaryProjectilePrefab == null || !primaryProjectilePrefab.IsConfigured
+                || !CooldownReady(_primaryReadyAt)) return false;
+
+            var direction = GetDirection(primaryProjectilePrefab);
+            var projectile = Instantiate(primaryProjectilePrefab, ProjectilePosition, Quaternion.LookRotation(direction));
+            var damage = Mathf.Lerp(tuning.primary.minimumDamage, tuning.primary.maximumDamage, PressureNormalized);
+            projectile.InitializePrimary(Player, direction, damage, _primaryResonates);
+            _primaryResonates = false;
+            BeginAction(ref _primaryReadyAt, tuning.primary.cooldown, blockMovement: true, blockDodge: false);
+            AccumulatePressure();
+            return true;
+        }
+
+        public override bool TryUseSecondary()
+        {
+            if (!CanActivate || !CooldownReady(_secondaryReadyAt)
+                || (_commandZone != null && _commandZone.IsActive)
+                || commandZonePrefab == null || !commandZonePrefab.IsConfigured) return false;
+
+            _commandZone = Instantiate(commandZonePrefab, transform.position, Quaternion.identity);
+            _commandZone.Initialize(Player);
+            BeginAction(ref _secondaryReadyAt, tuning.commandZone.cooldown, blockMovement: false, blockDodge: false);
+            return true;
+        }
+
+        public override bool TryUseDefensive()
+        {
+            if (!CanActivate || IsGuarding || !CooldownReady(_defensiveReadyAt)) return false;
+
+            _guardUntil = ActionTime + Mathf.Max(0.01f, tuning.defensive.guardLifespan);
+            Player.Health.GrantAbilityInvulnerability(tuning.defensive.guardLifespan);
+            BeginAction(ref _defensiveReadyAt, tuning.defensive.cooldown, blockMovement: false, blockDodge: true);
+            return true;
+        }
+
+        public override bool TryUseSpecial()
+        {
+            if (!CanActivate || !CooldownReady(_specialReadyAt)
+                || specialProjectilePrefab == null || !specialProjectilePrefab.IsConfigured
+                || specialReverberationPrefab == null || !specialReverberationPrefab.enabled
+                || !specialReverberationPrefab.gameObject.activeSelf || specialReverberationPrefab.Effect == null) return false;
+
+            var direction = GetDirection(specialProjectilePrefab);
+            var projectile = Instantiate(specialProjectilePrefab, ProjectilePosition, Quaternion.LookRotation(direction));
+            var damage = Mathf.Lerp(tuning.special.minimumDamage, tuning.special.maximumDamage, PressureNormalized);
+            projectile.InitializeSpecial(Player, direction, damage, specialReverberationPrefab,
+                Mathf.Max(0.01f, damage * tuning.specialReverberationStrengthMultiplier));
+            if (_commandZone != null) _commandZone.ConsumeZone();
+            _commandZone = null;
+            BeginAction(ref _specialReadyAt, tuning.special.cooldown, blockMovement: true, blockDodge: true);
+            AccumulatePressure();
+            return true;
+        }
+
+        private Vector3 GetDirection(TromboneProjectile prefab) => Player.GetAttackDirection(
+            ProjectilePosition, prefab.MaximumTravelDistance, prefab.CollisionMask, prefab.HitVolume, prefab.ResonatingAttack);
+
+        private bool CooldownReady(float readyAt) => IgnoreCooldowns || Time.time >= readyAt;
+
+        private void BeginAction(ref float readyAt, float cooldown, bool blockMovement, bool blockDodge)
+        {
+            readyAt = IgnoreCooldowns ? 0f : Time.time + cooldown;
+            _activeUntil = ActionTime + Mathf.Max(0.01f, tuning.actionDuration);
+            BlocksMovement = blockMovement;
+            BlocksDodge = blockDodge;
+            BlocksAbilities = true;
+        }
+
+        private void AccumulatePressure()
+        {
+            var multiplier = IsInCommandZone ? tuning.commandZone.pressureAccumulationMultiplier : 1f;
+            _pressure = Mathf.Clamp(_pressure + tuning.pressure.gainPerAttack * multiplier, 0f, tuning.pressure.maximum);
+            _lastAttackAt = Time.time;
+        }
+
+        private void HandleGuardedHit()
+        {
+            if (!IsGuarding) return;
+            EndGuard();
+            _primaryResonates = true;
+        }
+
+        private void EndGuard()
+        {
+            _guardUntil = 0f;
+            Player.Health.ClearAbilityInvulnerability();
+        }
+
+        private void EndAction()
+        {
+            _activeUntil = 0f;
+            BlocksMovement = false;
+            BlocksDodge = false;
+            BlocksAbilities = false;
+        }
+
+        private void ClearCommandZone()
+        {
+            if (_commandZone != null) _commandZone.CancelZone();
+            _commandZone = null;
         }
 
         public override void Cancel()
         {
-            _tromboneActiveUntil = 0f;
-            BlocksMovement = false;
-            BlocksDodge = false;
-            BlocksAbilities = false;
+            EndAction();
+            EndGuard();
+            _primaryResonates = false;
+            if (Player.Health.IsDowned)
+            {
+                _pressure = 0f;
+                ClearCommandZone();
+            }
+        }
+
+        public override void ClearCooldowns()
+        {
+            _primaryReadyAt = _secondaryReadyAt = _defensiveReadyAt = _specialReadyAt = 0f;
+        }
+
+        private void HandleSceneChanged(Scene previous, Scene current)
+        {
+            Cancel();
+            ClearCommandZone();
+            ClearCooldowns();
+            _pressure = 0f;
+            _lastAttackAt = float.NegativeInfinity;
+            _previousPosition = transform.position;
         }
     }
 }

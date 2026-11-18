@@ -184,10 +184,6 @@ namespace Game50033
             {
                 displacement += MoveDirection * (moveSpeed * Mathf.Max(0f, movementSpeedMultiplier) * deltaTime);
             }
-            if (displacement == Vector3.zero)
-            {
-                IsMoving = false;
-            }
 
             // retain grounding while horizontal actions are blocked, including while downed.
             _verticalSpeed = _controller.isGrounded ? -2f : Mathf.Max(-30f, _verticalSpeed + Physics.gravity.y * deltaTime);
