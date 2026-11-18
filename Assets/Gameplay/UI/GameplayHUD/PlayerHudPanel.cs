@@ -161,17 +161,8 @@ namespace Game50033
                         : i == 0 ? "X" : i == 1 ? "Y" : i == 2 ? "A" : i == 3 ? "B" : "RT";
                     var svg = keyboard ? i == 0 ? _tuning.leftMouse : i == 1 ? _tuning.rightMouse : i == 4 ? _tuning.space : null : null;
                     _icons[i].SetAppearance(accent, i == 4 ? 4 : (int)_slots[i], text, svg, !keyboard && i < 4);
-                    if (i < 4)
-                    {
-                        var previewAbility = PreviewSlots[i];
-                        var previewPrompt = keyboard
-                            ? previewAbility == PlayerAbility.Special ? "E" : previewAbility == PlayerAbility.Defensive ? "Q" : string.Empty
-                            : text;
-                        _previews[i].SetAppearance(accent, (int)previewAbility, previewPrompt, svg, !keyboard);
-                        _previewTitles[i].style.color = Color.Lerp(accent, Color.white, 0.3f);
-                    }
                 }
-                _highlightName.style.color = _readyName.style.color = Color.Lerp(accent, Color.white, 0.3f);
+                _readyName.style.color = Color.Lerp(accent, Color.white, 0.3f);
                 _shownRoster = null;
                 MarkDirtyRepaint();
                 _hearts.MarkDirtyRepaint();
@@ -246,10 +237,20 @@ namespace Game50033
                     _shownCharacter = character;
                     _shownPreviewRevision = character != null ? character.PreviewRevision : -1;
                     _highlightName.text = character != null ? character.DisplayName : "Unavailable";
+                    var previewAccent = character != null ? character.Tint : accent;
+                    var titleColor = Color.Lerp(previewAccent, Color.white, 0.3f);
+                    var keyboard = scheme == "Keyboard&Mouse";
+                    _highlightName.style.color = titleColor;
                     for (var i = 0; i < 4; i++)
                     {
-                        var preview = character != null ? character.GetAbilityPreview(PreviewSlots[i]) : default;
-                        _previewTitles[i].text = string.IsNullOrWhiteSpace(preview.name) ? PreviewSlots[i].ToString() : preview.name;
+                        var ability = PreviewSlots[i];
+                        var prompt = keyboard ? i == 2 ? "E" : i == 3 ? "Q" : string.Empty
+                            : i == 0 ? "X" : i == 1 ? "Y" : i == 2 ? "A" : "B";
+                        var image = keyboard ? i == 0 ? _tuning.leftMouse : i == 1 ? _tuning.rightMouse : null : null;
+                        _previews[i].SetAppearance(previewAccent, (int)ability, prompt, image, !keyboard);
+                        _previewTitles[i].style.color = titleColor;
+                        var preview = character != null ? character.GetAbilityPreview(ability) : default;
+                        _previewTitles[i].text = string.IsNullOrWhiteSpace(preview.name) ? ability.ToString() : preview.name;
                         _previewDescriptions[i].text = string.IsNullOrWhiteSpace(preview.description) ? "Details coming soon." : preview.description;
                     }
                 }
