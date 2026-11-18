@@ -82,6 +82,20 @@ namespace Game50033
         public int ComboStep { get; private set; }
         public float PrimaryCooldownRemaining => Mathf.Max(0f, _readyAt - Time.time);
 
+        public override PlayerAbilityState GetAbilityState(PlayerAbility ability)
+        {
+            if (tuning == null) return default;
+            return ability switch
+            {
+                PlayerAbility.Primary => new PlayerAbilityState(PrimaryCooldownRemaining,
+                    _action == GuitarAction.Primary ? _swing.windup + _swing.active + _swing.recovery : tuning.attack.comboCooldown),
+                PlayerAbility.Secondary => new PlayerAbilityState(SecondaryCooldownRemaining, tuning.secondary.cooldown),
+                PlayerAbility.Defensive => new PlayerAbilityState(DefensiveCooldownRemaining, tuning.defensive.cooldown),
+                PlayerAbility.Special => new PlayerAbilityState(SpecialCooldownRemaining, tuning.special.cooldown),
+                _ => default
+            };
+        }
+
         public override void ClearCooldowns()
         {
             _readyAt = _secondaryReadyAt = _defensiveReadyAt = _specialReadyAt = 0f;

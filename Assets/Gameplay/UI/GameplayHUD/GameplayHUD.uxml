@@ -1,0 +1,4 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="players" class="hud-root" picking-mode="Ignore" />
+    <ui:Label name="join-hint" class="join-hint" text="E / A  to join" picking-mode="Ignore" />
+</ui:UXML>

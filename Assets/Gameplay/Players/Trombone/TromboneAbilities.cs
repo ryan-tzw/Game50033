@@ -24,6 +24,15 @@ namespace Game50033
         public float PressureDecayMultiplier => _activeCommandZone != null
             ? _activeCommandZone.PressureDecayMultiplier : 1f;
 
+        public override PlayerAbilityState GetAbilityState(PlayerAbility ability) => ability switch
+        {
+            PlayerAbility.Primary => new PlayerAbilityState(_trombonePrimaryReadyAt - Time.time, trombonePrimaryCooldown),
+            PlayerAbility.Secondary => new PlayerAbilityState(_tromboneSecondaryReadyAt - Time.time, tromboneSecondaryCooldown),
+            PlayerAbility.Defensive => new PlayerAbilityState(_tromboneDefensiveReadyAt - Time.time, tromboneDefensiveCooldown),
+            PlayerAbility.Special => new PlayerAbilityState(_tromboneSpecialReadyAt - Time.time, tromboneSpecialCooldown),
+            _ => default
+        };
+
         enum TromboneAbilitiesType
         {
             TrombonePrimary,

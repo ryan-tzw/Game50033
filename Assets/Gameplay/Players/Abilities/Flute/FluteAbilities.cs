@@ -37,6 +37,14 @@ namespace Game50033
             ? Mathf.Clamp01(_chargeElapsed / Mathf.Max(0.01f, maximumChargeDuration))
             : 0f;
 
+        public override PlayerAbilityState GetAbilityState(PlayerAbility ability) => ability switch
+        {
+            PlayerAbility.Secondary when secondaryProjectilePrefab != null && secondaryProjectilePrefab.IsConfigured
+                => new PlayerAbilityState(_secondaryReadyAt - Time.time, secondaryCooldown),
+            PlayerAbility.Special when IsSpecialConfigured => new PlayerAbilityState(_specialReadyAt - Time.time, specialCooldown),
+            _ => default
+        };
+
         public override void ClearCooldowns()
         {
             _secondaryReadyAt = _specialReadyAt = 0f;

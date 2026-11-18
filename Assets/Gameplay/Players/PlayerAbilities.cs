@@ -30,6 +30,9 @@ namespace Game50033
         // reset deadlines only; active actions, resources and combo progression keep their normal owners.
         public virtual void ClearCooldowns() { }
 
+        // unsupported slots default to a disabled icon; concrete instruments expose their own live state.
+        public virtual PlayerAbilityState GetAbilityState(PlayerAbility ability) => default;
+
         public bool BlocksMovement { get; protected set; }
         public bool BlocksDodge { get; protected set; }
         public bool BlocksAbilities { get; protected set; }

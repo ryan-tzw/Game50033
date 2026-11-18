@@ -34,7 +34,7 @@ namespace Game50033
         private float _curveSpan;
 
         private bool InfiniteDodge => _player != null && _player.Session != null && _player.Session.Debug.InfiniteDodge;
-        private float DodgeRechargeTime => Mathf.Max(0.01f, dodgeTuning != null ? dodgeTuning.rechargeTime : dodgeRechargeTime);
+        public float DodgeRechargeTime => Mathf.Max(0.01f, dodgeTuning != null ? dodgeTuning.rechargeTime : dodgeRechargeTime);
 
         public event Action<Vector3> DodgeStarted;
         public event Action<bool> DodgeEnded;

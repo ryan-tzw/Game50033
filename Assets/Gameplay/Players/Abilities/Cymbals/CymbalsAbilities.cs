@@ -116,6 +116,19 @@ namespace Game50033
                 return PlayerAttackPhase.None;
             }
         }
+        public override PlayerAbilityState GetAbilityState(PlayerAbility ability)
+        {
+            if (tuning == null) return default;
+            return ability switch
+            {
+                PlayerAbility.Primary => new PlayerAbilityState(_readyAt - Time.time, tuning.combo.comboCooldown),
+                PlayerAbility.Secondary => new PlayerAbilityState(_throwReadyAt - Time.time, tuning.cymbalThrow.cooldown),
+                PlayerAbility.Defensive => new PlayerAbilityState(ParryCooldownRemaining, tuning.parry.cooldown),
+                PlayerAbility.Special => new PlayerAbilityState(CrashRechargeRemaining, tuning.crash.rechargeTime, CrashCharges, MaxCrashCharges),
+                _ => default
+            };
+        }
+
         public float CrashRechargeRemaining => CrashCharges < MaxCrashCharges ? Mathf.Max(0f, _nextCrashChargeAt - Time.time) : 0f;
 
         // the apex window spans the end of the outbound and the start of the return.
