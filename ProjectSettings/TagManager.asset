@@ -5,8 +5,6 @@ TagManager:
   serializedVersion: 3
   tags:
   - Wall
-  tags:
-  - BossProjectile
   layers:
   - Default
   - TransparentFX
@@ -21,14 +19,11 @@ TagManager:
   - ToonShading
   - SpriteVisual
   - Player
-  - 
+  - Boss
   - 
   - PixelWorldVFX
   - WeaponVisual
   - Floor
-  - 
-  - 
-  - 
   - 
   - 
   - 
