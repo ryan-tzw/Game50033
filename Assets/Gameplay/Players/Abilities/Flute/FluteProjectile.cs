@@ -298,16 +298,19 @@ namespace Game50033
                 }
             }
 
-            // Sweep the full path and enter contact slightly so RES can confirm physical overlap.
+            // resolve projected fields only along the path the projectile can actually travel.
             var distance = Mathf.Min(Speed * Time.fixedDeltaTime, Range - _travelled);
             var hits = Physics.SphereCastAll(start, radius, _direction, distance, collisionMask, QueryTriggerInteraction.Collide);
             Array.Sort(hits, (first, second) => first.distance.CompareTo(second.distance));
+            var sweptDistance = 0f;
             foreach (var hit in hits)
             {
-                if (ShouldIgnore(hit.collider))
+                if (ShouldIgnore(hit.collider) || hit.collider.isTrigger)
                 {
                     continue;
                 }
+                _resonatingAttack.ActivateAlongSweep(start + _direction * sweptDistance, start + _direction * hit.distance, radius);
+                sweptDistance = hit.distance;
                 SetPosition(start + _direction * Mathf.Min(distance, hit.distance + 0.005f));
                 HandleContact(hit.collider);
                 if (_finished || _pulsing)
@@ -315,6 +318,7 @@ namespace Game50033
                     return;
                 }
             }
+            _resonatingAttack.ActivateAlongSweep(start + _direction * sweptDistance, start + _direction * distance, radius);
             SetPosition(start + _direction * distance);
             _travelled += distance;
             if (_travelled >= Range)
@@ -365,11 +369,6 @@ namespace Game50033
             if (_source == null || !_source.isActiveAndEnabled || !_source.HasActiveInput)
             {
                 Finish(false);
-                return;
-            }
-            if (other.TryGetComponent(out Reverberation reverberation))
-            {
-                ResonanceResolver.TryActivate(reverberation, _resonatingAttack);
                 return;
             }
             if (other.isTrigger)

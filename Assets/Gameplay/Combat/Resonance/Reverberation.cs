@@ -1,32 +1,39 @@
 namespace Game50033
 {
     using System;
+    using System.Collections.Generic;
+    using Game50033.Examples;
     using UnityEngine;
 
     [DisallowMultipleComponent]
     [RequireComponent(typeof(SphereCollider), typeof(Rigidbody))]
     public sealed class Reverberation : MonoBehaviour
     {
-        [SerializeField, Min(0.01f)] private float lifetime = 2f;
         [SerializeField] private ReverberationEffect effect;
-        [Tooltip("Optional child GameObject shown only while this Reverberation is available.")]
-        [SerializeField] private GameObject visualRoot;
+        [SerializeField] private ReverberationEnergyField energyFieldPrefab;
+
+        private static readonly List<Reverberation> _active = new();
+        internal static IReadOnlyList<Reverberation> Active => _active;
 
         private SphereCollider _volume;
+        private ReverberationEnergyField _energyField;
+        private ReverberationFieldSpawn _spawn;
+        private Vector3 _groundAimOffset;
         private float _expiresAt;
         private bool _consumed;
+        private bool _retired;
 
         public Player Creator { get; private set; }
         public ReverberationEffect Effect => effect;
         public float Strength { get; private set; } = 1f;
-        public float RemainingLifetime => Mathf.Max(0f, _expiresAt - Time.time);
+        public float RemainingLifetime => _retired ? 0f : Mathf.Max(0f, _expiresAt - Time.time);
         public bool IsConsumed => _consumed;
 
         public bool IsAvailable
         {
             get
             {
-                if (_consumed || !isActiveAndEnabled)
+                if (_retired || !isActiveAndEnabled)
                 {
                     return false;
                 }
@@ -41,29 +48,41 @@ namespace Game50033
         }
 
         internal SphereCollider Volume => _volume;
+        internal Vector3 GroundOrigin { get; private set; }
+        internal Vector3 GroundAimPoint => GroundOrigin + _groundAimOffset * FootprintScale;
+        internal Vector3[] FootprintEdges { get; private set; }
+        internal float FootprintRadius { get; private set; }
+        internal float FootprintScale => _spawn.GetScale(_spawn.Progress);
 
         private void Awake()
         {
             ConfigurePhysics();
             if (ReferenceEquals(Creator, null))
             {
-                _expiresAt = Time.time + Mathf.Max(0.01f, lifetime);
+                _expiresAt = Time.time + GameplayLifetime;
             }
-
-            SetVisualActive(false);
         }
 
         private void OnEnable()
         {
-            SetVisualActive(IsAvailable);
+            if (!IsAvailable) return;
+            _active.Add(this);
+            SetVisualActive(true);
         }
 
         private void OnDisable()
         {
+            _active.Remove(this);
             SetVisualActive(false);
         }
 
         public void Initialize(Player creator, float strength = 1f)
+        {
+            Initialize(creator, strength, null);
+        }
+
+        /// <summary>Supplies a footprint in world-aligned XZ units relative to the grounded spawn centre.</summary>
+        public void Initialize(Player creator, float strength, ReverberationFieldShape? footprint)
         {
             if (creator == null)
             {
@@ -87,9 +106,39 @@ namespace Game50033
             }
 
             ConfigurePhysics();
+            var scale = _volume.transform.lossyScale;
+            var radius = _volume.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
+            var shape = footprint ?? new ReverberationFieldShape
+            {
+                kind = ReverberationFieldShapeKind.Circle,
+                outerRadius = radius,
+                stretchFactor = 1f
+            };
+            if (shape.kind != ReverberationFieldShapeKind.Circle && shape.kind != ReverberationFieldShapeKind.AnnularSector)
+                throw new ArgumentException("A gameplay REV needs a circle or annular-sector footprint.", nameof(footprint));
+
+            var ground = _volume.transform.TransformPoint(_volume.center);
+            ground.y = 0f;
+            GroundOrigin = ground + new Vector3(shape.origin.x, 0f, shape.origin.y);
+            FootprintEdges = ReverberationOverlap.BuildEdges(shape, out var reach, out var aimOffset);
+            FootprintRadius = reach;
+            _groundAimOffset = aimOffset;
+
+            var startedAt = Time.time;
+            if (energyFieldPrefab != null)
+            {
+                _spawn = energyFieldPrefab.GetSpawnAnimation(startedAt);
+                // the footprint is authored in world units even if the legacy trigger has a scaled prefab root.
+                _energyField = Instantiate(energyFieldPrefab, ground, Quaternion.identity);
+                _energyField.transform.SetParent(transform, true);
+                _energyField.SetShape(shape);
+                var color = creator.PlayerColor;
+                _energyField.ConfigureGameplayAppearance(color, Color.Lerp(Color.black, color, 0.35f), Camera.main, _spawn);
+            }
             Creator = creator;
             Strength = strength;
-            _expiresAt = Time.time + Mathf.Max(0.01f, lifetime);
+            _expiresAt = startedAt + GameplayLifetime;
+            if (IsAvailable) _active.Add(this);
             SetVisualActive(IsAvailable);
         }
 
@@ -105,12 +154,11 @@ namespace Game50033
 
         private void Update()
         {
-            if (Time.time >= _expiresAt)
-            {
-                SetVisualActive(false);
-                Destroy(gameObject);
-            }
+            if (!_retired && Time.time >= _expiresAt) Retire();
         }
+
+        private float GameplayLifetime => energyFieldPrefab != null
+            ? energyFieldPrefab.GameplayLifetime : ReverberationEnergyFieldTuning.DefaultGameplayLifetime;
 
         internal bool TryConsume()
         {
@@ -119,19 +167,25 @@ namespace Game50033
                 return false;
             }
 
-            // Prevent other colliders from consuming the same REV this frame.
             _consumed = true;
-            _volume.enabled = false;
-            SetVisualActive(false);
+            Retire();
             return true;
+        }
+
+        private void Retire()
+        {
+            // end gameplay contact now while allowing the visual to finish on the same object.
+            _retired = true;
+            _volume.enabled = false;
+            _active.Remove(this);
+            var fadeDuration = _energyField != null ? _energyField.BeginFadeOut() : 0f;
+            if (fadeDuration <= 0f) SetVisualActive(false);
+            Destroy(gameObject, fadeDuration);
         }
 
         private void SetVisualActive(bool active)
         {
-            if (visualRoot != null && visualRoot != gameObject && visualRoot.transform.IsChildOf(transform))
-            {
-                visualRoot.SetActive(active);
-            }
+            if (_energyField != null) _energyField.gameObject.SetActive(active);
         }
     }
 }

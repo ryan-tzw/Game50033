@@ -5,12 +5,26 @@ namespace Game50033.Examples
     [CreateAssetMenu(menuName = "Crescendo/Experiments/Reverberation Energy Field")]
     public sealed class ReverberationEnergyFieldTuning : ScriptableObject
     {
+        internal const float DefaultGameplayLifetime = 5f;
+
         [Header("Field shape")]
         [Tooltip("Width, ground depth and height in local Unity units, before scaling the prefab root.")]
         public Vector3 fieldDimensions = new(3f, 2f, 0.6f);
         [Range(1, 8)] public int layerCount = 4;
         [Range(0f, 10f)] public float layerTilt = 3f;
         [Range(0.05f, 0.95f)] public float edgeFalloff = 0.55f;
+
+        [Header("Gameplay lifetime")]
+        [Tooltip("Seconds a field can be resonated, measured from spawn.")]
+        [Min(0.01f)] public float gameplayLifetime = DefaultGameplayLifetime;
+        [Tooltip("Seconds to fade after expiry or consumption.")]
+        [Min(0f)] public float fadeOutDuration = 0.15f;
+
+        [Header("Gameplay spawn")]
+        [Tooltip("Seconds to grow and fade in. Zero spawns at full size and opacity.")]
+        [Min(0f)] public float spawnDuration = 0.15f;
+        [Tooltip("Starting fraction of the full visual and Resonance footprint.")]
+        [Range(0.01f, 1f)] public float spawnStartScale = 0.8f;
 
         [Header("Boundary motion")]
         [Tooltip("Radial deformation in normalized field coordinates. Zero restores the original boundary.")]
@@ -52,5 +66,24 @@ namespace Game50033.Examples
             UnityEditor.EditorApplication.delayCall += UnityEditor.SceneView.RepaintAll;
 #endif
         }
+    }
+
+    internal readonly struct ReverberationFieldSpawn
+    {
+        private readonly float _startedAt;
+        private readonly float _duration;
+        private readonly float _startScale;
+
+        public ReverberationFieldSpawn(float startedAt, float duration, float startScale)
+        {
+            _startedAt = startedAt;
+            _duration = Mathf.Max(0f, duration);
+            _startScale = Mathf.Clamp(startScale, 0.01f, 1f);
+        }
+
+        public float Progress => _duration > 0f
+            ? Mathf.SmoothStep(0f, 1f, (Time.time - _startedAt) / _duration) : 1f;
+
+        public float GetScale(float progress) => Mathf.Lerp(_startScale, 1f, progress);
     }
 }

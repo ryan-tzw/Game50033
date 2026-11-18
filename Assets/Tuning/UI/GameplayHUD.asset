@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31998f57bdb9eca4d8c8702976f7d7f5, type: 3}
+  m_Name: GameplayHUD
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.GameplayHudTuning
+  iconSize: 72
+  iconGap: 6
+  panelPadding: 12
+  playerGap: 40
+  bottomMargin: 20
+  borderWidth: 2
+  cornerRadius: 10
+  font: {fileID: 12800000, guid: a0979a15571bafcfb9fc1285a80642b6, type: 3}
+  countdownFontSize: 30
+  promptFontSize: 16
+  promptFont: {fileID: 12800000, guid: 25cc98fe52380b1c2af64cc8de941ce7, type: 3}
+  promptHeight: 24
+  promptPadding: 4
+  previewIconInset: 12
+  previewRowHeight: 122
+  previewFontSize: 18
+  portraitSize: 52
+  inspectGap: 28
+  inspectPadding: 12
+  inspectStatFontSize: 20
+  inspectBackground: {r: 0.04, g: 0.055, b: 0.085, a: 0.98}
+  emptyHeart: {r: 0.025, g: 0.025, b: 0.035, a: 1}
+  iconBackground: {r: 0.025, g: 0.03, b: 0.045, a: 0.86}
+  promptBackground: {r: 0.015, g: 0.018, b: 0.025, a: 0.98}
+  cooldownOpacity: 0.78
+  leftMouse: {fileID: 7388822144124034973, guid: baaf4f7a55dd7aef5b367f4914595045, type: 3}
+  rightMouse: {fileID: 7388822144124034973, guid: 8cc14245c6e29a4978f1e6bb67a39b3c, type: 3}
+  space: {fileID: 7388822144124034973, guid: 986ab031931f3864fa3e5254cf63589e, type: 3}

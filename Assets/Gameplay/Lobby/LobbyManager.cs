@@ -2,6 +2,7 @@ namespace Game50033
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using UnityEngine;
     using UnityEngine.InputSystem;
 
@@ -13,8 +14,6 @@ namespace Game50033
     {
         [SerializeField] private PlayerInputManager playerInputManager;
         [SerializeField] private CharacterRoster roster;
-        [Tooltip("One panel per player slot, indexed by PlayerInput.playerIndex.")]
-        [SerializeField] private CharacterSelectPanel[] panels = Array.Empty<CharacterSelectPanel>();
         [Tooltip("Where each player appears after picking a character, indexed by PlayerInput.playerIndex.")]
         [SerializeField] private Transform[] spawnPoints = Array.Empty<Transform>();
 
@@ -45,11 +44,6 @@ namespace Game50033
 
         private void Start()
         {
-            for (var i = 0; i < panels.Length; i++)
-            {
-                if (panels[i]) panels[i].ShowEmpty(i);
-            }
-
             // by now a duplicate join manager loaded with this scene has switched itself off.
             BindInputManager();
             AdoptReturningPlayers();
@@ -89,9 +83,13 @@ namespace Game50033
         // They can still unready in the ring to pick again. Players without a character pick one now.
         private void AdoptReturningPlayers()
         {
-            foreach (var playerInput in new List<PlayerInput>(PlayerInput.all))
+            var session = FindFirstObjectByType<GameSession>();
+            if (session == null) return;
+
+            foreach (var registered in session.Players.Where(player => player != null).OrderBy(player => player.PlayerIndex))
             {
-                if (!playerInput.TryGetComponent(out PlayerCharacterSelect player) || _players.Contains(player)) continue;
+                if (!registered.TryGetComponent(out PlayerCharacterSelect player) || _players.Contains(player)) continue;
+                var playerInput = player.PlayerInput;
 
                 _players.Add(player);
                 playerInput.ActivateInput();
@@ -138,9 +136,6 @@ namespace Game50033
 
             _players.Remove(player);
             Release(player);
-
-            var panel = GetPanel(playerInput.playerIndex);
-            if (panel) panel.ShowEmpty(playerInput.playerIndex);
         }
 
         internal bool TrySpawnSelectedCharacter(PlayerCharacterSelect source, CharacterDefinition character)
@@ -245,11 +240,6 @@ namespace Game50033
                             sourceInput.SwitchCurrentControlScheme(scheme, devices);
                         }
 
-                        if (sourceInput.playerIndex != playerIndex)
-                        {
-                            GetPanel(playerIndex)?.ShowEmpty(playerIndex);
-                        }
-
                         source.BeginSelection(this);
                     }
                 }
@@ -265,9 +255,6 @@ namespace Game50033
             playerIndex >= 0 && playerIndex < spawnPoints.Length && spawnPoints[playerIndex] != null
                 ? spawnPoints[playerIndex].position
                 : fallback;
-
-        public CharacterSelectPanel GetPanel(int playerIndex) =>
-            playerIndex >= 0 && playerIndex < panels.Length ? panels[playerIndex] : null;
 
         public bool IsClaimedByOther(CharacterDefinition character, PlayerCharacterSelect player) =>
             _claims.TryGetValue(character, out var owner) && owner != null && owner != player;
@@ -305,10 +292,5 @@ namespace Game50033
             if (notify) SelectionChanged?.Invoke();
         }
 
-        public void NotifyPlayerSpawned(PlayerCharacterSelect player)
-        {
-            var panel = GetPanel(player.PlayerIndex);
-            if (panel) panel.ShowReady(player.PlayerIndex, player.Character);
-        }
     }
 }

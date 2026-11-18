@@ -5,9 +5,16 @@ namespace Game50033
     [CreateAssetMenu(menuName = "Game50033/Tuning/Player Dodge", fileName = "PlayerDodgeTuning")]
     public sealed class PlayerDodgeTuning : ScriptableObject
     {
+        [Header("Movement")]
+        [Tooltip("Distance in world units before collision limits the dodge.")]
+        [Min(0f)] public float dodgeDistance = 1f;
+        [Tooltip("Travel time in seconds, excluding startup hitstop.")]
+        [Min(0.01f)] public float dodgeDuration = 0.2f;
+
         [Header("Charge Recovery")]
+        [Min(1)] public int maxDodgeCharges = 2;
         [Tooltip("Seconds to restore one dodge charge. Spending another charge does not restart recovery.")]
-        [Min(0.01f)] public float rechargeTime = 7f;
+        [Min(0.01f)] public float rechargeTime = 6f;
 
         [Header("Startup Hitstop")]
         public bool hitstopEnabled = true;

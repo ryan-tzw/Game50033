@@ -134,6 +134,7 @@ GameObject:
   - component: {fileID: 794207836743235729}
   - component: {fileID: 1823924041723711795}
   - component: {fileID: 6512731523353069809}
+  - component: {fileID: 4604652734385103609}
   m_Layer: 12
   m_Name: Player
   m_TagString: Untagged
@@ -238,12 +239,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 24b493a548b3863c2bf46d9bab41b2b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerMovement
-  moveSpeed: 3
-  dodgeDistance: 2
-  dodgeDuration: 0.3
-  maxDodgeCharges: 2
+  movementTuning: {fileID: 11400000, guid: 35562cde9b2ed47a0a67adc72b16310b, type: 2}
   dodgeTuning: {fileID: 11400000, guid: d473bfd3cc677322896b629a1275ce92, type: 2}
-  dodgeRechargeTime: 7
 --- !u!114 &1544443953293736951
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -256,10 +253,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 591db355528a998a03d30a9f6d119291, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHealth
-  maxHealth: 5
-  downedDuration: 15
-  reviveHealth: 1
-  revivalImmunityDuration: 1
+  tuning: {fileID: 11400000, guid: b7173f5bea407cd26bff75ce8324a621, type: 2}
 --- !u!114 &2439631078986181378
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -349,3 +343,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHurtbox
   tuning: {fileID: 11400000, guid: 0e6ae754d02acfe0da51e3e4e83be354, type: 2}
+--- !u!114 &4604652734385103609
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b31254aab2a6dd8487ce691acc6e896, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHitReaction
+  tuning: {fileID: 11400000, guid: 697da0963b4682fd387bb52b2c8325f8, type: 2}
+  avatarRenderer: {fileID: 1627041761190954647}

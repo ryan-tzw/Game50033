@@ -45,6 +45,7 @@ namespace Game50033
         public PlayerInput PlayerInput => _playerInput;
         public int PlayerIndex => _playerInput.playerIndex;
         public CharacterDefinition Character { get; private set; }
+        public int HighlightIndex => _highlightIndex;
         public bool IsSpawned => State == SelectState.Spawned;
 
         private void Awake() => CacheComponents();
@@ -90,8 +91,6 @@ namespace Game50033
                     if (_lobby.Roster[i] == preferred) preferredIndex = i;
             }
             _highlightIndex = preferredIndex >= 0 ? preferredIndex : _lobby.FirstAvailableCharacterIndex();
-            _lobby.SelectionChanged += RefreshPanel;
-            RefreshPanel();
         }
 
         private void Update()
@@ -140,12 +139,18 @@ namespace Game50033
             if (count == 0) return;
 
             _highlightIndex = (_highlightIndex + direction + count) % count;
-            RefreshPanel();
         }
 
-        private void TryConfirm()
+        internal void PreviewCharacter(int rosterIndex)
         {
-            if (_lobby.Roster.Count == 0) return;
+            if (State != SelectState.Selecting || _lobby == null || !_playerInput.inputIsActive
+                || rosterIndex < 0 || rosterIndex >= _lobby.Roster.Count) return;
+            _highlightIndex = rosterIndex;
+        }
+
+        internal void TryConfirm()
+        {
+            if (State != SelectState.Selecting || _lobby == null || !_playerInput.inputIsActive || _lobby.Roster.Count == 0) return;
 
             var character = _lobby.Roster[_highlightIndex];
             if (!_lobby.TryClaim(character, this)) return; // someone else already has it
@@ -169,18 +174,12 @@ namespace Game50033
         internal void CompleteSelection(LobbyManager lobby, CharacterDefinition character)
         {
             CacheComponents();
-            if (_lobby != null)
-            {
-                _lobby.SelectionChanged -= RefreshPanel;
-            }
-
             _lobby = lobby;
             Character = character;
             State = SelectState.Spawned;
 
             _controller.ApplyCharacter(character);
             SetAvatarActive(true);
-            _lobby.NotifyPlayerSpawned(this);
         }
 
         /// <summary>
@@ -200,27 +199,8 @@ namespace Game50033
 
         internal void DetachFromLobby()
         {
-            if (_lobby != null)
-            {
-                _lobby.SelectionChanged -= RefreshPanel;
-            }
-
             _lobby = null;
             State = SelectState.NotInLobby;
-        }
-
-        private void RefreshPanel()
-        {
-            if (_lobby == null || State != SelectState.Selecting || _lobby.Roster.Count == 0) return;
-
-            var panel = _lobby.GetPanel(PlayerIndex);
-            if (!panel) return;
-
-            var roster = _lobby.Roster;
-            var takenByOthers = new bool[roster.Count];
-            for (var i = 0; i < roster.Count; i++) takenByOthers[i] = _lobby.IsClaimedByOther(roster[i], this);
-
-            panel.ShowSelecting(PlayerIndex, roster, _highlightIndex, takenByOthers);
         }
 
         private void SetAvatarActive(bool active)
@@ -231,9 +211,5 @@ namespace Game50033
             if (_abilities) _abilities.enabled = active;
         }
 
-        private void OnDestroy()
-        {
-            if (_lobby != null) _lobby.SelectionChanged -= RefreshPanel;
-        }
     }
 }

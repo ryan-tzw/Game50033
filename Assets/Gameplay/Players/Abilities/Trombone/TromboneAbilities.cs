@@ -1,5 +1,6 @@
 namespace Game50033
 {
+    using static PlayerAbilityStats;
     using UnityEngine;
     using UnityEngine.SceneManagement;
 
@@ -208,6 +209,38 @@ namespace Game50033
                 ClearCommandZone();
             }
         }
+
+        public override PlayerAbilityStats GetAbilityStats(PlayerAbility ability)
+        {
+            if (tuning == null || !GetAbilityState(ability).Supported) return default;
+            return ability switch
+            {
+                PlayerAbility.Primary => new(("Damage by Pressure", Range(tuning.primary.minimumDamage, tuning.primary.maximumDamage)),
+                    ("Cooldown by Pressure", Range(Mathf.Min(tuning.primary.cooldown, tuning.primary.maximumPressureCooldown), tuning.primary.cooldown) + " s")),
+                PlayerAbility.Secondary => new(("Zone radius", Number(tuning.commandZone.radius)),
+                    ("Cooldown", Seconds(tuning.commandZone.cooldown))),
+                PlayerAbility.Special => new(("Damage by Pressure", Range(tuning.special.minimumDamage, tuning.special.maximumDamage)),
+                    ("Cooldown", Seconds(tuning.special.cooldown))),
+                PlayerAbility.Defensive => new(("Guard duration", Seconds(tuning.defensive.guardLifespan)),
+                    ("Cooldown", Seconds(tuning.defensive.cooldown))),
+                _ => default
+            };
+        }
+
+        public override PlayerAbilityState GetAbilityState(PlayerAbility ability) => ability switch
+        {
+            PlayerAbility.Primary when tuning != null && primaryProjectilePrefab != null && primaryProjectilePrefab.IsConfigured
+                => new PlayerAbilityState(_primaryReadyAt - Time.time, tuning.primary.cooldown),
+            PlayerAbility.Secondary when tuning != null && commandZonePrefab != null && commandZonePrefab.IsConfigured
+                => new PlayerAbilityState(_secondaryReadyAt - Time.time, tuning.commandZone.cooldown),
+            PlayerAbility.Defensive when tuning != null
+                => new PlayerAbilityState(_defensiveReadyAt - Time.time, tuning.defensive.cooldown),
+            PlayerAbility.Special when tuning != null && specialProjectilePrefab != null && specialProjectilePrefab.IsConfigured
+                && specialReverberationPrefab != null && specialReverberationPrefab.enabled
+                && specialReverberationPrefab.gameObject.activeSelf && specialReverberationPrefab.Effect != null
+                => new PlayerAbilityState(_specialReadyAt - Time.time, tuning.special.cooldown),
+            _ => default
+        };
 
         public override void ClearCooldowns()
         {

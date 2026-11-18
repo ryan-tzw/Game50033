@@ -7,13 +7,8 @@ namespace Game50033
     [RequireComponent(typeof(CharacterController))]
     public sealed class PlayerMovement : MonoBehaviour
     {
-        [SerializeField, Min(0f)] private float moveSpeed = 5f;
-        [SerializeField, Min(0f)] private float dodgeDistance = 1f;
-        [SerializeField, Min(0.01f)] private float dodgeDuration = 0.2f;
-        [SerializeField, Min(1)] private int maxDodgeCharges = 2;
+        [SerializeField] private PlayerMovementTuning movementTuning;
         [SerializeField] private PlayerDodgeTuning dodgeTuning;
-        [Tooltip("Legacy fallback for players without a shared dodge tuning asset.")]
-        [SerializeField, Min(0.01f)] private float dodgeRechargeTime = 7f;
 
         private Player _player;
         private CharacterController _controller;
@@ -34,7 +29,7 @@ namespace Game50033
         private float _curveSpan;
 
         private bool InfiniteDodge => _player != null && _player.Session != null && _player.Session.Debug.InfiniteDodge;
-        private float DodgeRechargeTime => Mathf.Max(0.01f, dodgeTuning != null ? dodgeTuning.rechargeTime : dodgeRechargeTime);
+        public float DodgeRechargeTime => Mathf.Max(0.01f, dodgeTuning.rechargeTime);
 
         public event Action<Vector3> DodgeStarted;
         public event Action<bool> DodgeEnded;
@@ -47,8 +42,8 @@ namespace Game50033
         public bool CanDodge => isActiveAndEnabled && _controller != null && _controller.enabled
             && !IsDodging && !IsDisplacing && (DodgeCharges > 0 || InfiniteDodge) && (_hitstop == null || !_hitstop.IsStopped);
         public int DodgeCharges { get; private set; }
-        public int MaxDodgeCharges => maxDodgeCharges;
-        public float DodgeRechargeRemaining => DodgeCharges < maxDodgeCharges
+        public int MaxDodgeCharges => dodgeTuning.maxDodgeCharges;
+        public float DodgeRechargeRemaining => DodgeCharges < MaxDodgeCharges
             ? Mathf.Max(0f, _nextChargeAt - Time.time) : 0f;
 
         private void Awake()
@@ -59,11 +54,13 @@ namespace Game50033
         internal void Initialize()
         {
             if (_initialized) return;
+            if (movementTuning == null || dodgeTuning == null)
+                throw new InvalidOperationException($"{name} requires both player movement and dodge tuning assets.");
 
             _player = GetComponent<Player>();
             _controller = GetComponent<CharacterController>();
             _hitstop = GetComponent<PlayerHitstop>();
-            DodgeCharges = maxDodgeCharges;
+            DodgeCharges = MaxDodgeCharges;
             _initialized = true;
         }
 
@@ -87,7 +84,7 @@ namespace Game50033
 
             if (!InfiniteDodge)
             {
-                if (DodgeCharges == maxDodgeCharges) _nextChargeAt = Time.time + DodgeRechargeTime;
+                if (DodgeCharges == MaxDodgeCharges) _nextChargeAt = Time.time + DodgeRechargeTime;
                 DodgeCharges--;
             }
             _dodgeDirection = FacingDirection;
@@ -111,7 +108,7 @@ namespace Game50033
             CancelDodge();
             CancelDisplacement();
             ReadInput(Vector2.zero);
-            DodgeCharges = maxDodgeCharges;
+            DodgeCharges = MaxDodgeCharges;
         }
 
         public bool TryStartDisplacement(Vector3 direction, float distance, float duration, AnimationCurve easing, float delay = 0f)
@@ -143,7 +140,7 @@ namespace Game50033
             if (!isActiveAndEnabled) return;
 
             // spending the second charge does not restart the first charge's recovery.
-            while (DodgeCharges < maxDodgeCharges && Time.time >= _nextChargeAt)
+            while (DodgeCharges < MaxDodgeCharges && Time.time >= _nextChargeAt)
             {
                 DodgeCharges++;
                 _nextChargeAt += DodgeRechargeTime;
@@ -160,7 +157,7 @@ namespace Game50033
 
 
             var walkingVelocity = canMove && !IsDodging
-                ? MoveDirection * (moveSpeed * Mathf.Max(0f, movementSpeedMultiplier)) : Vector3.zero;
+                ? MoveDirection * (movementTuning.moveSpeed * Mathf.Max(0f, movementSpeedMultiplier)) : Vector3.zero;
             var abilities = _player != null ? _player.Abilities : null;
             if (abilities != null && abilities.isActiveAndEnabled)
             {
@@ -171,10 +168,10 @@ namespace Game50033
             var dodging = IsDodging;
             if (dodging)
             {
-                var previousProgress = Mathf.Clamp01(_dodgeElapsed / dodgeDuration);
+                var previousProgress = Mathf.Clamp01(_dodgeElapsed / dodgeTuning.dodgeDuration);
                 _dodgeElapsed += deltaTime;
-                var progress = Mathf.Clamp01(_dodgeElapsed / dodgeDuration);
-                var distance = dodgeDistance * (Mathf.SmoothStep(0f, 1f, progress)
+                var progress = Mathf.Clamp01(_dodgeElapsed / dodgeTuning.dodgeDuration);
+                var distance = dodgeTuning.dodgeDistance * (Mathf.SmoothStep(0f, 1f, progress)
                     - Mathf.SmoothStep(0f, 1f, previousProgress));
                 displacement = _dodgeDirection * distance;
                 if (progress >= 1f) IsDodging = false;

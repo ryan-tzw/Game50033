@@ -85,24 +85,11 @@ namespace Game50033
             return false;
         }
 
-        private void OnTriggerEnter(Collider other)
+        internal void ActivateAlongSweep(Vector3 start, Vector3 end, float radius)
         {
-            TryContact(other);
-        }
-
-        private void OnTriggerStay(Collider other)
-        {
-            TryContact(other);
-        }
-
-        private void TryContact(Collider other)
-        {
-            if (!other.TryGetComponent(out Reverberation reverberation))
-            {
-                return;
-            }
-
-            ResonanceResolver.TryActivate(reverberation, this);
+            if (!IsReady || hitVolume is not SphereCollider sphere) return;
+            var centerOffset = sphere.transform.TransformVector(sphere.center);
+            ResonanceResolver.ActivateAlongSweep(this, start + centerOffset, end + centerOffset, radius);
         }
     }
 }

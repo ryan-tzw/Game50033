@@ -147,7 +147,7 @@ namespace Game50033
                     return;
                 }
             }
-            // Sweep the full step so fast shots cannot skip a REV between physics updates.
+            // test the projected sweep separately, stopping at the first blocking 3d hit.
             var distance = Mathf.Min(speed * Time.fixedDeltaTime, maximumDistance - _distanceTravelled);
             var hits = Physics.SphereCastAll(
                 start,
@@ -160,12 +160,12 @@ namespace Game50033
 
             foreach (var hit in hits)
             {
-                if (ShouldIgnore(hit.collider))
+                if (ShouldIgnore(hit.collider) || hit.collider.isTrigger)
                 {
                     continue;
                 }
 
-                // Move slightly into contact so the resolver can confirm an overlap.
+                _resonatingAttack.ActivateAlongSweep(start, start + _flightDirection * hit.distance, radius);
                 SetPosition(start + _flightDirection * Mathf.Min(distance, hit.distance + HitOverlapDistance));
                 HandleContact(hit.collider);
 
@@ -175,6 +175,7 @@ namespace Game50033
                 }
             }
 
+            _resonatingAttack.ActivateAlongSweep(start, start + _flightDirection * distance, radius);
             SetPosition(start + _flightDirection * distance);
             _distanceTravelled += distance;
 
@@ -209,12 +210,6 @@ namespace Game50033
             if (_sourcePlayer == null)
             {
                 Finish(createReverberation: false);
-                return;
-            }
-
-            if (other.TryGetComponent(out Reverberation reverberation))
-            {
-                ResonanceResolver.TryActivate(reverberation, _resonatingAttack);
                 return;
             }
 

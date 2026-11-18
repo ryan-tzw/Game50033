@@ -1,0 +1,76 @@
+.hud-root {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-end;
+}
+.player-hud-panel { flex-shrink: 0; height: 158px; padding-top: 10px; }
+.ability-row { flex-direction: row; height: 92px; flex-shrink: 0; }
+.heart-row { height: 36px; margin-top: 9px; flex-shrink: 0; }
+.hud-ability { position: relative; flex-shrink: 0; }
+.hud-face { position: absolute; left: 0; right: 0; top: 0; bottom: 0; overflow: hidden; }
+.hud-symbol, .hud-wipe { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.hud-countdown { position: absolute; left: 0; right: 0; top: 0; bottom: 0; -unity-text-align: middle-center; color: white; -unity-font-style: bold; }
+.hud-charges { position: absolute; right: 3px; top: -3px; color: white; font-size: 21px; -unity-font-style: bold; -unity-text-outline-width: 1px; -unity-text-outline-color: black; }
+.hud-prompt { position: absolute; bottom: -14px; align-items: center; justify-content: center; flex-shrink: 0; }
+.hud-prompt Label { position: absolute; left: 0; right: 0; top: 0; bottom: 0; margin: 0; padding: 0; color: white; -unity-text-align: middle-center; -unity-font-style: bold; }
+
+
+.join-hint { position: absolute; color: rgb(225, 228, 235); -unity-text-align: middle-center; -unity-font-style: bold; }
+.gameplay-body { position: absolute; }
+.selection-body { flex-shrink: 0; }
+.preview-row { flex-direction: row; align-items: center; flex-shrink: 0; background-color: rgba(3, 6, 14, 0.88); border-radius: 8px; }
+.preview-copy { flex-grow: 1; flex-shrink: 1; padding-left: 12px; padding-right: 8px; }
+.preview-type { margin: 0; padding: 0; color: rgb(199, 204, 215); }
+.preview-title { margin-top: 0; margin-bottom: 0; white-space: normal; -unity-font-style: bold; padding-left: 0; padding-right: 0; }
+.preview-description { margin-top: 3px; margin-bottom: 0; white-space: normal; color: rgb(229, 232, 240); padding-left: 0; padding-right: 0; }
+.highlight-name { -unity-text-align: middle-center; -unity-font-style: bold; padding-top: 0; padding-bottom: 0; }
+.character-roster { flex-direction: row; align-items: center; justify-content: center; flex-shrink: 0; }
+.roster-portrait { flex-shrink: 0; border-radius: 50%; background-color: rgba(5, 8, 16, 0.9); border-width: 2px; }
+.roster-portrait Image { width: 100%; height: 100%; }
+.selection-status { -unity-text-align: middle-center; color: rgb(206, 214, 230); padding-top: 0; padding-bottom: 0; }
+.ready-header { position: absolute; flex-direction: row; align-items: center; justify-content: center; }
+.ready-header Label { -unity-font-style: bold; }
+
+.highlight-name, .selection-status { margin-top: 0; margin-bottom: 0; }
+
+.ability-inspect-hint {
+    position: absolute;
+    top: -24px;
+    right: 0;
+    color: rgb(224, 227, 235);
+    -unity-text-align: middle-right;
+}
+.ability-inspector {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-width: 2px;
+    border-radius: 8px;
+}
+.ability-inspector Label { margin: 0; padding: 0; white-space: normal; }
+.ability-inspect-name { -unity-font-style: bold; }
+.ability-inspect-type { color: rgb(185, 192, 206); }
+.ability-inspect-stats { margin-top: 8px; margin-bottom: 8px; }
+.ability-inspect-stat {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 8px;
+    margin-bottom: 3px;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.09);
+}
+.ability-inspect-stat-name { flex-shrink: 0; color: rgb(224, 227, 235); margin-right: 8px; }
+.ability-inspect-stat-value { flex-shrink: 1; -unity-font-style: bold; -unity-text-align: middle-right; }
+.ability-inspect-description { color: rgb(235, 237, 242); }
+.ability-inspect-marker {
+    position: absolute;
+    left: -3px;
+    top: -3px;
+    right: -3px;
+    bottom: -3px;
+    border-width: 2px;
+    border-radius: 11px;
+}

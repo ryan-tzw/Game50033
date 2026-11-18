@@ -12,7 +12,7 @@ namespace Game50033
         [SerializeField] private int _numberOfTargets;
 
         public bool TriggerAttack;
-        private List<Player> _players;
+        private readonly List<Player> _targetCandidates = new(4);
 
         [SerializeField] protected List<Player> _targetedPlayers = new List<Player>();
 
@@ -53,16 +53,23 @@ namespace Game50033
             _targetedPlayers.Clear();
             //if (_numberOfTargets == 0) return;
 
-            _players = new List<Player>(boss.players);
-            if (_players.Count == 0) return;
+            _targetCandidates.Clear();
+            var targets = boss.Targets;
+            var count = targets.Count;
+            for (var i = 0; i < count; i++)
+            {
+                var target = targets[i];
+                if (target != null) _targetCandidates.Add(target);
+            }
+            if (_targetCandidates.Count == 0) return;
 
-            int clampedTargets = Mathf.Clamp(_numberOfTargets, 1, _players.Count);
+            int clampedTargets = Mathf.Clamp(_numberOfTargets, 1, _targetCandidates.Count);
 
             for (int i = 0; i < clampedTargets; i++)
             {
-                Player _targetPlayer = _players[Random.Range(0, _players.Count)];
+                Player _targetPlayer = _targetCandidates[Random.Range(0, _targetCandidates.Count)];
                 _targetedPlayers.Add(_targetPlayer);
-                _players.Remove(_targetPlayer);
+                _targetCandidates.Remove(_targetPlayer);
             }
         }
 
@@ -86,11 +93,16 @@ namespace Game50033
         {
             base.Attack();
 
-            if (_targetedPlayers.Count > 0)
-                boss.Movement.FaceTowards(RetrievePlayerPosition(_targetedPlayers[0]));
-
+            var facingSet = false;
             foreach (Player player in _targetedPlayers)
             {
+                if (player == null) continue;
+                if (!facingSet)
+                {
+                    boss.Movement.FaceTowards(RetrievePlayerPosition(player));
+                    facingSet = true;
+                }
+
                 for (projectileCount = 1; projectileCount <= _numberOfProjectiles; projectileCount++)
                 {
                     FireAttack(player);

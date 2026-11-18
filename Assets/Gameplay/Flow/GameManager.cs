@@ -31,7 +31,8 @@ namespace Game50033
     {
         [SerializeField] private GameFlow flow;
 
-        private readonly List<Player> _players = new();
+        private GameSession _session;
+        internal IReadOnlyList<Player> Players => _session != null ? _session.Players : Array.Empty<Player>();
         private readonly HashSet<Player> _ready = new();
         private float _readyOpensAt;
         private bool _loading;
@@ -50,21 +51,12 @@ namespace Game50033
 
         public bool IsShowingResults => State is GameState.Victory or GameState.Defeat;
         public int ReadyCount => _ready.Count;
-        public int PlayerCount
-        {
-            get
-            {
-                // counted without the shared buffer, so it is safe to call from ReadyChanged.
-                var count = 0;
-                foreach (var playerInput in PlayerInput.all)
-                    if (playerInput.TryGetComponent(out Player _)) count++;
-                return count;
-            }
-        }
+        public int PlayerCount => Players.Count;
         public bool IsReady(Player player) => _ready.Contains(player);
 
         private void Awake()
         {
+            _session = FindFirstObjectByType<GameSession>();
             if (flow == null)
             {
                 Debug.LogError($"{nameof(GameManager)} requires a {nameof(GameFlow)} asset.", this);
@@ -73,6 +65,31 @@ namespace Game50033
             }
 
             State = flow.IsLobby(SceneManager.GetActiveScene().name) ? GameState.Lobby : GameState.Cutscene;
+        }
+
+        private void OnEnable()
+        {
+            if (_session == null) return;
+            _session.PlayerRegistered += HandlePlayerRegistered;
+            _session.PlayerUnregistered += HandlePlayerUnregistered;
+        }
+
+        private void OnDisable()
+        {
+            if (_session == null) return;
+            _session.PlayerRegistered -= HandlePlayerRegistered;
+            _session.PlayerUnregistered -= HandlePlayerUnregistered;
+        }
+
+        private void HandlePlayerRegistered(Player player)
+        {
+            if (State == GameState.Defeat) ReadyChanged?.Invoke();
+        }
+
+        private void HandlePlayerUnregistered(Player player)
+        {
+            _ready.Remove(player);
+            if (State == GameState.Defeat) ReadyChanged?.Invoke();
         }
 
         private void Start()
@@ -88,10 +105,11 @@ namespace Game50033
         {
             if (State != GameState.Defeat || _loading || Time.time < _readyOpensAt) return;
 
-            var players = CollectPlayers();
-            foreach (var player in players)
+            var players = Players;
+            for (var i = 0; i < players.Count; i++)
             {
-                if (!player.SpecialPressedThisFrame || !_ready.Add(player)) continue;
+                var player = players[i];
+                if (player == null || !player.SpecialPressedThisFrame || !_ready.Add(player)) continue;
                 ReadyChanged?.Invoke();
             }
 
@@ -133,7 +151,8 @@ namespace Game50033
             else
             {
                 // freeze players in place; input stays active so they can ready up.
-                foreach (var player in CollectPlayers()) player.enabled = false;
+                foreach (var player in Players)
+                    if (player != null) player.enabled = false;
             }
 
             _ready.Clear();
@@ -169,17 +188,8 @@ namespace Game50033
 
         private void ResetPlayers()
         {
-            foreach (var player in CollectPlayers()) player.ResetForEncounter();
-        }
-
-        private List<Player> CollectPlayers()
-        {
-            _players.Clear();
-            foreach (var playerInput in PlayerInput.all)
-            {
-                if (playerInput.TryGetComponent(out Player player)) _players.Add(player);
-            }
-            return _players;
+            foreach (var player in Players)
+                if (player != null) player.ResetForEncounter();
         }
 
         private void SetState(GameState next)

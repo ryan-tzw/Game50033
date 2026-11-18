@@ -6,10 +6,7 @@ namespace Game50033
     [DisallowMultipleComponent]
     public sealed class PlayerHealth : MonoBehaviour
     {
-        [SerializeField, Min(1)] private int maxHealth = 5;
-        [SerializeField, Min(0f)] private float downedDuration = 15f;
-        [SerializeField, Min(1)] private int reviveHealth = 1;
-        [SerializeField, Min(0f)] private float revivalImmunityDuration = 1f;
+        [SerializeField] private PlayerHealthTuning tuning;
 
         private Player _player;
         private PlayerMovement _movement;
@@ -18,18 +15,21 @@ namespace Game50033
         private bool _initialized;
         private float _reviveAt;
         private float _immuneUntil;
+        private float _postHitImmuneUntil;
 
         public int CurrentHealth { get; private set; }
-        public int MaxHealth => maxHealth;
+        public int MaxHealth => tuning.maxHealth;
         public bool IsDowned { get; private set; }
         public float RevivalRemaining => IsDowned ? Mathf.Max(0f, _reviveAt - Time.time) : 0f;
+        public float PostHitInvulnerabilityRemaining => Mathf.Max(0f, _postHitImmuneUntil - Time.time);
         public float RevivalImmunityRemaining => Mathf.Max(0f, _immuneUntil - Time.time);
         public float AbilityInvulnerabilityRemaining => Mathf.Max(0f, _abilityImmuneUntil - (_hitstop != null ? _hitstop.ActionTime : Time.time));
         public bool IsInvulnerable => (_player != null && _player.Session != null && _player.Session.Debug.Invincibility)
-            || RevivalImmunityRemaining > 0f || AbilityInvulnerabilityRemaining > 0f
+            || PostHitInvulnerabilityRemaining > 0f || RevivalImmunityRemaining > 0f || AbilityInvulnerabilityRemaining > 0f
             || (_movement != null && _movement.IsInvulnerable);
 
         public event Action<int, int> HealthChanged;
+        public event Action<int> Damaged;
         public event Action Downed;
         public event Action Revived;
         // Report real hit attempts rejected specifically by ability immunity.
@@ -43,11 +43,13 @@ namespace Game50033
         internal void Initialize()
         {
             if (_initialized) return;
+            if (tuning == null)
+                throw new InvalidOperationException($"{name} requires a player health tuning asset.");
 
             _player = GetComponent<Player>();
             _movement = GetComponent<PlayerMovement>();
             _hitstop = GetComponent<PlayerHitstop>();
-            CurrentHealth = maxHealth;
+            CurrentHealth = MaxHealth;
             _initialized = true;
         }
 
@@ -56,9 +58,9 @@ namespace Game50033
             if (!IsDowned || Time.time < _reviveAt) return;
 
             IsDowned = false;
-            CurrentHealth = Mathf.Clamp(reviveHealth, 1, maxHealth);
-            _immuneUntil = Time.time + revivalImmunityDuration;
-            HealthChanged?.Invoke(CurrentHealth, maxHealth);
+            CurrentHealth = Mathf.Clamp(tuning.reviveHealth, 1, MaxHealth);
+            _immuneUntil = Time.time + tuning.revivalImmunityDuration;
+            HealthChanged?.Invoke(CurrentHealth, MaxHealth);
             Revived?.Invoke();
         }
 
@@ -73,30 +75,44 @@ namespace Game50033
 
         public void ClearAbilityInvulnerability() => _abilityImmuneUntil = 0f;
 
-        private void OnDisable() => ClearAbilityInvulnerability();
+        internal void ClearPostHitInvulnerability() => _postHitImmuneUntil = 0f;
+
+        private void OnDisable()
+        {
+            ClearAbilityInvulnerability();
+            ClearPostHitInvulnerability();
+        }
 
         public bool TryTakeDamage(int damage)
         {
             Debug.Log($"TakeDamage: movement={(_movement != null)}, dodgeInvulnerable={(_movement != null && _movement.IsInvulnerable)}, healthInvulnerable={IsInvulnerable}", this);
             if (damage > 0 && !IsDowned && AbilityInvulnerabilityRemaining > 0f
-                && RevivalImmunityRemaining <= 0f && (_movement == null || !_movement.IsInvulnerable)
+                && PostHitInvulnerabilityRemaining <= 0f && RevivalImmunityRemaining <= 0f && (_movement == null || !_movement.IsInvulnerable)
                 && !(_player != null && _player.Session != null && _player.Session.Debug.Invincibility))
             {
                 AbilityHitAvoided?.Invoke();
                 return false;
             }
-            if (damage <= 0 || IsDowned || IsInvulnerable) return false;
+            if (damage <= 0 || CurrentHealth <= 0 || IsDowned || IsInvulnerable) return false;
 
-            CurrentHealth = Mathf.Max(0, CurrentHealth - damage);
+            var applied = Mathf.Min(CurrentHealth, damage);
+            CurrentHealth -= applied;
             if (CurrentHealth == 0)
             {
+                ClearPostHitInvulnerability();
                 IsDowned = true;
-                _reviveAt = Time.time + downedDuration;
+                _reviveAt = Time.time + tuning.downedDuration;
                 // cancel actions before observers of the health change can start more work.
                 Downed?.Invoke();
             }
+            else
+            {
+                _postHitImmuneUntil = Time.time + tuning.postHitInvulnerabilityDuration;
+            }
 
-            HealthChanged?.Invoke(CurrentHealth, maxHealth);
+            Damaged?.Invoke(applied);
+
+            HealthChanged?.Invoke(CurrentHealth, MaxHealth);
             return true;
         }
 
@@ -106,20 +122,21 @@ namespace Game50033
             Initialize();
             var wasDowned = IsDowned;
             IsDowned = false;
-            CurrentHealth = maxHealth;
+            CurrentHealth = MaxHealth;
             _reviveAt = 0f;
             _immuneUntil = 0f;
+            ClearPostHitInvulnerability();
             _abilityImmuneUntil = 0f;
-            HealthChanged?.Invoke(CurrentHealth, maxHealth);
+            HealthChanged?.Invoke(CurrentHealth, MaxHealth);
             if (wasDowned) Revived?.Invoke();
         }
 
         public void Heal(int amount)
         {
-            if (amount <= 0 || IsDowned || CurrentHealth >= maxHealth) return;
+            if (amount <= 0 || IsDowned || CurrentHealth >= MaxHealth) return;
 
-            CurrentHealth = (int)Math.Min(maxHealth, (long)CurrentHealth + amount);
-            HealthChanged?.Invoke(CurrentHealth, maxHealth);
+            CurrentHealth = (int)Math.Min(MaxHealth, (long)CurrentHealth + amount);
+            HealthChanged?.Invoke(CurrentHealth, MaxHealth);
         }
     }
 }

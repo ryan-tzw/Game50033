@@ -25,58 +25,63 @@ namespace Game50033
                 radius = sphere.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
             }
 
+            // a ground field can overlap the shot on screen even when its old sphere is out of range in 3d.
+            var fields = Reverberation.Active;
+            var camera = resonatingAttack != null && fields.Count > 0 ? Camera.main : null;
+            for (var i = 0; resonatingAttack != null && i < fields.Count; i++)
+            {
+                var field = fields[i];
+                var candidate = field.Volume;
+                if (!field.IsAvailable || field.Creator == source || !resonatingAttack.Accepts(field.Effect)
+                    || (collisionMask & (1 << candidate.gameObject.layer)) == 0
+                    || !CanCollide(candidate, attackLayer, attackVolume)) continue;
+
+                var point = GetProjectedAimPoint(field, origin, camera);
+                var distance = (point - origin).sqrMagnitude;
+                if (distance > reverberationDistance
+                    || !HasClearPath(origin, point, candidate, radius, collisionMask, attackLayer, attackVolume))
+                    continue;
+
+                nearestReverberation = candidate;
+                reverberationDistance = distance;
+            }
+            if (nearestReverberation != null) return nearestReverberation;
+
             foreach (var candidate in Physics.OverlapSphere(origin, range, collisionMask, QueryTriggerInteraction.Collide))
             {
                 if (!CanCollide(candidate, attackLayer, attackVolume)
-                    || candidate.GetComponentInParent<Player>() != null)
+                    || candidate.GetComponentInParent<Player>() != null || candidate.TryGetComponent<Reverberation>(out _))
                 {
                     continue;
                 }
 
-                var isReverberation = candidate.TryGetComponent(out Reverberation reverberation);
-                if (isReverberation)
+                var target = candidate.GetComponentInParent<IHittable>();
+                var boss = candidate.GetComponentInParent<BaseBoss>();
+                if ((target == null && boss == null) || (candidate.isTrigger && boss == null)
+                    || (boss != null && !boss.isActiveAndEnabled)
+                    || (target is Behaviour receiver && !receiver.isActiveAndEnabled))
                 {
-                    if (resonatingAttack == null || !reverberation.IsAvailable || reverberation.Creator == source
-                        || !resonatingAttack.Accepts(reverberation.Effect))
-                    {
-                        continue;
-                    }
-                }
-                else
-                {
-                    var target = candidate.GetComponentInParent<IHittable>();
-                    var boss = candidate.GetComponentInParent<BaseBoss>();
-                    if ((target == null && boss == null) || (candidate.isTrigger && boss == null)
-                        || (boss != null && !boss.isActiveAndEnabled)
-                        || (target is Behaviour receiver && !receiver.isActiveAndEnabled))
-                    {
-                        continue;
-                    }
+                    continue;
                 }
 
                 var point = GetAimPoint(candidate, origin);
                 var distance = (point - origin).sqrMagnitude;
-                if (distance > (isReverberation ? reverberationDistance : enemyDistance)
+                if (distance > enemyDistance
                     || !HasClearPath(origin, point, candidate, radius, collisionMask, attackLayer, attackVolume))
                 {
                     continue;
                 }
-                if (isReverberation)
-                {
-                    nearestReverberation = candidate;
-                    reverberationDistance = distance;
-                }
-                else
-                {
-                    nearestEnemy = candidate;
-                    enemyDistance = distance;
-                }
+                nearestEnemy = candidate;
+                enemyDistance = distance;
             }
-            return nearestReverberation != null ? nearestReverberation : nearestEnemy;
+            return nearestEnemy;
         }
 
         internal static Vector3 GetAimPoint(Collider target, Vector3 origin)
         {
+            if (target.TryGetComponent<Reverberation>(out var field))
+                return GetProjectedAimPoint(field, origin, Camera.main);
+
             var bounds = target.bounds;
             var boss = target.isTrigger ? target.GetComponentInParent<BaseBoss>() : null;
             if (boss != null)
@@ -92,6 +97,18 @@ namespace Game50033
             var inset = Mathf.Min(0.05f, bounds.extents.y * 0.5f);
             point.y = Mathf.Clamp(origin.y, bounds.min.y + inset, bounds.max.y - inset);
             return boss != null ? point : target.ClosestPoint(point);
+        }
+
+        private static Vector3 GetProjectedAimPoint(Reverberation field, Vector3 origin, Camera camera)
+        {
+            var point = field.GroundAimPoint;
+            if (camera != null && camera.orthographic && Mathf.Abs(camera.transform.forward.y) > 0.0001f)
+            {
+                var forward = camera.transform.forward;
+                return point + forward * ((origin.y - point.y) / forward.y);
+            }
+            point.y = origin.y;
+            return point;
         }
 
         private static bool CanCollide(Collider other, int attackLayer, Collider attackVolume)

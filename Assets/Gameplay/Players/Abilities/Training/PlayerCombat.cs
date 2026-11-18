@@ -53,6 +53,9 @@ namespace Game50033
             return true;
         }
 
+        public override PlayerAbilityState GetAbilityState(PlayerAbility ability) => ability == PlayerAbility.Primary
+            ? new PlayerAbilityState(_nextAttackTime - Time.time, cooldown) : default;
+
         public override void ClearCooldowns() => _nextAttackTime = 0f;
 
         public override bool TryUseSecondary() => false;

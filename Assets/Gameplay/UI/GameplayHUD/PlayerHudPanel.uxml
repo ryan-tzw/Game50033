@@ -1,0 +1,73 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:game="Game50033">
+    <ui:VisualElement name="selection" class="selection-body" picking-mode="Ignore">
+        <ui:VisualElement name="preview-row-0" class="preview-row" picking-mode="Ignore">
+            <game:HudAbilityIcon name="preview-icon-0" />
+            <ui:VisualElement class="preview-copy" picking-mode="Ignore">
+                <ui:Label name="preview-title-0" class="preview-title" picking-mode="Ignore" />
+                <ui:Label name="preview-type-0" class="preview-type" picking-mode="Ignore" />
+                <ui:Label name="preview-description-0" class="preview-description" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="preview-row-1" class="preview-row" picking-mode="Ignore">
+            <game:HudAbilityIcon name="preview-icon-1" />
+            <ui:VisualElement class="preview-copy" picking-mode="Ignore">
+                <ui:Label name="preview-title-1" class="preview-title" picking-mode="Ignore" />
+                <ui:Label name="preview-type-1" class="preview-type" picking-mode="Ignore" />
+                <ui:Label name="preview-description-1" class="preview-description" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="preview-row-2" class="preview-row" picking-mode="Ignore">
+            <game:HudAbilityIcon name="preview-icon-2" />
+            <ui:VisualElement class="preview-copy" picking-mode="Ignore">
+                <ui:Label name="preview-title-2" class="preview-title" picking-mode="Ignore" />
+                <ui:Label name="preview-type-2" class="preview-type" picking-mode="Ignore" />
+                <ui:Label name="preview-description-2" class="preview-description" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="preview-row-3" class="preview-row" picking-mode="Ignore">
+            <game:HudAbilityIcon name="preview-icon-3" />
+            <ui:VisualElement class="preview-copy" picking-mode="Ignore">
+                <ui:Label name="preview-title-3" class="preview-title" picking-mode="Ignore" />
+                <ui:Label name="preview-type-3" class="preview-type" picking-mode="Ignore" />
+                <ui:Label name="preview-description-3" class="preview-description" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:Label name="highlight-name" class="highlight-name" picking-mode="Ignore" />
+        <ui:VisualElement name="roster" class="character-roster" picking-mode="Ignore" />
+        <ui:Label name="selection-status" class="selection-status" picking-mode="Ignore" />
+    </ui:VisualElement>
+    <ui:VisualElement name="ready-header" class="ready-header" picking-mode="Ignore">
+        <ui:Image name="ready-portrait" picking-mode="Ignore" />
+        <ui:Label name="ready-name" picking-mode="Ignore" />
+    </ui:VisualElement>
+    <ui:VisualElement name="gameplay" class="gameplay-body" picking-mode="Ignore">
+        <ui:Label name="inspect-hint" class="ability-inspect-hint" picking-mode="Ignore" />
+        <ui:VisualElement name="ability-inspector" class="ability-inspector" picking-mode="Ignore" style="display: none;">
+            <ui:Label name="inspect-name" class="ability-inspect-name" picking-mode="Ignore" />
+            <ui:Label name="inspect-type" class="ability-inspect-type" picking-mode="Ignore" />
+            <ui:VisualElement class="ability-inspect-stats" picking-mode="Ignore">
+                <ui:VisualElement name="inspect-stat-0" class="ability-inspect-stat" picking-mode="Ignore">
+                    <ui:Label name="inspect-stat-name-0" class="ability-inspect-stat-name" picking-mode="Ignore" />
+                    <ui:Label name="inspect-stat-value-0" class="ability-inspect-stat-value" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement name="inspect-stat-1" class="ability-inspect-stat" picking-mode="Ignore">
+                    <ui:Label name="inspect-stat-name-1" class="ability-inspect-stat-name" picking-mode="Ignore" />
+                    <ui:Label name="inspect-stat-value-1" class="ability-inspect-stat-value" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement name="inspect-stat-2" class="ability-inspect-stat" picking-mode="Ignore">
+                    <ui:Label name="inspect-stat-name-2" class="ability-inspect-stat-name" picking-mode="Ignore" />
+                    <ui:Label name="inspect-stat-value-2" class="ability-inspect-stat-value" picking-mode="Ignore" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:Label name="inspect-description" class="ability-inspect-description" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement name="abilities" class="ability-row" picking-mode="Ignore">
+            <game:HudAbilityIcon name="slot-0" />
+            <game:HudAbilityIcon name="slot-1" />
+            <game:HudAbilityIcon name="slot-2" />
+            <game:HudAbilityIcon name="slot-3" />
+            <game:HudAbilityIcon name="slot-4" />
+        </ui:VisualElement>
+        <ui:VisualElement name="hearts" class="heart-row" picking-mode="Ignore" />
+    </ui:VisualElement>
+</ui:UXML>

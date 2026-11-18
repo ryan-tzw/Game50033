@@ -15,6 +15,7 @@ namespace Game50033
         private UIDocument _document;
         private VisualElement _panel;
         private HitboxDebugOverlay _hitboxOverlay;
+        private readonly Button[] _damageButtons = new Button[4];
 
         public bool IsOpen { get; private set; }
 
@@ -46,7 +47,7 @@ namespace Game50033
             var title = new Label("Debug / Cheats");
             title.AddToClassList("debug-title");
             _panel.Add(title);
-            var hint = new Label("F1 to close · applies to all players");
+            var hint = new Label("F1 to close · toggles apply to all players");
             hint.AddToClassList("debug-hint");
             _panel.Add(hint);
             var heading = new Label("Players");
@@ -70,6 +71,25 @@ namespace Game50033
             {
                 name = "heal-to-full", text = "Heal living players to full", focusable = false
             });
+            var damageRow = new VisualElement();
+            damageRow.style.flexDirection = FlexDirection.Row;
+            damageRow.style.flexWrap = Wrap.Wrap;
+            for (var i = 0; i < _damageButtons.Length; i++)
+            {
+                var playerIndex = i;
+                var button = new Button(() => GetDamageTarget(playerIndex)?.Health.TryTakeDamage(1))
+                {
+                    name = "damage-player-" + (i + 1),
+                    text = $"Damage P{i + 1}",
+                    focusable = false,
+                    tooltip = "Apply 1 damage through the normal damage rules, including invulnerability."
+                };
+                button.style.display = DisplayStyle.None;
+                _damageButtons[i] = button;
+                damageRow.Add(button);
+            }
+            _panel.Add(damageRow);
+
             var hitboxHeading = new Label("Hitboxes");
             hitboxHeading.AddToClassList("debug-section");
             _panel.Add(hitboxHeading);
@@ -105,6 +125,18 @@ namespace Game50033
             _panel.style.display = IsOpen ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
+        private Player GetDamageTarget(int playerIndex)
+        {
+            var players = _session.Players;
+            for (var i = 0; i < players.Count; i++)
+            {
+                var player = players[i];
+                if (player != null && player.PlayerIndex == playerIndex && player.isActiveAndEnabled
+                    && player.Health != null && player.Health.isActiveAndEnabled) return player;
+            }
+            return null;
+        }
+
         private void LateUpdate()
         {
             if (_session == null || _hitboxOverlay == null) return;
@@ -127,6 +159,16 @@ namespace Game50033
                 IsOpen = !IsOpen;
                 openedThisFrame = IsOpen;
                 _panel.style.display = IsOpen ? DisplayStyle.Flex : DisplayStyle.None;
+            }
+
+            if (IsOpen)
+            {
+                for (var i = 0; i < _damageButtons.Length; i++)
+                {
+                    var target = GetDamageTarget(i);
+                    _damageButtons[i].style.display = target != null ? DisplayStyle.Flex : DisplayStyle.None;
+                    _damageButtons[i].SetEnabled(target != null && !target.Health.IsDowned);
+                }
             }
 
             // run before player input routing. UI event consumption alone does not block InputAction.IsPressed().

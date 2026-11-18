@@ -16,6 +16,15 @@ namespace Game50033.Examples
         private float _specialReadyAt;
         private float _activeUntil;
 
+        public override PlayerAbilityState GetAbilityState(PlayerAbility ability) => ability switch
+        {
+            PlayerAbility.Primary => new PlayerAbilityState(_primaryReadyAt - Time.time, primaryCooldown),
+            PlayerAbility.Secondary => new PlayerAbilityState(_secondaryReadyAt - Time.time, secondaryCooldown),
+            PlayerAbility.Defensive => new PlayerAbilityState(_defensiveReadyAt - Time.time, defensiveCooldown),
+            PlayerAbility.Special => new PlayerAbilityState(_specialReadyAt - Time.time, specialCooldown),
+            _ => default
+        };
+
         private void Update()
         {
             if (_activeUntil > 0f && Time.time >= _activeUntil) Cancel();

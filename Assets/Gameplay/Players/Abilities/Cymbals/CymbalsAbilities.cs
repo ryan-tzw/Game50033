@@ -1,5 +1,6 @@
 namespace Game50033
 {
+    using static PlayerAbilityStats;
     using System;
     using System.Collections.Generic;
     using UnityEngine;
@@ -116,6 +117,41 @@ namespace Game50033
                 return PlayerAttackPhase.None;
             }
         }
+        public override PlayerAbilityStats GetAbilityStats(PlayerAbility ability)
+        {
+            if (tuning == null || !GetAbilityState(ability).Supported) return default;
+            if (ability == PlayerAbility.Primary)
+            {
+                var hits = System.Array.ConvertAll(tuning.combo.hits, hit => Number(hit.damage));
+                return new PlayerAbilityStats(("Damage / hit", string.Join(" / ", hits)),
+                    ("Combo cooldown", Seconds(tuning.combo.comboCooldown)));
+            }
+
+            return ability switch
+            {
+                PlayerAbility.Secondary => new(("Throw damage", Number(tuning.cymbalThrow.damage)),
+                    ("Cooldown", Seconds(tuning.cymbalThrow.cooldown)), ("Recast damage", Number(tuning.cymbalThrow.dashDamage))),
+                PlayerAbility.Special => new(("Damage", Number(tuning.crash.damage)),
+                    ("Recharge / charge", Seconds(tuning.crash.rechargeTime)), ("Charges", tuning.crash.maxCharges.ToString())),
+                PlayerAbility.Defensive => new(("Parry window", Seconds(tuning.parry.duration)),
+                    ("Cooldown", Seconds(tuning.parry.cooldown))),
+                _ => default
+            };
+        }
+
+        public override PlayerAbilityState GetAbilityState(PlayerAbility ability)
+        {
+            if (tuning == null) return default;
+            return ability switch
+            {
+                PlayerAbility.Primary => new PlayerAbilityState(_readyAt - Time.time, tuning.combo.comboCooldown),
+                PlayerAbility.Secondary => new PlayerAbilityState(_throwReadyAt - Time.time, tuning.cymbalThrow.cooldown),
+                PlayerAbility.Defensive => new PlayerAbilityState(ParryCooldownRemaining, tuning.parry.cooldown),
+                PlayerAbility.Special => new PlayerAbilityState(CrashRechargeRemaining, tuning.crash.rechargeTime, CrashCharges, MaxCrashCharges),
+                _ => default
+            };
+        }
+
         public float CrashRechargeRemaining => CrashCharges < MaxCrashCharges ? Mathf.Max(0f, _nextCrashChargeAt - Time.time) : 0f;
 
         // the apex window spans the end of the outbound and the start of the return.
@@ -804,12 +840,13 @@ namespace Game50033
                 var extents = new Vector3(settings.width * 0.5f, combo.hitColumnHeight * 0.5f, settings.length * 0.5f);
                 var count = Physics.OverlapBoxNonAlloc(center, extents, _crashBuffer, rotation, Physics.AllLayers, QueryTriggerInteraction.Collide);
 
-                // resonance: teammates' Reverberations inside the triangle (the resolver checks the exact overlap).
-                for (var i = 0; i < count; i++)
+                // resonance uses the same ground triangle as the crash waves.
+                settings.GetTriangle(_crashTip, _crashDirection, out var left, out var right);
+                var fields = Reverberation.Active;
+                var camera = fields.Count > 0 ? Camera.main : null;
+                for (var i = fields.Count - 1; i >= 0; i = Mathf.Min(i - 1, fields.Count - 1))
                 {
-                    var candidate = _crashBuffer[i];
-                    if (candidate != null && candidate.TryGetComponent(out Reverberation reverberation))
-                        ResonanceResolver.TryActivate(reverberation, crashVolume);
+                    ResonanceResolver.TryActivateTriangle(fields[i], crashVolume, _crashTip, left, right, camera);
                     if (!isActiveAndEnabled || Player.Health.IsDowned) return;
                 }
 

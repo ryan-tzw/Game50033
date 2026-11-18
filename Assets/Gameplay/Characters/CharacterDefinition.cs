@@ -1,5 +1,6 @@
 namespace Game50033
 {
+    using System;
     using UnityEngine;
 
     /// <summary>
@@ -10,7 +11,7 @@ namespace Game50033
     {
         [SerializeField] private string displayName;
 
-        [Tooltip("Shown on the character select panel and used as the in-world sprite when set.")]
+        [Tooltip("Shown in the character roster/ready header and used as the in-world sprite when set.")]
         [SerializeField] private Sprite sprite;
 
         [Tooltip("Tint applied to the character's sprite (via the _PlayerTint shader property).")]
@@ -18,6 +19,23 @@ namespace Game50033
 
         [Tooltip("Optional playable prefab spawned when this character is confirmed in the Lobby.")]
         [SerializeField] private Player playerPrefab;
+
+        [Serializable]
+        public struct AbilityPreview
+        {
+            public string name;
+            [TextArea(2, 5)] public string description;
+        }
+
+        [Tooltip("Primary, Secondary, Defensive, Special. Presentation text only; does not define gameplay values.")]
+        [SerializeField] private AbilityPreview[] abilityPreviews = new AbilityPreview[4];
+
+        public int PreviewRevision { get; private set; }
+        private void OnValidate() { PreviewRevision++; }
+
+        public AbilityPreview GetAbilityPreview(PlayerAbility ability) =>
+            abilityPreviews != null && (int)ability >= 0 && (int)ability < abilityPreviews.Length
+                ? abilityPreviews[(int)ability] : default;
 
         public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
         public Sprite Sprite => sprite;

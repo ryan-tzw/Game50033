@@ -30,6 +30,10 @@ namespace Game50033
         // reset deadlines only; active actions, resources and combo progression keep their normal owners.
         public virtual void ClearCooldowns() { }
 
+        // unsupported slots default to a disabled icon; concrete instruments expose their own live state.
+        public virtual PlayerAbilityState GetAbilityState(PlayerAbility ability) => default;
+        public virtual PlayerAbilityStats GetAbilityStats(PlayerAbility ability) => default;
+
         // encounter boundary: stop whatever is running and start the fight with everything ready.
         // Override to also reset instrument resources that should not carry between fights.
         public virtual void ResetForEncounter()

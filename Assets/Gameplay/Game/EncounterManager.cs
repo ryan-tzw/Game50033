@@ -2,6 +2,7 @@ namespace Game50033
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Text;
     using UnityEngine;
     using UnityEngine.InputSystem;
@@ -30,7 +31,7 @@ namespace Game50033
         [Tooltip("Bosses that must all be defeated to win. Each must implement IEncounterBoss (BaseBoss does).")]
         [SerializeField] private MonoBehaviour[] bosses = System.Array.Empty<MonoBehaviour>();
 
-        [Tooltip("Where players start the fight, by join order.")]
+        [Tooltip("Where players start the fight, in player index order.")]
         [SerializeField] private Transform[] spawnPoints = System.Array.Empty<Transform>();
 
         [Header("Results")]
@@ -42,7 +43,7 @@ namespace Game50033
         [SerializeField] private Text[] readyLabels = System.Array.Empty<Text>();
 
         private readonly List<IEncounterBoss> _bosses = new();
-        private readonly List<Player> _livingPlayers = new();
+        private GameSession _session;
         private readonly Dictionary<Player, float> _damage = new();
         private readonly Dictionary<Player, int> _lastHealth = new();
         private float _startedAt;
@@ -50,11 +51,8 @@ namespace Game50033
         private int _bossPhase = 1;
         private int _startingPlayers = 1;
 
-        /// <summary>
-        /// Players a boss may target this frame: joined, active and not downed. Kept as one list updated in place
-        /// during the fight; bosses receive it through <see cref="IEncounterBoss.SetTargets"/>.
-        /// </summary>
-        public IReadOnlyList<Player> LivingPlayers => _livingPlayers;
+        public IReadOnlyList<Player> LivingPlayers => _session != null ? _session.LivingPlayers : Array.Empty<Player>();
+        private IReadOnlyList<Player> Players => _session != null ? _session.Players : Array.Empty<Player>();
 
         public float FightTime =>_endedAt >= 0f ? _endedAt - _startedAt : Time.time - _startedAt;
         public float DamageDealtBy(Player player) => _damage.TryGetValue(player, out var damage) ? damage : 0f;
@@ -74,6 +72,7 @@ namespace Game50033
 
         private void Awake()
         {
+            _session = FindFirstObjectByType<GameSession>();
             if (victoryGroup) victoryGroup.SetActive(false);
             if (defeatGroup) defeatGroup.SetActive(false);
 
@@ -131,8 +130,7 @@ namespace Game50033
                 return;
             }
 
-            RefreshLivingPlayers();
-            foreach (var boss in _bosses) boss.SetTargets(_livingPlayers);
+            foreach (var boss in _bosses) boss.SetTargets(LivingPlayers);
             gameManager.BeginEncounter();
         }
 
@@ -144,13 +142,13 @@ namespace Game50033
             var players = 0;
             var downed = 0;
             var heartsLost = 0;
-            _livingPlayers.Clear();
-            foreach (var playerInput in PlayerInput.all)
+            var roster = Players;
+            for (var i = 0; i < roster.Count; i++)
             {
-                if (!playerInput.TryGetComponent(out Player player)) continue;
+                var player = roster[i];
+                if (player == null) continue;
                 players++;
                 if (player.Health.IsDowned) downed++;
-                else if (player.isActiveAndEnabled) _livingPlayers.Add(player);
 
                 // a boss hit costs one heart, so every heart lost since last frame is one hit.
                 var health = player.Health.CurrentHealth;
@@ -164,37 +162,29 @@ namespace Game50033
             if (players > 0 && downed == players) gameManager.EndEncounter(victory: false);
         }
 
-        private void RefreshLivingPlayers()
-        {
-            _livingPlayers.Clear();
-            foreach (var playerInput in PlayerInput.all)
-                if (playerInput.TryGetComponent(out Player player) && player.isActiveAndEnabled && !player.Health.IsDowned)
-                    _livingPlayers.Add(player);
-        }
-
         private void PlacePlayers()
         {
-            if (PlayerInput.all.Count == 0)
+            if (Players.Count == 0)
             {
                 Debug.LogWarning($"No players were carried over. Start from the {SceneNames.Lobby} scene to join and pick characters first.");
                 return;
             }
 
-            for (var i = 0; i < PlayerInput.all.Count; i++)
+            var spawnIndex = 0;
+            foreach (var player in Players.Where(player => player != null).OrderBy(player => player.PlayerIndex))
             {
-                var playerInput = PlayerInput.all[i];
-
                 if (spawnPoints.Length > 0)
                 {
-                    var spawn = spawnPoints[i % spawnPoints.Length];
-                    var characterController = playerInput.GetComponent<CharacterController>();
+                    var spawn = spawnPoints[spawnIndex % spawnPoints.Length];
+                    var characterController = player.GetComponent<CharacterController>();
                     if (characterController) characterController.enabled = false;
-                    playerInput.transform.SetPositionAndRotation(spawn.position, spawn.rotation);
+                    player.transform.SetPositionAndRotation(spawn.position, spawn.rotation);
                     if (characterController) characterController.enabled = true;
                 }
 
-                playerInput.ActivateInput();
-                if (playerInput.TryGetComponent(out Player player)) player.enabled = true;
+                player.GetComponent<PlayerInput>().ActivateInput();
+                player.enabled = true;
+                spawnIndex++;
             }
         }
 
@@ -256,9 +246,9 @@ namespace Game50033
 
             _lastHealth.Clear();
             _startingPlayers = 0;
-            foreach (var playerInput in PlayerInput.all)
+            foreach (var player in Players)
             {
-                if (!playerInput.TryGetComponent(out Player player)) continue;
+                if (player == null) continue;
                 _startingPlayers++;
                 _lastHealth[player] = player.Health.CurrentHealth;
             }
@@ -301,9 +291,8 @@ namespace Game50033
             var seconds = Mathf.Max(0f, FightTime);
             text.Append($"Time  {(int)(seconds / 60f)}:{(int)(seconds % 60f):00}");
 
-            foreach (var playerInput in PlayerInput.all)
+            foreach (var player in Players.Where(player => player != null).OrderBy(player => player.PlayerIndex))
             {
-                if (!playerInput.TryGetComponent(out Player player)) continue;
                 var name = player.Character != null ? player.Character.DisplayName : $"Player {player.PlayerIndex + 1}";
                 var colour = ColorUtility.ToHtmlStringRGB(player.PlayerColor);
                 text.Append($"\n<color=#{colour}>P{player.PlayerIndex + 1} {name}</color>  {Mathf.RoundToInt(DamageDealtBy(player))} damage");
