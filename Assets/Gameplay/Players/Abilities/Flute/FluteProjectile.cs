@@ -50,6 +50,9 @@ namespace Game50033
         private float _visualFlow;
         private float _resonanceFlashUntil = float.NegativeInfinity;
         private bool _secondaryFlowRewarded;
+        private FluteProjectile _replayPrefab;
+        private ProjectileReplay _replay;
+        private float _visualCharge;
 
         internal bool TryClaimSecondaryFlowReward()
         {
@@ -63,24 +66,24 @@ namespace Game50033
         public ResonatingAttack ResonatingAttack => GetComponent<ResonatingAttack>();
         public float MaximumTravelDistance => Mathf.Min(Range, Speed * Lifetime);
 
-        private float Speed => kind switch
+        private float Speed => _replay?.Speed ?? (kind switch
         {
             Kind.Primary => tuning.primary.speed,
             Kind.Charged => tuning.special.speed,
             _ => tuning.secondary.speed
-        };
-        private float Range => kind switch
+        });
+        private float Range => _replay?.Distance ?? (kind switch
         {
             Kind.Primary => tuning.primary.range,
             Kind.Charged => tuning.special.range,
             _ => tuning.secondary.range
-        };
-        private float Lifetime => kind switch
+        });
+        private float Lifetime => _replay?.Lifetime ?? (kind switch
         {
             Kind.Primary => tuning.primary.lifetime,
             Kind.Charged => tuning.special.lifetime,
             _ => tuning.secondary.lifetime
-        };
+        });
 
         public bool IsConfigured
         {
@@ -189,14 +192,16 @@ namespace Game50033
             _homingTarget = target;
         }
 
-        public void InitializeSecondary(Player source, Vector3 direction, float damage)
+        public void InitializeSecondary(Player source, Vector3 direction, float damage, FluteProjectile replayPrefab = null)
         {
+            _replayPrefab = replayPrefab;
             Initialize(source, direction, damage, true);
         }
 
         public void InitializeCharged(Player source, Vector3 direction, float damage, bool canResonate,
-            Reverberation reverberationPrefab, float reverberationStrength)
+            Reverberation reverberationPrefab, float reverberationStrength, FluteProjectile replayPrefab = null)
         {
+            _replayPrefab = replayPrefab;
             Initialize(source, direction, damage, canResonate);
             _reverberationPrefab = reverberationPrefab;
             _revStrength = reverberationStrength;
@@ -216,8 +221,10 @@ namespace Game50033
             _direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.forward;
             _damage = Mathf.Max(0f, damage);
             _expiresAt = Time.time + Lifetime;
+            if (_replay != null) collisionMask = _replay.Mask;
             _resonatingAttack.Initialize(source, collisionMask);
             _resonatingAttack.enabled = canResonate;
+            if (canResonate && _replayPrefab != null) _resonatingAttack.CaptureProjectileReplay = CaptureReplay;
             _visualStartedAt = Time.time;
             var flow = source.GetComponent<FluteFlow>();
             _visualFlow = flow != null ? flow.Normalized : 0f;
@@ -229,6 +236,7 @@ namespace Game50033
 
         public void SetChargePresentation(float charge)
         {
+            _visualCharge = charge;
             _bigHit = charge >= 1f;
             _presentationScale = Mathf.Lerp(1f, tuning.visuals.chargedScale, Mathf.SmoothStep(0f, 1f, charge));
             _flightColor = Color.Lerp(tuning.visuals.color, tuning.visuals.fullChargeColor, charge);
@@ -395,7 +403,7 @@ namespace Game50033
                 _pulseTarget = target;
                 _pulseReceiver = component;
                 _contactOffset = component.transform.InverseTransformPoint(transform.position);
-                _pulsesRemaining = Mathf.Clamp(tuning.secondary.pulseCount, 1, 8);
+                _pulsesRemaining = Mathf.Clamp(_replay?.PulseCount ?? tuning.secondary.pulseCount, 1, 8);
                 _pulseDamage = damage / _pulsesRemaining;
                 _damageRemaining = damage;
                 StopCollisions();
@@ -434,7 +442,7 @@ namespace Game50033
             var damage = _pulsesRemaining == 1 ? _damageRemaining : _pulseDamage;
             _damageRemaining -= damage;
             _pulsesRemaining--;
-            _nextPulseAt = Time.time + tuning.secondary.pulseSpacing;
+            _nextPulseAt = Time.time + (_replay?.PulseSpacing ?? tuning.secondary.pulseSpacing);
             _pulseTarget.TakeHit(new HitInfo(_source.gameObject, damage, _direction));
             PlayHit(transform.position, damage);
             if (_pulsesRemaining == 0)
@@ -553,6 +561,51 @@ namespace Game50033
             {
                 var reverberation = Instantiate(_reverberationPrefab, transform.position, Quaternion.identity);
                 reverberation.Initialize(_source, _revStrength);
+            }
+        }
+
+        private IAttackReplay CaptureReplay(Vector3 contact)
+        {
+            var distance = Range - _travelled - Mathf.Max(0f, Vector3.Dot(contact - _previousPosition, _direction));
+            var remainingTime = _expiresAt - Time.time;
+            return distance > 0f && remainingTime > 0f ? new ProjectileReplay(this, contact, distance, remainingTime) : null;
+        }
+
+        private sealed class ProjectileReplay : IAttackReplay
+        {
+            private readonly FluteProjectile _prefab;
+            private readonly Player _owner;
+            private readonly Vector3 _origin, _direction;
+            private readonly float _damage, _radius, _charge;
+            public readonly float Speed, Distance, Lifetime, PulseSpacing;
+            public readonly int PulseCount;
+            public readonly LayerMask Mask;
+
+            public ProjectileReplay(FluteProjectile shot, Vector3 origin, float distance, float lifetime)
+            {
+                _prefab = shot._replayPrefab;
+                _owner = shot._source;
+                _origin = origin;
+                _direction = shot._direction;
+                _damage = shot._damage;
+                _radius = shot._hitVolume.radius;
+                _charge = shot._visualCharge;
+                Speed = shot.Speed;
+                Distance = distance;
+                Lifetime = lifetime;
+                Mask = shot.collisionMask;
+                PulseCount = shot.tuning.secondary.pulseCount;
+                PulseSpacing = shot.tuning.secondary.pulseSpacing;
+            }
+
+            public void Replay(float damageMultiplier)
+            {
+                if (_owner == null || _prefab == null) return;
+                var shot = Instantiate(_prefab, _origin, Quaternion.LookRotation(_direction, Vector3.up));
+                shot._replay = this;
+                shot._hitVolume.radius = _radius;
+                shot.Initialize(_owner, _direction, _damage * damageMultiplier, false);
+                if (shot.kind == Kind.Charged) shot.SetChargePresentation(_charge);
             }
         }
 

@@ -167,6 +167,7 @@ namespace Game50033
             public float anticipationAngle = 22f;
             [Min(0.01f)] public float windupScale = 0.9f;
             [Min(0.01f)] public float swingScale = 1.05f;
+            public Reverberation encoreReverberation;
 
             [Header("Invulnerability Flash")]
             [Min(0.1f)] public float flashFrequency = 8f;

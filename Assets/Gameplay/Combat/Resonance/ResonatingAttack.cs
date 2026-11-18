@@ -17,6 +17,9 @@ namespace Game50033
         public Player SourcePlayer { get; private set; }
         public Collider HitVolume => hitVolume;
         internal float DamageMultiplier { get; private set; } = 1f;
+        internal IAttackReplay AreaReplay { private get; set; }
+        internal Func<Vector3, IAttackReplay> CaptureProjectileReplay { private get; set; }
+        internal IAttackReplay CaptureReplay(Vector3 contact) => AreaReplay ?? CaptureProjectileReplay?.Invoke(contact);
         public bool IsReady =>
             SourcePlayer != null && isActiveAndEnabled
             && (_areaActive || hitVolume != null && hitVolume.gameObject == gameObject && hitVolume.enabled);
@@ -81,6 +84,7 @@ namespace Game50033
         internal void EndArea()
         {
             _areaActive = false;
+            AreaReplay = null;
             SourcePlayer = null;
         }
 

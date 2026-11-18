@@ -242,7 +242,8 @@ namespace Game50033
                     direction = offset.normalized;
                 }
             }
-            Spawn(secondaryProjectilePrefab, position, direction).InitializeSecondary(Player, direction, tuning.secondary.damage);
+            Spawn(secondaryProjectilePrefab, position, direction).InitializeSecondary(Player, direction, tuning.secondary.damage,
+                secondaryProjectilePrefab);
             _secondaryReadyAt = IgnoreCooldowns ? 0f : Time.time + tuning.secondary.cooldown;
             BeginAction(Action.Secondary, direction, tuning.secondary.activeTime, tuning.secondary.recovery);
             return true;
@@ -285,7 +286,8 @@ namespace Game50033
             var canResonate = charge >= 1f && flow.TryConsume(settings.flowCost);
             projectile.InitializeCharged(Player, direction,
                 Mathf.Lerp(settings.minimumDamage, settings.maximumDamage, charge), canResonate,
-                specialReverberationPrefab, Mathf.Lerp(settings.minimumRevStrength, settings.maximumRevStrength, charge));
+                specialReverberationPrefab, Mathf.Lerp(settings.minimumRevStrength, settings.maximumRevStrength, charge),
+                chargedProjectilePrefab);
             projectile.SetChargePresentation(charge);
             _specialReadyAt = IgnoreCooldowns ? 0f : Time.time + settings.cooldown;
             BeginAction(Action.Release, direction, settings.activeTime, settings.recovery);

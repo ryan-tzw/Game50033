@@ -100,7 +100,7 @@ namespace Game50033
             var direction = GetDirection(primaryProjectilePrefab);
             var projectile = Instantiate(primaryProjectilePrefab, ProjectilePosition, Quaternion.LookRotation(direction));
             var damage = Mathf.Lerp(tuning.primary.minimumDamage, tuning.primary.maximumDamage, pressure);
-            projectile.InitializePrimary(Player, direction, damage, _primaryResonates);
+            projectile.InitializePrimary(Player, direction, damage, _primaryResonates, primaryProjectilePrefab);
             _primaryResonates = false;
             var cooldown = Mathf.Lerp(tuning.primary.cooldown,
                 Mathf.Min(tuning.primary.cooldown, tuning.primary.maximumPressureCooldown), pressure);

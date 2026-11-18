@@ -806,9 +806,9 @@ namespace Game50033
             Physics.SyncTransforms();
             try
             {
-                var center = _crashTip + _crashDirection * (settings.length * 0.5f) + Vector3.up * (combo.hitColumnHeight * 0.5f);
-                var extents = new Vector3(settings.width * 0.5f, combo.hitColumnHeight * 0.5f, settings.length * 0.5f);
-                var count = Physics.OverlapBoxNonAlloc(center, extents, _crashBuffer, rotation, Physics.AllLayers, QueryTriggerInteraction.Collide);
+                var crash = new CymbalsCrash(Player, _crashCollider, _crashTip, _crashDirection, rotation, settings, combo);
+                var count = crash.Collect(_crashBuffer);
+                crashVolume.AreaReplay = crash;
 
                 // resonance uses the same ground triangle as the crash waves.
                 settings.GetTriangle(_crashTip, _crashDirection, out var left, out var right);
@@ -820,55 +820,13 @@ namespace Game50033
                     if (!isActiveAndEnabled || Player.Health.IsDowned) return;
                 }
 
-                // amp has already modified this crash before any direct damage is applied.
-                var damage = settings.damage * crashVolume.DamageMultiplier;
-                for (var i = 0; i < count; i++)
-                {
-                    var candidate = _crashBuffer[i];
-                    if (candidate == null || candidate.isTrigger || !candidate.enabled
-                        || (combo.hitMask.value & (1 << candidate.gameObject.layer)) == 0
-                        || candidate.GetComponentInParent<Player>() != null) continue;
-                    var target = candidate.GetComponentInParent<IHittable>();
-                    if (target == null || _hitThisCrash.Contains(target)
-                        || target is Behaviour behaviour && !behaviour.isActiveAndEnabled) continue;
-                    if (!OverlapsCrash(candidate, rotation)) continue;
-
-                    _hitThisCrash.Add(target);
-                    target.TakeHit(new HitInfo(gameObject, damage, _crashDirection));
-                    if (!isActiveAndEnabled || Player.Health.IsDowned) return;
-                    if (combo.hitEffect != null)
-                        combo.hitEffect.Play(new HitEffectRequest(
-                            ContactPoint(candidate, _crashTip + _crashDirection * (settings.length * 0.4f)),
-                            _crashDirection, damage, true));
-                }
+                crash.Resolve(crashVolume.DamageMultiplier, _crashBuffer, count, _hitThisCrash, this);
             }
             finally
             {
+                crashVolume.AreaReplay = null;
                 if (_crashCollider != null) _crashCollider.enabled = false;
             }
-        }
-
-        private bool OverlapsCrash(Collider candidate, Quaternion rotation)
-        {
-            // non-convex meshes cannot be tested exactly; fall back to their centre inside the triangle.
-            if (candidate is MeshCollider { convex: false })
-            {
-                tuning.crash.GetTriangle(_crashTip, _crashDirection, out var left, out var right);
-                return InsideTriangle(candidate.bounds.center, _crashTip, left, right);
-            }
-            return Physics.ComputePenetration(_crashCollider, _crashTip, rotation,
-                candidate, candidate.transform.position, candidate.transform.rotation, out _, out _);
-        }
-
-        private static bool InsideTriangle(Vector3 point, Vector3 a, Vector3 b, Vector3 c)
-        {
-            static float Side(Vector3 p, Vector3 from, Vector3 to) => (to.x - from.x) * (p.z - from.z) - (to.z - from.z) * (p.x - from.x);
-            var d1 = Side(point, a, b);
-            var d2 = Side(point, b, c);
-            var d3 = Side(point, c, a);
-            var negative = d1 < 0f || d2 < 0f || d3 < 0f;
-            var positive = d1 > 0f || d2 > 0f || d3 > 0f;
-            return !(negative && positive);
         }
 
         // a triangular prism in the volume's local space: tip at the origin, opening along +Z, from the feet up.

@@ -28,8 +28,10 @@ namespace Game50033
         private float _expiresAt;
         private Reverberation _reverberationPrefab;
         private float _reverberationStrength;
-        private SpecialReplay _specialReplay;
+        private ProjectileReplay _specialReplay;
         private FlightSettings? _replayFlight;
+        private TromboneProjectile _replayPrefab;
+        private Vector3 _stepOrigin;
         private bool _finished;
         public float MaximumTravelDistance => Mathf.Min(maximumDistance, speed * lifetime);
         public LayerMask CollisionMask => collisionMask;
@@ -92,6 +94,7 @@ namespace Game50033
             }
 
             _sourcePlayer = source;
+            _stepOrigin = transform.position;
             _flightDirection = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.forward;
             _damage = Mathf.Max(0f, damage);
             _hitVolume.radius = Mathf.Max(0.01f, _replayFlight?.Radius ?? Settings.radius);
@@ -100,9 +103,12 @@ namespace Game50033
             _resonatingAttack.enabled = canResonate;
         }
 
-        public void InitializePrimary(Player source, Vector3 direction, float damage, bool canResonate)
+        public void InitializePrimary(Player source, Vector3 direction, float damage, bool canResonate,
+            TromboneProjectile replayPrefab = null)
         {
             Initialize(source, direction, damage, canResonate);
+            _replayPrefab = replayPrefab;
+            if (canResonate && replayPrefab != null) _resonatingAttack.CaptureProjectileReplay = CaptureReplay;
         }
         public void InitializeSpecial(Player source, Vector3 direction, float damage, Reverberation reverberationPrefab,
             float reverberationStrength, TromboneProjectile replayPrefab = null)
@@ -116,7 +122,7 @@ namespace Game50033
             _reverberationPrefab = reverberationPrefab;
             _reverberationStrength = reverberationStrength;
             if (replayPrefab != null)
-                _specialReplay = new SpecialReplay(replayPrefab, source, transform.position, _flightDirection, _damage,
+                _specialReplay = new ProjectileReplay(replayPrefab, source, transform.position, _flightDirection, _damage,
                     new FlightSettings(Settings));
         }
         private void FixedUpdate()
@@ -140,6 +146,7 @@ namespace Game50033
             }
 
             var start = _rigidbody.position;
+            _stepOrigin = start;
             var scale = transform.lossyScale;
             var radius = _hitVolume.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
 
@@ -274,22 +281,32 @@ namespace Game50033
             }
         }
 
+        private IAttackReplay CaptureReplay(Vector3 contact)
+        {
+            var distance = maximumDistance - _distanceTravelled - Mathf.Max(0f, Vector3.Dot(contact - _stepOrigin, _flightDirection));
+            var remainingTime = _expiresAt - Time.time;
+            return distance > 0f && remainingTime > 0f
+                ? new ProjectileReplay(_replayPrefab, _sourcePlayer, contact, _flightDirection, _damage,
+                    new FlightSettings(Settings, distance, remainingTime))
+                : null;
+        }
+
         private readonly struct FlightSettings
         {
             public readonly float Speed, Distance, Lifetime, Radius;
             public readonly LayerMask Mask;
 
-            public FlightSettings(TromboneTuning.ProjectileSettings settings)
+            public FlightSettings(TromboneTuning.ProjectileSettings settings, float? distance = null, float? lifetime = null)
             {
                 Speed = settings.speed;
-                Distance = settings.maximumDistance;
-                Lifetime = settings.lifetime;
+                Distance = distance ?? settings.maximumDistance;
+                Lifetime = lifetime ?? settings.lifetime;
                 Radius = settings.radius;
                 Mask = settings.collisionMask;
             }
         }
 
-        private sealed class SpecialReplay : IAttackReplay
+        private sealed class ProjectileReplay : IAttackReplay
         {
             private readonly TromboneProjectile _prefab;
             private readonly Player _owner;
@@ -298,7 +315,7 @@ namespace Game50033
             private readonly float _damage;
             private readonly FlightSettings _flight;
 
-            public SpecialReplay(TromboneProjectile prefab, Player owner, Vector3 origin, Vector3 direction, float damage, FlightSettings flight)
+            public ProjectileReplay(TromboneProjectile prefab, Player owner, Vector3 origin, Vector3 direction, float damage, FlightSettings flight)
             {
                 _prefab = prefab;
                 _owner = owner;

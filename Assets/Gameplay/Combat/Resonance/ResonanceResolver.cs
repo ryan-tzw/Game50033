@@ -13,8 +13,9 @@ namespace Game50033
         public readonly ResonatingAttack Attack;
         public readonly float Strength;
         public readonly Vector3 Position;
+        public readonly Vector3 AttackContact;
 
-        internal ResonanceActivation(Reverberation reverberation, ResonatingAttack attack)
+        internal ResonanceActivation(Reverberation reverberation, ResonatingAttack attack, Vector3 attackContact)
         {
             Reverberation = reverberation;
             Effect = reverberation.Effect;
@@ -23,6 +24,7 @@ namespace Game50033
             Attack = attack;
             Strength = reverberation.Strength;
             Position = reverberation.Volume.transform.TransformPoint(reverberation.Volume.center);
+            AttackContact = attackContact;
         }
     }
 
@@ -43,7 +45,7 @@ namespace Game50033
             var scale = sphere.transform.lossyScale;
             var radius = sphere.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
             return ReverberationOverlap.OverlapsSweep(reverberation, center, center, radius, Camera.main)
-                && Consume(reverberation, attack);
+                && Consume(reverberation, attack, center);
         }
 
         internal static void ActivateAlongSweep(ResonatingAttack attack, Vector3 start, Vector3 end, float radius)
@@ -55,6 +57,7 @@ namespace Game50033
             {
                 Reverberation first = null;
                 var firstFraction = 1f;
+                var entryMeasured = false;
                 for (var i = 0; i < fields.Count; i++)
                 {
                     var field = fields[i];
@@ -63,7 +66,11 @@ namespace Game50033
                         continue;
 
                     // only measure the entry when more than one field lies on this step.
-                    if (first != null) firstFraction = Mathf.Min(firstFraction, EntryFraction(first, firstFraction));
+                    if (first != null && !entryMeasured)
+                    {
+                        firstFraction = EntryFraction(first, firstFraction);
+                        entryMeasured = true;
+                    }
                     var fraction = first == null ? firstFraction : EntryFraction(field, firstFraction);
                     if (first == null || fraction < firstFraction)
                     {
@@ -71,7 +78,9 @@ namespace Game50033
                         firstFraction = fraction;
                     }
                 }
-                if (first == null || !Consume(first, attack)) return;
+                if (first == null) return;
+                if (!entryMeasured) firstFraction = EntryFraction(first, firstFraction);
+                if (!Consume(first, attack, Vector3.Lerp(start, end, firstFraction))) return;
             }
 
             float EntryFraction(Reverberation field, float limit)
@@ -94,7 +103,7 @@ namespace Game50033
             Vector3 tip, Vector3 left, Vector3 right, Camera camera)
         {
             return CanActivate(field, attack) && ReverberationOverlap.OverlapsTriangle(field, tip, left, right, camera)
-                && Consume(field, attack);
+                && Consume(field, attack, tip);
         }
 
         internal static void ActivateInGroundCircle(ResonatingAttack attack, Vector3 centre, float radius)
@@ -107,7 +116,7 @@ namespace Game50033
             foreach (var field in fields)
             {
                 if (CanActivate(field, attack) && ReverberationOverlap.OverlapsGroundCircle(field, centre, radius))
-                    Consume(field, attack);
+                    Consume(field, attack, centre);
             }
         }
 
@@ -118,9 +127,9 @@ namespace Game50033
                 && attack.CanHit(reverberation.Volume);
         }
 
-        private static bool Consume(Reverberation reverberation, ResonatingAttack attack)
+        private static bool Consume(Reverberation reverberation, ResonatingAttack attack, Vector3 attackContact)
         {
-            var activation = new ResonanceActivation(reverberation, attack);
+            var activation = new ResonanceActivation(reverberation, attack, attackContact);
             if (!reverberation.TryConsume())
             {
                 return false;

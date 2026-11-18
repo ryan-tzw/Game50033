@@ -471,6 +471,7 @@ namespace Game50033
                 if (smashResonance != null)
                 {
                     smashResonance.BeginArea(Player, special.hitMask);
+                    smashResonance.AreaReplay = smash;
                     try
                     {
                         ResonanceResolver.ActivateInGroundCircle(smashResonance, centre, _specialRadius);
@@ -591,6 +592,21 @@ namespace Game50033
             BlocksAbilities = true;
             Player.Health.GrantAbilityInvulnerability(_swing.windup + _swing.active);
             if (vfx != null) vfx.SetDefensiveFlash(true);
+            if (defensive.encoreReverberation != null)
+            {
+                var field = Instantiate(defensive.encoreReverberation,
+                    transform.position + Vector3.up * defensive.attackHeight, Quaternion.identity);
+                field.Initialize(Player, 1f, new ReverberationFieldShape
+                {
+                    kind = ReverberationFieldShapeKind.AnnularSector,
+                    direction = new Vector2(_direction.x, _direction.z),
+                    innerRadius = defensive.innerRadius,
+                    outerRadius = _swingReach,
+                    sweepAngle = _swing.angle,
+                    stretchAxis = new Vector2(_swingStretchAxis.x, _swingStretchAxis.z),
+                    stretchFactor = _swingDepthStretch
+                });
+            }
             return true;
         }
         public override bool TryUseSpecial()
