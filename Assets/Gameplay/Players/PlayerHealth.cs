@@ -77,6 +77,7 @@ namespace Game50033
 
         public bool TryTakeDamage(int damage)
         {
+            Debug.Log($"TakeDamage: movement={(_movement != null)}, dodgeInvulnerable={(_movement != null && _movement.IsInvulnerable)}, healthInvulnerable={IsInvulnerable}", this);
             if (damage > 0 && !IsDowned && AbilityInvulnerabilityRemaining > 0f
                 && RevivalImmunityRemaining <= 0f && (_movement == null || !_movement.IsInvulnerable)
                 && !(_player != null && _player.Session != null && _player.Session.Debug.Invincibility))

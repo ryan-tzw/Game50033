@@ -240,7 +240,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerMovement
   moveSpeed: 3
   dodgeDistance: 2
-  dodgeDuration: 0.4
+  dodgeDuration: 0.3
   maxDodgeCharges: 2
   dodgeTuning: {fileID: 11400000, guid: d473bfd3cc677322896b629a1275ce92, type: 2}
   dodgeRechargeTime: 7

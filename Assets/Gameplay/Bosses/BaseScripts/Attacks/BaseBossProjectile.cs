@@ -6,6 +6,7 @@ namespace Game50033
     using UnityEngine;
     using UnityEngine.AI;
     using UnityEngine.UIElements;
+    using static Game50033.CymbalsTuning;
 
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(Collider))]
@@ -103,7 +104,8 @@ namespace Game50033
         {
             if (other.TryGetComponent(out Player player))
             {
-                player.Health.TryTakeDamage(1);
+                bool hit = player.Health.TryTakeDamage(1);
+                if (!hit) return;
                 Debug.Log("Player damaged");
 
                 if (!_piercing) DestroyProjectile();
