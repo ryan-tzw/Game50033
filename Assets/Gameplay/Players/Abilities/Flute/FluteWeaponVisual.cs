@@ -14,11 +14,12 @@ namespace Game50033
         private Player _player;
         private FluteAbilities _abilities;
         private FluteFlow _flow;
-        private Transform _root;
-        private Transform _weapon;
-        private SpriteRenderer _tube;
-        private Sprite _placeholder;
-        private TrailRenderer _trail;
+        [SerializeField] private Transform _root;
+        [SerializeField] private Transform _weapon;
+        [SerializeField] private SpriteRenderer _tube;
+        [SerializeField] private TrailRenderer _trail;
+        [SerializeField] private Transform abilityCue;
+        [SerializeField] private Transform flowNotes;
         private LineRenderer _flowTrack;
         private LineRenderer _flowFill;
         private LineRenderer _flowCost;
@@ -66,9 +67,10 @@ namespace Game50033
             _abilities = GetComponent<FluteAbilities>();
             _flow = GetComponent<FluteFlow>();
             if (tuning == null || tuning.visuals.material == null || tuning.visuals.weaponMaterial == null
-                || tuning.visuals.noteMaterial == null)
+                || tuning.visuals.noteMaterial == null || _root == null || _weapon == null
+                || _tube == null || _tube.sprite == null || _trail == null || abilityCue == null || flowNotes == null)
             {
-                Debug.LogError("FluteWeaponVisual requires Flute tuning and a sprite/trail material.", this);
+                Debug.LogError("FluteWeaponVisual requires Flute tuning and its authored weapon, trail, cue and note references.", this);
                 enabled = false;
                 return;
             }
@@ -79,46 +81,11 @@ namespace Game50033
         {
             var settings = tuning.visuals;
 
-            _root = new GameObject("Flute presentation").transform;
-            _root.SetParent(transform, false);
+            // The prefab owns the artwork and renderer; tuning only sizes and animates it.
+            var bounds = _tube.sprite.bounds.size;
+            _tube.transform.localScale = new Vector3(settings.weaponSize.x / Mathf.Max(0.001f, bounds.x),
+                settings.weaponSize.y / Mathf.Max(0.001f, bounds.y), 1f);
 
-            _weapon = new GameObject("Floating flute").transform;
-            _weapon.SetParent(_root, false);
-
-            _placeholder = Sprite.Create(Texture2D.whiteTexture, new Rect(0f, 0f, 2f, 2f),
-                new Vector2(0.5f, 0.5f), 2f, 0, SpriteMeshType.FullRect);
-            _placeholder.name = "Replaceable flute placeholder";
-
-            _tube = CreateSprite("Flute", Vector3.zero, settings.weaponSize, Color.white);
-
-            if (settings.weaponSprite != null)
-            {
-                _tube.sprite = settings.weaponSprite;
-
-                var bounds = settings.weaponSprite.bounds.size;
-
-                _tube.transform.localScale = new Vector3(settings.weaponSize.x / Mathf.Max(0.001f, bounds.x),
-                    settings.weaponSize.y / Mathf.Max(0.001f, bounds.y), 1f);
-            }
-            else
-            {
-                // Keep the placeholder recognisable without importing another art dependency.
-                CreateSprite("Mouthpiece", new Vector3(-settings.weaponSize.x * 0.35f, 0f, -0.001f),
-                    new Vector2(0.07f, settings.weaponSize.y * 1.3f), settings.fullChargeColor);
-                for (var index = 0; index < 4; index++)
-                {
-                    CreateSprite("Tone hole", new Vector3(-0.04f + index * 0.065f, 0f, -0.002f),
-                        new Vector2(0.015f, settings.weaponSize.y * 0.6f), new Color(0.1f, 0.35f, 0.3f));
-                }
-            }
-
-            var tip = new GameObject("Flute ribbon");
-            tip.transform.SetParent(_weapon, false);
-            tip.transform.localPosition = Vector3.right * settings.weaponSize.x * 0.5f;
-            tip.layer = LayerMask.NameToLayer("WeaponVisual");
-
-            _trail = tip.AddComponent<TrailRenderer>();
-            _trail.sharedMaterial = settings.material;
             _trail.time = settings.trailDuration;
             _trail.startWidth = 0.045f;
             _trail.endWidth = 0f;
@@ -128,14 +95,19 @@ namespace Game50033
             _trail.shadowCastingMode = ShadowCastingMode.Off;
             _trail.emitting = false;
 
-            _flowTrack = CreateLine(_root, "FLOW capacity", settings.material, 0.018f);
-            _flowFill = CreateLine(_root, "FLOW", settings.material, 0.03f);
-            _flowCost = CreateLine(_root, "Special cost", settings.material, 0.035f);
-            _chargeRing = CreateLine(_root, "Charge", settings.material, 0.035f);
-            _chargeProgress = CreateLine(_root, "Charge progress", settings.material, 0.02f);
-            _evasionRing = CreateLine(_root, "Evasive state", settings.material, 0.045f);
+            _flowTrack = CreateLine(abilityCue, "FLOW capacity", settings.material, 0.018f);
+            _flowFill = CreateLine(abilityCue, "FLOW", settings.material, 0.03f);
+            _flowCost = CreateLine(abilityCue, "Special cost", settings.material, 0.035f);
+            _chargeRing = CreateLine(abilityCue, "Charge", settings.material, 0.035f);
+            _chargeProgress = CreateLine(abilityCue, "Charge progress", settings.material, 0.02f);
+            _evasionRing = CreateLine(abilityCue, "Evasive state", settings.material, 0.045f);
 
             WarmMelody();
+            // Follow the authored render layer; layer names can differ from the renderer masks.
+            foreach (var renderer in _root.GetComponentsInChildren<Renderer>(true))
+            {
+                renderer.gameObject.layer = _tube.gameObject.layer;
+            }
             _root.gameObject.SetActive(false);
         }
 
@@ -161,7 +133,7 @@ namespace Game50033
                 _notes[index].Renderer = CreateNoteRenderer("Melody note");
             }
 
-            _melodyRibbon = CreateLine(_root, "High Flow melody", tuning.visuals.material, 0.012f);
+            _melodyRibbon = CreateLine(flowNotes, "High Flow melody", tuning.visuals.material, 0.012f);
             _melodyRibbon.positionCount = 25;
             _melodyRibbon.enabled = false;
 
@@ -178,7 +150,7 @@ namespace Game50033
         private SpriteRenderer CreateNoteRenderer(string objectName)
         {
             var child = new GameObject(objectName);
-            child.transform.SetParent(_root, false);
+            child.transform.SetParent(flowNotes, false);
             // Keep notes in the same visible front pass as the weapon.
             child.layer = LayerMask.NameToLayer("WeaponVisual");
             var renderer = child.AddComponent<SpriteRenderer>();
@@ -186,25 +158,6 @@ namespace Game50033
             renderer.sharedMaterial = tuning.visuals.noteMaterial;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             renderer.enabled = false;
-            return renderer;
-        }
-
-        private SpriteRenderer CreateSprite(string objectName, Vector3 position, Vector2 size, Color color)
-        {
-            var child = new GameObject(objectName);
-
-            child.transform.SetParent(_weapon, false);
-            child.transform.localPosition = position;
-            child.transform.localScale = new Vector3(size.x, size.y, 1f);
-            child.layer = LayerMask.NameToLayer("WeaponVisual");
-
-            var renderer = child.AddComponent<SpriteRenderer>();
-
-            renderer.sprite = _placeholder;
-            renderer.sharedMaterial = tuning.visuals.weaponMaterial;
-            renderer.color = color;
-            renderer.shadowCastingMode = ShadowCastingMode.Off;
-
             return renderer;
         }
 
@@ -677,14 +630,6 @@ namespace Game50033
             if (_root != null)
             {
                 _root.gameObject.SetActive(false);
-            }
-        }
-
-        private void OnDestroy()
-        {
-            if (_placeholder != null)
-            {
-                Destroy(_placeholder);
             }
         }
 

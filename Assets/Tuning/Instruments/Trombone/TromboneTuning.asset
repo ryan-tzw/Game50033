@@ -15,6 +15,7 @@ MonoBehaviour:
   actionDuration: 0.25
   primary:
     cooldown: 0.5
+    maximumPressureCooldown: 0.5
     minimumDamage: 1
     maximumDamage: 5
     projectile:
