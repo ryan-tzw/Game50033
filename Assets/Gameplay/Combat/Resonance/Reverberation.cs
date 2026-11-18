@@ -1,6 +1,8 @@
 namespace Game50033
 {
     using System;
+    using System.Collections.Generic;
+    using Game50033.Examples;
     using UnityEngine;
 
     [DisallowMultipleComponent]
@@ -9,10 +11,13 @@ namespace Game50033
     {
         [SerializeField, Min(0.01f)] private float lifetime = 2f;
         [SerializeField] private ReverberationEffect effect;
-        [Tooltip("Optional child GameObject shown only while this Reverberation is available.")]
-        [SerializeField] private GameObject visualRoot;
+        [SerializeField] private ReverberationEnergyField energyFieldPrefab;
+
+        private static readonly List<Reverberation> _active = new();
+        internal static IReadOnlyList<Reverberation> Active => _active;
 
         private SphereCollider _volume;
+        private ReverberationEnergyField _energyField;
         private float _expiresAt;
         private bool _consumed;
 
@@ -41,6 +46,10 @@ namespace Game50033
         }
 
         internal SphereCollider Volume => _volume;
+        internal Vector3 GroundOrigin { get; private set; }
+        internal Vector3 GroundAimPoint { get; private set; }
+        internal Vector3[] FootprintEdges { get; private set; }
+        internal float FootprintRadius { get; private set; }
 
         private void Awake()
         {
@@ -49,21 +58,28 @@ namespace Game50033
             {
                 _expiresAt = Time.time + Mathf.Max(0.01f, lifetime);
             }
-
-            SetVisualActive(false);
         }
 
         private void OnEnable()
         {
-            SetVisualActive(IsAvailable);
+            if (!IsAvailable) return;
+            _active.Add(this);
+            SetVisualActive(true);
         }
 
         private void OnDisable()
         {
+            _active.Remove(this);
             SetVisualActive(false);
         }
 
         public void Initialize(Player creator, float strength = 1f)
+        {
+            Initialize(creator, strength, null);
+        }
+
+        /// <summary>Supplies a footprint in world-aligned XZ units relative to the grounded spawn centre.</summary>
+        public void Initialize(Player creator, float strength, ReverberationFieldShape? footprint)
         {
             if (creator == null)
             {
@@ -87,9 +103,37 @@ namespace Game50033
             }
 
             ConfigurePhysics();
+            var scale = _volume.transform.lossyScale;
+            var radius = _volume.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
+            var shape = footprint ?? new ReverberationFieldShape
+            {
+                kind = ReverberationFieldShapeKind.Circle,
+                outerRadius = radius,
+                stretchFactor = 1f
+            };
+            if (shape.kind != ReverberationFieldShapeKind.Circle && shape.kind != ReverberationFieldShapeKind.AnnularSector)
+                throw new ArgumentException("A gameplay REV needs a circle or annular-sector footprint.", nameof(footprint));
+
+            var ground = _volume.transform.TransformPoint(_volume.center);
+            ground.y = 0f;
+            GroundOrigin = ground + new Vector3(shape.origin.x, 0f, shape.origin.y);
+            FootprintEdges = ReverberationOverlap.BuildEdges(shape, out var reach, out var aimOffset);
+            FootprintRadius = reach;
+            GroundAimPoint = GroundOrigin + aimOffset;
+
+            if (energyFieldPrefab != null)
+            {
+                // the footprint is authored in world units even if the legacy trigger has a scaled prefab root.
+                _energyField = Instantiate(energyFieldPrefab, ground, Quaternion.identity);
+                _energyField.transform.SetParent(transform, true);
+                _energyField.SetShape(shape);
+                var color = creator.PlayerColor;
+                _energyField.ConfigureGameplayAppearance(color, Color.Lerp(Color.black, color, 0.35f), Camera.main);
+            }
             Creator = creator;
             Strength = strength;
             _expiresAt = Time.time + Mathf.Max(0.01f, lifetime);
+            if (IsAvailable) _active.Add(this);
             SetVisualActive(IsAvailable);
         }
 
@@ -122,16 +166,14 @@ namespace Game50033
             // Prevent other colliders from consuming the same REV this frame.
             _consumed = true;
             _volume.enabled = false;
+            _active.Remove(this);
             SetVisualActive(false);
             return true;
         }
 
         private void SetVisualActive(bool active)
         {
-            if (visualRoot != null && visualRoot != gameObject && visualRoot.transform.IsChildOf(transform))
-            {
-                visualRoot.SetActive(active);
-            }
+            if (_energyField != null) _energyField.gameObject.SetActive(active);
         }
     }
 }

@@ -840,12 +840,13 @@ namespace Game50033
                 var extents = new Vector3(settings.width * 0.5f, combo.hitColumnHeight * 0.5f, settings.length * 0.5f);
                 var count = Physics.OverlapBoxNonAlloc(center, extents, _crashBuffer, rotation, Physics.AllLayers, QueryTriggerInteraction.Collide);
 
-                // resonance: teammates' Reverberations inside the triangle (the resolver checks the exact overlap).
-                for (var i = 0; i < count; i++)
+                // resonance uses the same ground triangle as the crash waves.
+                settings.GetTriangle(_crashTip, _crashDirection, out var left, out var right);
+                var fields = Reverberation.Active;
+                var camera = fields.Count > 0 ? Camera.main : null;
+                for (var i = fields.Count - 1; i >= 0; i = Mathf.Min(i - 1, fields.Count - 1))
                 {
-                    var candidate = _crashBuffer[i];
-                    if (candidate != null && candidate.TryGetComponent(out Reverberation reverberation))
-                        ResonanceResolver.TryActivate(reverberation, crashVolume);
+                    ResonanceResolver.TryActivateTriangle(fields[i], crashVolume, _crashTip, left, right, camera);
                     if (!isActiveAndEnabled || Player.Health.IsDowned) return;
                 }
 

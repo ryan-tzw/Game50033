@@ -37,49 +37,74 @@ namespace Game50033
 
         public static bool TryActivate(Reverberation reverberation, ResonatingAttack attack)
         {
-            if (reverberation == null || attack == null)
+            if (!CanActivate(reverberation, attack) || attack.HitVolume is not SphereCollider sphere) return false;
+            var center = sphere.transform.TransformPoint(sphere.center);
+            var scale = sphere.transform.lossyScale;
+            var radius = sphere.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
+            return ReverberationOverlap.OverlapsSweep(reverberation, center, center, radius, Camera.main)
+                && Consume(reverberation, attack);
+        }
+
+        internal static void ActivateAlongSweep(ResonatingAttack attack, Vector3 start, Vector3 end, float radius)
+        {
+            var fields = Reverberation.Active;
+            if (fields.Count == 0 || !attack.IsReady) return;
+            var camera = Camera.main;
+            while (attack.IsReady)
             {
-                return false;
+                Reverberation first = null;
+                var firstFraction = 1f;
+                for (var i = 0; i < fields.Count; i++)
+                {
+                    var field = fields[i];
+                    if (!CanActivate(field, attack)
+                        || !ReverberationOverlap.OverlapsSweep(field, start, Vector3.Lerp(start, end, firstFraction), radius, camera))
+                        continue;
+
+                    // only measure the entry when more than one field lies on this step.
+                    if (first != null) firstFraction = Mathf.Min(firstFraction, EntryFraction(first, firstFraction));
+                    var fraction = first == null ? firstFraction : EntryFraction(field, firstFraction);
+                    if (first == null || fraction < firstFraction)
+                    {
+                        first = field;
+                        firstFraction = fraction;
+                    }
+                }
+                if (first == null || !Consume(first, attack)) return;
             }
 
-            if (!reverberation.IsAvailable || !attack.IsReady)
+            float EntryFraction(Reverberation field, float limit)
             {
-                return false;
+                if (ReverberationOverlap.OverlapsSweep(field, start, start, radius, camera)) return 0f;
+                var lower = 0f;
+                for (var i = 0; i < 10; i++)
+                {
+                    var middle = (lower + limit) * 0.5f;
+                    if (ReverberationOverlap.OverlapsSweep(field, start, Vector3.Lerp(start, end, middle), radius, camera))
+                        limit = middle;
+                    else
+                        lower = middle;
+                }
+                return limit;
             }
+        }
 
-            // Require a different player to activate the REV.
-            if (reverberation.Creator == attack.SourcePlayer)
-            {
-                return false;
-            }
+        internal static bool TryActivateTriangle(Reverberation field, ResonatingAttack attack,
+            Vector3 tip, Vector3 left, Vector3 right, Camera camera)
+        {
+            return CanActivate(field, attack) && ReverberationOverlap.OverlapsTriangle(field, tip, left, right, camera)
+                && Consume(field, attack);
+        }
 
-            if (!attack.Accepts(reverberation.Effect))
-            {
-                return false;
-            }
+        private static bool CanActivate(Reverberation reverberation, ResonatingAttack attack)
+        {
+            return reverberation != null && attack != null && reverberation.IsAvailable && attack.IsReady
+                && reverberation.Creator != attack.SourcePlayer && attack.Accepts(reverberation.Effect)
+                && attack.CanHit(reverberation.Volume);
+        }
 
-            if (!attack.CanHit(reverberation.Volume))
-            {
-                return false;
-            }
-
-            var reverberationVolume = reverberation.Volume;
-            var attackVolume = attack.HitVolume;
-
-            // Require a physical overlap even when auto-aim selected this REV.
-            if (!Physics.ComputePenetration(
-                reverberationVolume,
-                reverberationVolume.transform.position,
-                reverberationVolume.transform.rotation,
-                attackVolume,
-                attackVolume.transform.position,
-                attackVolume.transform.rotation,
-                out _,
-                out _))
-            {
-                return false;
-            }
-
+        private static bool Consume(Reverberation reverberation, ResonatingAttack attack)
+        {
             var activation = new ResonanceActivation(reverberation, attack);
             if (!reverberation.TryConsume())
             {

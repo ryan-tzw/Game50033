@@ -21,6 +21,11 @@ namespace Game50033.Examples
         private MaterialPropertyBlock _properties;
         private ReverberationEnergyFieldTuning _appliedTuning;
         private int _appliedRevision = -1;
+        private Color? _energyColor;
+        private Color? _backgroundColor;
+        private Camera _footprintCamera;
+        private Vector3 _appliedViewDirection;
+        private bool _keepBoundaryInsideFootprint;
 
         private static readonly int ColorId = Shader.PropertyToID("_EnergyColor");
         private static readonly int DensityId = Shader.PropertyToID("_Density");
@@ -57,6 +62,15 @@ namespace Game50033.Examples
             _appliedRevision = -1;
         }
 
+        public void ConfigureGameplayAppearance(Color energyColor, Color backgroundColor, Camera footprintCamera)
+        {
+            _energyColor = energyColor;
+            _backgroundColor = backgroundColor;
+            _footprintCamera = footprintCamera;
+            _keepBoundaryInsideFootprint = true;
+            _appliedRevision = -1;
+        }
+
         private void OnValidate()
         {
             _appliedRevision = -1;
@@ -67,10 +81,14 @@ namespace Game50033.Examples
             if (tuning == null || layers == null || layers.Length == 0) return;
             // legacy uses mesh UVs; procedural shapes need the shared root frame refreshed only when it changes.
             var rootMatrix = shape.kind == ReverberationFieldShapeKind.LegacyEllipse ? Matrix4x4.identity : transform.localToWorldMatrix;
-            if (_appliedTuning == tuning && _appliedRevision == tuning.Revision && _appliedRootMatrix == rootMatrix) return;
+            var viewDirection = _footprintCamera != null && _footprintCamera.orthographic
+                ? _footprintCamera.transform.forward : Vector3.zero;
+            if (_appliedTuning == tuning && _appliedRevision == tuning.Revision
+                && _appliedRootMatrix == rootMatrix && _appliedViewDirection == viewDirection) return;
             _appliedRootMatrix = rootMatrix;
             _appliedTuning = tuning;
             _appliedRevision = tuning.Revision;
+            _appliedViewDirection = viewDirection;
 
             // ==================================================
             // shared field parameters
@@ -83,7 +101,7 @@ namespace Game50033.Examples
             dimensions.z = Mathf.Max(0.01f, dimensions.z);
             // distribute the authored opacity across layers, keeping extra layers from simply becoming opaque.
             var opacity = 1f - Mathf.Pow(1f - Mathf.Clamp(tuning.opacity, 0f, 0.98f), 1f / count);
-            _properties.SetColor(ColorId, tuning.energyColor);
+            _properties.SetColor(ColorId, _energyColor ?? tuning.energyColor);
             _properties.SetFloat(DensityId, Mathf.Clamp(tuning.density, 0.1f, 3f));
             _properties.SetFloat(OpacityId, opacity);
             _properties.SetFloat(EmissionId, Mathf.Max(0f, tuning.emission));
@@ -92,14 +110,15 @@ namespace Game50033.Examples
             _properties.SetFloat(SpeedId, Mathf.Max(0f, tuning.flowSpeed));
             _properties.SetFloat(TurbulenceId, Mathf.Clamp(tuning.turbulence, 0f, 2f));
             // normalize each new component independently so its opacity does not multiply with sheet count.
-            _properties.SetColor(BackgroundColorId, tuning.backgroundColor);
+            _properties.SetColor(BackgroundColorId, _backgroundColor ?? tuning.backgroundColor);
             _properties.SetFloat(BackgroundOpacityId,
                 1f - Mathf.Pow(1f - Mathf.Clamp(tuning.backgroundOpacity, 0f, 0.98f), 1f / count));
             _properties.SetFloat(BackgroundVariationId, Mathf.Clamp01(tuning.backgroundVariation));
             _properties.SetFloat(MidgroundOpacityId,
                 1f - Mathf.Pow(1f - Mathf.Clamp(tuning.midgroundOpacity, 0f, 0.98f), 1f / count));
             _properties.SetFloat(MidgroundWidthId, Mathf.Clamp(tuning.midgroundWidth, 0.01f, 1f));
-            _properties.SetFloat(EdgeStrengthId, Mathf.Clamp(tuning.edgeDistortionStrength, 0f, 1f));
+            var edgeStrength = _keepBoundaryInsideFootprint ? 0f : Mathf.Clamp01(tuning.edgeDistortionStrength);
+            _properties.SetFloat(EdgeStrengthId, edgeStrength);
             _properties.SetFloat(EdgeSpeedId, Mathf.Max(0f, tuning.edgeDistortionSpeed));
             _properties.SetFloat(FalloffId, Mathf.Clamp(tuning.edgeFalloff, 0.05f, 0.95f));
 
@@ -112,7 +131,16 @@ namespace Game50033.Examples
             var stretch = Mathf.Max(1f, shape.stretchFactor);
             var radius = Mathf.Max(0.01f, shape.outerRadius);
             _properties.SetFloat(ShapeKindId, (float)shape.kind);
-            _properties.SetMatrix(RootInverseId, rootMatrix.inverse);
+            var rootInverse = rootMatrix.inverse;
+            var viewInRoot = rootInverse.MultiplyVector(viewDirection);
+            var toGround = Matrix4x4.identity;
+            // project each tilted sheet along the gameplay camera rays so all layers share the ground silhouette.
+            if (Mathf.Abs(viewInRoot.y) > 0.0001f)
+            {
+                toGround.m01 = -viewInRoot.x / viewInRoot.y;
+                toGround.m21 = -viewInRoot.z / viewInRoot.y;
+            }
+            _properties.SetMatrix(RootInverseId, toGround * rootInverse);
             _properties.SetVector(ShapeFrameId, new Vector4(shape.origin.x, shape.origin.y, direction.x, direction.y));
             _properties.SetVector(ShapeGeometryId, new Vector4(Mathf.Clamp(shape.innerRadius, 0f, radius), radius,
                 Mathf.Clamp(shape.sweepAngle, 0f, 360f) * Mathf.Deg2Rad * 0.5f, 0f));
@@ -120,7 +148,7 @@ namespace Game50033.Examples
 
             // bound the complete stretched circle conservatively, including maximum outward boundary motion.
             // these bounds also contain reflex sectors and full rings without a separate mesh for each shape.
-            var paddedRadius = radius * (1.05f + Mathf.Clamp(tuning.edgeDistortionStrength, 0f, 1f));
+            var paddedRadius = radius * (1.05f + edgeStrength);
             var stretchSquared = stretch * stretch - 1f;
             var extentX = paddedRadius * Mathf.Sqrt(1f + stretchSquared * stretchAxis.x * stretchAxis.x);
             var extentZ = paddedRadius * Mathf.Sqrt(1f + stretchSquared * stretchAxis.y * stretchAxis.y);
@@ -143,11 +171,11 @@ namespace Game50033.Examples
                 var scale = new Vector3(dimensions.x, dimensions.y, 1f);
                 if (shape.kind != ReverberationFieldShapeKind.LegacyEllipse)
                 {
-                    center.x = shape.origin.x;
-                    center.z = shape.origin.y;
-                    // invert this tilted quad's XZ projection to cover the same root-space bounds on every sheet.
-                    var right = rotation * Vector3.right;
-                    var up = rotation * Vector3.up;
+                    center.x = shape.origin.x - toGround.m01 * center.y;
+                    center.z = shape.origin.y - toGround.m21 * center.y;
+                    // invert the quad's projected basis so it covers the whole footprint even when tilted.
+                    var right = toGround.MultiplyVector(rotation * Vector3.right);
+                    var up = toGround.MultiplyVector(rotation * Vector3.up);
                     var determinant = right.x * up.z - up.x * right.z;
                     scale.x = 2f * (Mathf.Abs(up.z / determinant) * extentX + Mathf.Abs(up.x / determinant) * extentZ);
                     scale.y = 2f * (Mathf.Abs(right.z / determinant) * extentX + Mathf.Abs(right.x / determinant) * extentZ);
