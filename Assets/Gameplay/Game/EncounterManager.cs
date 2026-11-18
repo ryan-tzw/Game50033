@@ -42,6 +42,7 @@ namespace Game50033
         [SerializeField] private Text[] readyLabels = System.Array.Empty<Text>();
 
         private readonly List<IEncounterBoss> _bosses = new();
+        private readonly List<Player> _livingPlayers = new();
         private readonly Dictionary<Player, float> _damage = new();
         private readonly Dictionary<Player, int> _lastHealth = new();
         private float _startedAt;
@@ -49,7 +50,13 @@ namespace Game50033
         private int _bossPhase = 1;
         private int _startingPlayers = 1;
 
-        public float FightTime => _endedAt >= 0f ? _endedAt - _startedAt : Time.time - _startedAt;
+        /// <summary>
+        /// Players a boss may target this frame: joined, active and not downed. Kept as one list updated in place
+        /// during the fight; bosses receive it through <see cref="IEncounterBoss.SetTargets"/>.
+        /// </summary>
+        public IReadOnlyList<Player> LivingPlayers => _livingPlayers;
+
+        public float FightTime =>_endedAt >= 0f ? _endedAt - _startedAt : Time.time - _startedAt;
         public float DamageDealtBy(Player player) => _damage.TryGetValue(player, out var damage) ? damage : 0f;
 
         public DiscordanceTuning DiscordanceSettings => discordance;
@@ -78,8 +85,9 @@ namespace Game50033
 
             if (gameManager == null)
             {
-                Debug.LogError($"{nameof(EncounterManager)} requires the scene's {nameof(GameManager)}.", this);
-                enabled = false;
+                // test scenes: still place players, but run no fight (no win/loss, stats, Discordance or targets).
+                Debug.LogWarning($"{nameof(EncounterManager)} has no {nameof(GameManager)}: players are placed, but the fight has no win/loss. Bosses target the session's players.", this);
+                return;
             }
 
             if (discordance == null)
@@ -117,6 +125,14 @@ namespace Game50033
         private void Start()
         {
             PlacePlayers();
+            if (gameManager == null)
+            {
+                enabled = false;
+                return;
+            }
+
+            RefreshLivingPlayers();
+            foreach (var boss in _bosses) boss.SetTargets(_livingPlayers);
             gameManager.BeginEncounter();
         }
 
@@ -128,11 +144,13 @@ namespace Game50033
             var players = 0;
             var downed = 0;
             var heartsLost = 0;
+            _livingPlayers.Clear();
             foreach (var playerInput in PlayerInput.all)
             {
                 if (!playerInput.TryGetComponent(out Player player)) continue;
                 players++;
                 if (player.Health.IsDowned) downed++;
+                else if (player.isActiveAndEnabled) _livingPlayers.Add(player);
 
                 // a boss hit costs one heart, so every heart lost since last frame is one hit.
                 var health = player.Health.CurrentHealth;
@@ -144,6 +162,14 @@ namespace Game50033
                 AddDiscordance(discordance.RateForPhase(_bossPhase) * Time.deltaTime + heartsLost * discordance.gainPerHit);
 
             if (players > 0 && downed == players) gameManager.EndEncounter(victory: false);
+        }
+
+        private void RefreshLivingPlayers()
+        {
+            _livingPlayers.Clear();
+            foreach (var playerInput in PlayerInput.all)
+                if (playerInput.TryGetComponent(out Player player) && player.isActiveAndEnabled && !player.Health.IsDowned)
+                    _livingPlayers.Add(player);
         }
 
         private void PlacePlayers()

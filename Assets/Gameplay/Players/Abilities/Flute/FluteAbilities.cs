@@ -1,280 +1,397 @@
 namespace Game50033
 {
     using UnityEngine;
+    using UnityEngine.SceneManagement;
 
     [DefaultExecutionOrder(100)]
     [DisallowMultipleComponent]
     public sealed class FluteAbilities : PlayerAbilities
     {
-        [Header("References")]
+        public enum Action { None, Primary, Secondary, Charge, Release, Evasive }
+
+        [SerializeField] private FluteTuning tuning;
         [SerializeField] private FluteFlow flow;
         [SerializeField] private Transform projectileOrigin;
+        [SerializeField] private FluteProjectile primaryProjectilePrefab;
         [SerializeField] private FluteProjectile secondaryProjectilePrefab;
         [SerializeField] private FluteProjectile chargedProjectilePrefab;
         [SerializeField] private Reverberation specialReverberationPrefab;
 
-        [Header("Secondary")]
-        [SerializeField, Min(0.01f)] private float secondaryCooldown = 0.5f;
-        [SerializeField, Min(0f)] private float secondaryDamage = 2f;
-        [SerializeField, Min(0f)] private float secondaryResonanceFlowGain = 15f;
-
-        [Header("Special")]
-        [SerializeField, Min(0.01f)] private float specialCooldown = 2f;
-        [SerializeField, Min(0.01f)] private float maximumChargeDuration = 1.5f;
-        [SerializeField, Min(0f)] private float minimumSpecialDamage = 1f;
-        [SerializeField, Min(0f)] private float maximumSpecialDamage = 5f;
-        [SerializeField, Min(0.01f)] private float minimumReverberationStrength = 0.5f;
-        [SerializeField, Min(0.01f)] private float maximumReverberationStrength = 1.5f;
-        [SerializeField, Min(0f)] private float maximumChargeFlowCost = 25f;
-
+        private FluteWeaponVisual _visual;
+        private float _primaryReadyAt;
         private float _secondaryReadyAt;
         private float _specialReadyAt;
+        private float _defensiveReadyAt;
+        private float _actionStartedAt;
+        private float _activeDuration;
+        private float _recoveryDuration;
         private float _chargeElapsed;
+        private float _speedRewardUntil;
         private bool _gameplayReady;
+        private bool _evasionRewarded;
+        private int _shotIndex;
+        private bool _specialRequiresRelease = true;
+        private bool _paused;
 
-        public bool IsCharging { get; private set; }
+        internal bool SpecialRequiresRelease => _specialRequiresRelease;
+
+        public Action CurrentAction { get; private set; }
+        public Vector3 ActionDirection { get; private set; } = Vector3.forward;
+        public bool IsCharging => CurrentAction == Action.Charge;
+        public bool IsEvasive => CurrentAction == Action.Evasive;
+        public bool EvasionSucceeded => IsEvasive && _evasionRewarded;
+        public Vector3 ChargePosition => ProjectilePosition;
+        public float SpecialFlowCost => tuning.special.flowCost;
         public float ChargeNormalized => IsCharging
-            ? Mathf.Clamp01(_chargeElapsed / Mathf.Max(0.01f, maximumChargeDuration))
-            : 0f;
+            ? Mathf.Clamp01(_chargeElapsed / Mathf.Max(0.01f, tuning.special.chargeDuration)) : 0f;
+        public float ActionProgress => Mathf.Clamp01(
+            (Player.Hitstop.ActionTime - _actionStartedAt) / Mathf.Max(0.01f, _activeDuration + _recoveryDuration));
+        public float SecondaryCooldownRemaining => Mathf.Max(0f, _secondaryReadyAt - Time.time);
+        public float SpecialCooldownRemaining => Mathf.Max(0f, _specialReadyAt - Time.time);
+        public float DefensiveCooldownRemaining => Mathf.Max(0f, _defensiveReadyAt - Time.time);
 
-        public override void ClearCooldowns()
+        public override bool BlocksDefensive => IsEvasive || CurrentAction == Action.Release;
+        public override float MovementSpeedMultiplier => Player.Hitstop.ActionTime < _speedRewardUntil
+            ? tuning.defensive.successSpeedMultiplier : 1f;
+        public override PlayerAttackPhase AnimationPhase
         {
-            _secondaryReadyAt = _specialReadyAt = 0f;
+            get
+            {
+                if (IsCharging)
+                {
+                    return PlayerAttackPhase.Windup;
+                }
+                if (CurrentAction == Action.None)
+                {
+                    return PlayerAttackPhase.None;
+                }
+                return Player.Hitstop.ActionTime - _actionStartedAt < _activeDuration
+                    ? PlayerAttackPhase.Active : PlayerAttackPhase.Recovery;
+            }
         }
+
+        private Vector3 ProjectilePosition => projectileOrigin != null
+            ? projectileOrigin.position : transform.position + Vector3.up * 0.25f;
+
+        private bool HasControl => Application.isFocused && !_paused
+            && Player.isActiveAndEnabled && Player.HasActiveInput
+            && !Player.Health.IsDowned && !Player.Movement.IsDodging
+            && flow != null && flow.isActiveAndEnabled;
+
+        private bool CanStartAbility => _gameplayReady && HasControl
+            && !Player.Hitstop.IsStopped && !BlocksAbilities;
 
         private void OnEnable()
         {
-            // Ignore the join or confirm press until gameplay input is ready.
+            if (tuning == null || flow == null)
+            {
+                Debug.LogError("FluteAbilities requires Flute tuning and Flow.", this);
+                enabled = false;
+                return;
+            }
+
+            Player.Initialize();
+            _visual = GetComponent<FluteWeaponVisual>();
             _gameplayReady = false;
+            _specialRequiresRelease = true;
             ResonanceResolver.Activated += HandleResonance;
+            Player.Health.AbilityHitAvoided += HandleAvoidedHit;
+            SceneManager.activeSceneChanged += HandleSceneChanged;
         }
 
         protected override void OnDisable()
         {
             ResonanceResolver.Activated -= HandleResonance;
+            if (Player.Health != null)
+            {
+                Player.Health.AbilityHitAvoided -= HandleAvoidedHit;
+            }
+            SceneManager.activeSceneChanged -= HandleSceneChanged;
             _gameplayReady = false;
             base.OnDisable();
         }
 
-        private bool HasControl
-        {
-            get
-            {
-                if (!Player.isActiveAndEnabled || !Player.HasActiveInput)
-                {
-                    return false;
-                }
-
-                if (Player.Health == null || Player.Health.IsDowned)
-                {
-                    return false;
-                }
-
-                if (Player.Movement.IsDodging)
-                {
-                    return false;
-                }
-
-                return flow != null && flow.gameObject == gameObject && flow.isActiveAndEnabled;
-            }
-        }
-
-        private bool CanStartAbility => _gameplayReady && HasControl && !BlocksAbilities;
-
         private void LateUpdate()
         {
-            // Cancel charging when control is lost instead of treating it as a button release.
+            // Preserve the join/confirm guard and cancel without firing when control disappears.
             if (!HasControl || (IsCharging && !Player.SpecialInputEnabled))
             {
-                ResetAbilityInput();
+                _gameplayReady = false;
+                Cancel();
                 return;
             }
-
             _gameplayReady = true;
+            if (Player.SpecialInputEnabled && !Player.SpecialHeld)
+            {
+                _specialRequiresRelease = false;
+            }
+            else if (!IsCharging && Player.SpecialPressedThisFrame)
+            {
+                // Require another press when an attack or cooldown rejected this press edge.
+                _specialRequiresRelease = true;
+            }
 
-            if (!IsCharging)
+            if (Player.Hitstop.IsStopped)
             {
                 return;
             }
-
-            if (Player.SpecialHeld)
+            if (IsCharging)
             {
-                _chargeElapsed = Mathf.Min(maximumChargeDuration, _chargeElapsed + Time.deltaTime);
+                if (Player.SpecialHeld)
+                {
+                    _chargeElapsed = Mathf.Min(tuning.special.chargeDuration,
+                        _chargeElapsed + Player.Hitstop.ActionDeltaTime);
+                }
+                else
+                {
+                    ReleaseChargedAttack();
+                }
             }
-            else
+            else if (CurrentAction != Action.None && ActionProgress >= 1f)
             {
-                ReleaseChargedAttack();
+                EndAction();
             }
         }
 
-        private void OnApplicationFocus(bool hasFocus)
+        public override bool TryUsePrimary()
         {
-            if (hasFocus)
-            {
-                return;
-            }
-
-            ResetAbilityInput();
-        }
-
-        private void OnApplicationPause(bool paused)
-        {
-            if (!paused)
-            {
-                return;
-            }
-
-            ResetAbilityInput();
-        }
-
-        private void ResetAbilityInput()
-        {
-            _gameplayReady = false;
-            Cancel();
-        }
-
-        public override bool TryUsePrimary() => false;
-        public override bool TryUseDefensive() => false;
-
-        public override bool TryUseSecondary()
-        {
-            if (!CanStartAbility || (!IgnoreCooldowns && Time.time < _secondaryReadyAt))
-            {
-                return false;
-            }
-
-            if (secondaryProjectilePrefab == null || !secondaryProjectilePrefab.IsConfigured)
+            if (!CanStartAbility || (!IgnoreCooldowns && Time.time < _primaryReadyAt)
+                || primaryProjectilePrefab == null || !primaryProjectilePrefab.IsConfigured)
             {
                 return false;
             }
 
             var position = ProjectilePosition;
-            var direction = Player.GetAttackDirection(
-                position,
-                secondaryProjectilePrefab.MaximumTravelDistance,
-                secondaryProjectilePrefab.CollisionMask,
-                secondaryProjectilePrefab.HitVolume,
+            var target = FluteTargeting.FindTarget(Player, position, tuning.primary.range,
+                primaryProjectilePrefab.CollisionMask, primaryProjectilePrefab.HitVolume);
+            var direction = Player.GetAttackDirection(position, tuning.primary.range,
+                primaryProjectilePrefab.CollisionMask, primaryProjectilePrefab.HitVolume);
+
+            if (target != null)
+            {
+                // Alternate the opening arc
+                var side = _shotIndex++ % 2 == 0 ? 1f : -1f;
+                direction = Quaternion.AngleAxis(tuning.primary.launchAngle * side, Vector3.up) * direction;
+            }
+
+            var projectile = Spawn(primaryProjectilePrefab, position, direction);
+            var damage = Mathf.Lerp(tuning.primary.minimumDamage, tuning.primary.maximumDamage, flow.Normalized);
+            projectile.InitializePrimary(Player, direction, target, damage);
+            _primaryReadyAt = IgnoreCooldowns ? 0f : Time.time + tuning.primary.interval;
+            BeginAction(Action.Primary, direction, tuning.primary.activeTime, tuning.primary.recovery);
+            return true;
+        }
+
+        public override bool TryUseSecondary()
+        {
+            if (!CanStartAbility || (!IgnoreCooldowns && Time.time < _secondaryReadyAt)
+                || secondaryProjectilePrefab == null || !secondaryProjectilePrefab.IsConfigured)
+            {
+                return false;
+            }
+
+            var position = ProjectilePosition;
+            var target = FluteTargeting.FindTarget(Player, position, secondaryProjectilePrefab.MaximumTravelDistance,
+                secondaryProjectilePrefab.CollisionMask, secondaryProjectilePrefab.HitVolume,
                 secondaryProjectilePrefab.ResonatingAttack);
-
-            var projectile = Instantiate(
-                secondaryProjectilePrefab,
-                position,
-                Quaternion.LookRotation(direction, Vector3.up));
-
-            projectile.InitializeSecondary(Player, direction, secondaryDamage);
-            _secondaryReadyAt = IgnoreCooldowns ? 0f : Time.time + secondaryCooldown;
+            var direction = Player.GetAttackDirection(position, secondaryProjectilePrefab.MaximumTravelDistance,
+                secondaryProjectilePrefab.CollisionMask, secondaryProjectilePrefab.HitVolume,
+                secondaryProjectilePrefab.ResonatingAttack);
+            if (target != null && target.TryGetComponent<Reverberation>(out _))
+            {
+                // Keep compatible teammate REV priority local to Flute's Secondary.
+                var offset = FluteTargeting.GetAimPoint(target, position) - position;
+                if (offset.sqrMagnitude > 0.0001f)
+                {
+                    direction = offset.normalized;
+                }
+            }
+            Spawn(secondaryProjectilePrefab, position, direction).InitializeSecondary(Player, direction, tuning.secondary.damage);
+            _secondaryReadyAt = IgnoreCooldowns ? 0f : Time.time + tuning.secondary.cooldown;
+            BeginAction(Action.Secondary, direction, tuning.secondary.activeTime, tuning.secondary.recovery);
             return true;
         }
 
         public override bool TryUseSpecial()
         {
-            if (!CanStartAbility || !Player.SpecialPressedThisFrame || (!IgnoreCooldowns && Time.time < _specialReadyAt))
+            if (!CanStartAbility || _specialRequiresRelease || !Player.SpecialPressedThisFrame
+                || (!IgnoreCooldowns && Time.time < _specialReadyAt) || !IsSpecialConfigured)
             {
                 return false;
             }
 
-            if (!IsSpecialConfigured)
-            {
-                return false;
-            }
-
-            IsCharging = true;
             _chargeElapsed = 0f;
-            BlocksAbilities = true;
+            _specialRequiresRelease = true;
+            BeginAction(Action.Charge, Player.AimDirection, tuning.special.chargeDuration, 0f);
             return true;
         }
 
-        private bool IsSpecialConfigured
-        {
-            get
-            {
-                if (chargedProjectilePrefab == null || !chargedProjectilePrefab.IsConfigured)
-                {
-                    return false;
-                }
-
-                if (specialReverberationPrefab == null || !specialReverberationPrefab.gameObject.activeSelf)
-                {
-                    return false;
-                }
-
-                return specialReverberationPrefab.Effect is BurstEffect;
-            }
-        }
-
-        private Vector3 ProjectilePosition => projectileOrigin != null
-            ? projectileOrigin.position
-            : transform.position + Vector3.up * 0.25f;
+        internal bool IsSpecialConfigured => chargedProjectilePrefab != null && chargedProjectilePrefab.IsConfigured
+            && specialReverberationPrefab != null && specialReverberationPrefab.gameObject.activeSelf
+            && specialReverberationPrefab.Effect is BurstEffect;
 
         private void ReleaseChargedAttack()
         {
-            var charge = ChargeNormalized;
             if (!IsSpecialConfigured)
             {
                 Cancel();
                 return;
             }
 
+            var charge = ChargeNormalized;
+            var settings = tuning.special;
             var position = ProjectilePosition;
-            var direction = Player.GetAttackDirection(
-                position,
-                chargedProjectilePrefab.MaximumTravelDistance,
-                chargedProjectilePrefab.CollisionMask,
-                chargedProjectilePrefab.HitVolume);
+            var direction = Player.GetAttackDirection(position, chargedProjectilePrefab.MaximumTravelDistance,
+                chargedProjectilePrefab.CollisionMask, chargedProjectilePrefab.HitVolume);
+            var projectile = Spawn(chargedProjectilePrefab, position, direction);
 
-            var projectile = Instantiate(
-                chargedProjectilePrefab,
-                position,
-                Quaternion.LookRotation(direction, Vector3.up));
+            // Spend Flow only after release, cancelled charges never spend or create REV.
+            var canResonate = charge >= 1f && flow.TryConsume(settings.flowCost);
+            projectile.InitializeCharged(Player, direction,
+                Mathf.Lerp(settings.minimumDamage, settings.maximumDamage, charge), canResonate,
+                specialReverberationPrefab, Mathf.Lerp(settings.minimumRevStrength, settings.maximumRevStrength, charge));
+            projectile.SetChargePresentation(charge);
+            _specialReadyAt = IgnoreCooldowns ? 0f : Time.time + settings.cooldown;
+            BeginAction(Action.Release, direction, settings.activeTime, settings.recovery);
+            if (_visual != null)
+            {
+                _visual.PlayRelease(charge, canResonate);
+            }
+        }
 
-            // Spend Flow only for RES at full charge, always fire the charged attack.
-            var canResonate = charge >= 1f && flow.TryConsume(maximumChargeFlowCost);
-            var damage = Mathf.Lerp(minimumSpecialDamage, maximumSpecialDamage, charge);
-            var reverberationStrength = Mathf.Lerp(minimumReverberationStrength, maximumReverberationStrength, charge);
+        public override bool TryUseDefensive()
+        {
+            if (!_gameplayReady || !HasControl || !Player.CanUseDefensive
+                || Player.Movement.IsDisplacing || (!IgnoreCooldowns && Time.time < _defensiveReadyAt))
+            {
+                return false;
+            }
 
-            projectile.InitializeCharged(
-                Player,
-                direction,
-                damage,
-                canResonate,
-                specialReverberationPrefab,
-                reverberationStrength);
-            _specialReadyAt = IgnoreCooldowns ? 0f : Time.time + specialCooldown;
-            Cancel();
+            var direction = Player.Movement.MoveDirection;
+            if (direction.sqrMagnitude < 0.0001f)
+            {
+                direction = -Player.AimDirection;
+            }
+            direction.y = 0f;
+            direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.back;
+
+            if (tuning.defensive.distance > 0f && !Player.Movement.TryStartDisplacement(direction,
+                tuning.defensive.distance, tuning.defensive.movementDuration, tuning.defensive.movementCurve))
+            {
+                return false;
+            }
+
+            // Replace a charge or flourish without refunding already-spent attack cooldowns.
+            _chargeElapsed = 0f;
+            _evasionRewarded = false;
+            _defensiveReadyAt = IgnoreCooldowns ? 0f : Time.time + tuning.defensive.cooldown;
+            BeginAction(Action.Evasive, direction, tuning.defensive.invulnerabilityDuration, tuning.defensive.recovery);
+            Player.Health.GrantAbilityInvulnerability(tuning.defensive.invulnerabilityDuration);
+            return true;
+        }
+
+        private void HandleAvoidedHit()
+        {
+            if (!IsEvasive || _evasionRewarded || !HasControl || Player.Health.AbilityInvulnerabilityRemaining <= 0f)
+            {
+                return;
+            }
+
+            // Reward only a real damage attempt rejected during this Evasive State.
+            _evasionRewarded = true;
+            flow.Gain(tuning.defensive.successFlowGain);
+            _speedRewardUntil = Player.Hitstop.ActionTime + tuning.defensive.successSpeedDuration;
+            if (_visual != null)
+            {
+                _visual.PlayEvasionSuccess();
+            }
         }
 
         private void HandleResonance(ResonanceActivation activation)
         {
-            if (activation.Resonator != Player || activation.Attack == null)
+            if (activation.Resonator != Player || activation.Attack == null || !flow.isActiveAndEnabled)
             {
                 return;
             }
-
-            if (flow == null || !flow.isActiveAndEnabled)
+            if (activation.Attack.TryGetComponent(out FluteProjectile projectile) && projectile.RewardsSecondaryFlow)
             {
-                return;
+                flow.Gain(tuning.secondary.resonanceFlowGain);
             }
-
-            if (!activation.Attack.TryGetComponent(out FluteProjectile projectile))
-            {
-                return;
-            }
-
-            if (!projectile.RewardsSecondaryFlow)
-            {
-                return;
-            }
-
-            flow.Gain(secondaryResonanceFlowGain);
         }
 
-        public override void Cancel()
+        private FluteProjectile Spawn(FluteProjectile prefab, Vector3 position, Vector3 direction)
         {
-            IsCharging = false;
+            return Instantiate(prefab, position, Quaternion.LookRotation(direction, Vector3.up));
+        }
+
+        private void BeginAction(Action action, Vector3 direction, float activeDuration, float recoveryDuration)
+        {
+            CurrentAction = action;
+            ActionDirection = direction;
+            _actionStartedAt = Player.Hitstop.ActionTime;
+            _activeDuration = activeDuration;
+            _recoveryDuration = recoveryDuration;
+            BlocksAbilities = true;
+            BlocksDodge = action == Action.Evasive;
+        }
+
+        private void EndAction()
+        {
+            if (IsEvasive)
+            {
+                Player.Health.ClearAbilityInvulnerability();
+                Player.Movement.CancelDisplacement();
+            }
+            CurrentAction = Action.None;
             _chargeElapsed = 0f;
             BlocksMovement = false;
             BlocksDodge = false;
             BlocksAbilities = false;
+        }
+
+        public override void Cancel()
+        {
+            EndAction();
+            _specialRequiresRelease = true;
+            _speedRewardUntil = 0f;
+            _evasionRewarded = false;
+            if (_visual != null)
+            {
+                _visual.Cancel();
+            }
+        }
+
+        public override void ClearCooldowns()
+        {
+            _primaryReadyAt = 0f;
+            _secondaryReadyAt = 0f;
+            _specialReadyAt = 0f;
+            _defensiveReadyAt = 0f;
+        }
+
+        private void HandleSceneChanged(Scene previous, Scene current)
+        {
+            _gameplayReady = false;
+            Cancel();
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (!hasFocus)
+            {
+                _gameplayReady = false;
+                Cancel();
+            }
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            _paused = paused;
+            if (paused)
+            {
+                _gameplayReady = false;
+                Cancel();
+            }
         }
     }
 }
