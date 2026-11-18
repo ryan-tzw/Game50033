@@ -22,6 +22,8 @@ namespace Game50033
         [SerializeField] private LayerMask transparentWorldLayers;
         [SerializeField] private Shader toonOverrideShader;
         [SerializeField] private Material edgeDetectMat;
+        [SerializeField] private Material worldOutlineMat;
+        [SerializeField] private PixelWorldOutlineTuning worldOutlineTuning;
 
         public Vector2Int Resolution => resolution;
 
@@ -37,7 +39,7 @@ namespace Game50033
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            _pass.Setup(resolution, worldLayers, toonLayers, spriteLayers, weaponLayers, floorLayers, transparentWorldLayers, toonOverrideShader, edgeDetectMat);
+            _pass.Setup(resolution, worldLayers, toonLayers, spriteLayers, weaponLayers, floorLayers, transparentWorldLayers, toonOverrideShader, edgeDetectMat, worldOutlineMat, worldOutlineTuning);
             renderer.EnqueuePass(_pass);
         }
         
@@ -56,6 +58,8 @@ namespace Game50033
             private LayerMask _transparentWorldLayers;
             private Shader _toonOverrideShader;
             private Material _edgeDetectMat;
+            private Material _worldOutlineMat;
+            private PixelWorldOutlineTuning _worldOutlineTuning;
             
             // ==================================================  
             // shader pass tags
@@ -83,6 +87,13 @@ namespace Game50033
             private static readonly int PixelArtColorTextureId = Shader.PropertyToID("_PixelArtColorTexture");
             private static readonly int PixelArtDepthTextureId = Shader.PropertyToID("_PixelArtDepthTexture");
             private static readonly MaterialPropertyBlock EdgeProperties = new();
+            private static readonly MaterialPropertyBlock OutlineProperties = new();
+            private static readonly int OutlineMaskId = Shader.PropertyToID("_OutlineMask");
+            private static readonly int OutlineTexelSizeId = Shader.PropertyToID("_OutlineTexelSize");
+            private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
+            private static readonly int OutlineThresholdId = Shader.PropertyToID("_OutlineThreshold");
+            private static readonly int OutlineWidthId = Shader.PropertyToID("_OutlineWidth");
+            private static readonly ShaderTagId OutlineMaskTag = new("PixelWorldOutline");
 
             // ==================================================  
             // Classes to store data for each render pass
@@ -108,6 +119,16 @@ namespace Game50033
                 internal Vector2Int Resolution;
             }
 
+            private sealed class OutlinePassData
+            {
+                internal TextureHandle Mask;
+                internal Material Material;
+                internal Vector2Int Resolution;
+                internal Color Color;
+                internal float Threshold;
+                internal int Width;
+            }
+
             private sealed class RendererPassData
             {
                 internal RendererListHandle Renderers;
@@ -117,7 +138,7 @@ namespace Game50033
             // Setup
             // ================================================== 
 
-            public void Setup(Vector2Int resolution, LayerMask worldLayers, LayerMask toonLayers, LayerMask spriteLayers, LayerMask weaponLayers, LayerMask floorLayers, LayerMask transparentWorldLayers, Shader toonOverrideShader, Material edgeDetectMat)
+            public void Setup(Vector2Int resolution, LayerMask worldLayers, LayerMask toonLayers, LayerMask spriteLayers, LayerMask weaponLayers, LayerMask floorLayers, LayerMask transparentWorldLayers, Shader toonOverrideShader, Material edgeDetectMat, Material worldOutlineMat, PixelWorldOutlineTuning worldOutlineTuning)
             {
                 _resolution.x = Mathf.Max(1, resolution.x);
                 _resolution.y = Mathf.Max(1, resolution.y);
@@ -129,6 +150,8 @@ namespace Game50033
                 _transparentWorldLayers = transparentWorldLayers;
                 _toonOverrideShader = toonOverrideShader;
                 _edgeDetectMat = edgeDetectMat;
+                _worldOutlineMat = worldOutlineMat;
+                _worldOutlineTuning = worldOutlineTuning;
                 requiresIntermediateTexture = true;
             }
             
@@ -368,6 +391,61 @@ namespace Game50033
                     {
                         context.cmd.DrawRendererList(data.Renderers);
                     });
+                }
+
+                // ==================================================
+                // merge opted-in effect silhouettes, then outline them before upscale
+                // ==================================================
+
+                if (_transparentWorldLayers.value != 0 && _worldOutlineMat != null &&
+                    _worldOutlineTuning != null && _worldOutlineTuning.outlineEnabled)
+                {
+                    var maskDesc = lowResColorDesc;
+                    maskDesc.name = "PixelWorld_MergedOutlineMask";
+                    maskDesc.format = UnityEngine.Experimental.Rendering.GraphicsFormat.R8_UNorm;
+                    maskDesc.clearBuffer = true;
+                    maskDesc.clearColor = Color.clear;
+                    var mask = renderGraph.CreateTexture(maskDesc);
+
+                    using (var builder = renderGraph.AddRasterRenderPass<RendererPassData>("Pixel Art Merged Effect Mask", out var passData))
+                    {
+                        var drawingSettings = RenderingUtils.CreateDrawingSettings(
+                            OutlineMaskTag, renderingData, cameraData, lightData, SortingCriteria.CommonTransparent);
+                        var filteringSettings = new FilteringSettings(RenderQueueRange.transparent, _transparentWorldLayers.value);
+                        // only shaders with this explicit LightMode participate; other world effects stay unchanged.
+                        var listParams = new RendererListParams(renderingData.cullResults, drawingSettings, filteringSettings);
+                        passData.Renderers = renderGraph.CreateRendererList(listParams);
+                        builder.UseRendererList(passData.Renderers);
+                        builder.SetRenderAttachment(mask, 0, AccessFlags.Write);
+                        builder.SetRenderAttachmentDepth(lowResDepth, AccessFlags.Read);
+                        builder.SetRenderFunc(static (RendererPassData data, RasterGraphContext context) =>
+                        {
+                            context.cmd.DrawRendererList(data.Renderers);
+                        });
+                    }
+
+                    using (var builder = renderGraph.AddRasterRenderPass<OutlinePassData>("Pixel Art Merged Effect Outline", out var passData))
+                    {
+                        passData.Mask = mask;
+                        passData.Material = _worldOutlineMat;
+                        passData.Resolution = _resolution;
+                        passData.Color = _worldOutlineTuning.color;
+                        passData.Threshold = Mathf.Clamp(_worldOutlineTuning.threshold, 0.01f, 0.95f);
+                        passData.Width = Mathf.Clamp(_worldOutlineTuning.width, 1, 4);
+                        builder.UseTexture(mask, AccessFlags.Read);
+                        builder.SetRenderAttachment(outlinedColor, 0, AccessFlags.ReadWrite);
+                        builder.SetRenderFunc(static (OutlinePassData data, RasterGraphContext context) =>
+                        {
+                            OutlineProperties.Clear();
+                            OutlineProperties.SetTexture(OutlineMaskId, data.Mask);
+                            OutlineProperties.SetVector(OutlineTexelSizeId,
+                                new Vector4(1f / data.Resolution.x, 1f / data.Resolution.y, data.Resolution.x, data.Resolution.y));
+                            OutlineProperties.SetColor(OutlineColorId, data.Color);
+                            OutlineProperties.SetFloat(OutlineThresholdId, data.Threshold);
+                            OutlineProperties.SetInt(OutlineWidthId, data.Width);
+                            context.cmd.DrawProcedural(Matrix4x4.identity, data.Material, 0, MeshTopology.Triangles, 3, 1, OutlineProperties);
+                        });
+                    }
                 }
 
                 // ==================================================
