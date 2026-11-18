@@ -6,10 +6,7 @@ namespace Game50033
     [DisallowMultipleComponent]
     public sealed class PlayerHealth : MonoBehaviour
     {
-        [SerializeField, Min(1)] private int maxHealth = 5;
-        [SerializeField, Min(0f)] private float downedDuration = 15f;
-        [SerializeField, Min(1)] private int reviveHealth = 1;
-        [SerializeField, Min(0f)] private float revivalImmunityDuration = 1f;
+        [SerializeField] private PlayerHealthTuning tuning;
 
         private Player _player;
         private PlayerMovement _movement;
@@ -20,7 +17,7 @@ namespace Game50033
         private float _immuneUntil;
 
         public int CurrentHealth { get; private set; }
-        public int MaxHealth => maxHealth;
+        public int MaxHealth => tuning.maxHealth;
         public bool IsDowned { get; private set; }
         public float RevivalRemaining => IsDowned ? Mathf.Max(0f, _reviveAt - Time.time) : 0f;
         public float RevivalImmunityRemaining => Mathf.Max(0f, _immuneUntil - Time.time);
@@ -43,11 +40,13 @@ namespace Game50033
         internal void Initialize()
         {
             if (_initialized) return;
+            if (tuning == null)
+                throw new InvalidOperationException($"{name} requires a player health tuning asset.");
 
             _player = GetComponent<Player>();
             _movement = GetComponent<PlayerMovement>();
             _hitstop = GetComponent<PlayerHitstop>();
-            CurrentHealth = maxHealth;
+            CurrentHealth = MaxHealth;
             _initialized = true;
         }
 
@@ -56,9 +55,9 @@ namespace Game50033
             if (!IsDowned || Time.time < _reviveAt) return;
 
             IsDowned = false;
-            CurrentHealth = Mathf.Clamp(reviveHealth, 1, maxHealth);
-            _immuneUntil = Time.time + revivalImmunityDuration;
-            HealthChanged?.Invoke(CurrentHealth, maxHealth);
+            CurrentHealth = Mathf.Clamp(tuning.reviveHealth, 1, MaxHealth);
+            _immuneUntil = Time.time + tuning.revivalImmunityDuration;
+            HealthChanged?.Invoke(CurrentHealth, MaxHealth);
             Revived?.Invoke();
         }
 
@@ -90,12 +89,12 @@ namespace Game50033
             if (CurrentHealth == 0)
             {
                 IsDowned = true;
-                _reviveAt = Time.time + downedDuration;
+                _reviveAt = Time.time + tuning.downedDuration;
                 // cancel actions before observers of the health change can start more work.
                 Downed?.Invoke();
             }
 
-            HealthChanged?.Invoke(CurrentHealth, maxHealth);
+            HealthChanged?.Invoke(CurrentHealth, MaxHealth);
             return true;
         }
 
@@ -105,20 +104,20 @@ namespace Game50033
             Initialize();
             var wasDowned = IsDowned;
             IsDowned = false;
-            CurrentHealth = maxHealth;
+            CurrentHealth = MaxHealth;
             _reviveAt = 0f;
             _immuneUntil = 0f;
             _abilityImmuneUntil = 0f;
-            HealthChanged?.Invoke(CurrentHealth, maxHealth);
+            HealthChanged?.Invoke(CurrentHealth, MaxHealth);
             if (wasDowned) Revived?.Invoke();
         }
 
         public void Heal(int amount)
         {
-            if (amount <= 0 || IsDowned || CurrentHealth >= maxHealth) return;
+            if (amount <= 0 || IsDowned || CurrentHealth >= MaxHealth) return;
 
-            CurrentHealth = (int)Math.Min(maxHealth, (long)CurrentHealth + amount);
-            HealthChanged?.Invoke(CurrentHealth, maxHealth);
+            CurrentHealth = (int)Math.Min(MaxHealth, (long)CurrentHealth + amount);
+            HealthChanged?.Invoke(CurrentHealth, MaxHealth);
         }
     }
 }
