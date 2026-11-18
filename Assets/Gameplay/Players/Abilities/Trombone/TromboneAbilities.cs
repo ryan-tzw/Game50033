@@ -95,12 +95,15 @@ namespace Game50033
             if (!CanActivate || primaryProjectilePrefab == null || !primaryProjectilePrefab.IsConfigured
                 || !CooldownReady(_primaryReadyAt)) return false;
 
+            var pressure = PressureNormalized;
             var direction = GetDirection(primaryProjectilePrefab);
             var projectile = Instantiate(primaryProjectilePrefab, ProjectilePosition, Quaternion.LookRotation(direction));
-            var damage = Mathf.Lerp(tuning.primary.minimumDamage, tuning.primary.maximumDamage, PressureNormalized);
+            var damage = Mathf.Lerp(tuning.primary.minimumDamage, tuning.primary.maximumDamage, pressure);
             projectile.InitializePrimary(Player, direction, damage, _primaryResonates);
             _primaryResonates = false;
-            BeginAction(ref _primaryReadyAt, tuning.primary.cooldown, blockMovement: true, blockDodge: false);
+            var cooldown = Mathf.Lerp(tuning.primary.cooldown,
+                Mathf.Min(tuning.primary.cooldown, tuning.primary.maximumPressureCooldown), pressure);
+            BeginAction(ref _primaryReadyAt, Mathf.Max(0.01f, cooldown), blockMovement: true, blockDodge: false);
             AccumulatePressure();
             return true;
         }
@@ -170,8 +173,8 @@ namespace Game50033
         private void HandleGuardedHit()
         {
             if (!IsGuarding) return;
+            if (IsInCommandZone) _primaryResonates = true;
             EndGuard();
-            _primaryResonates = true;
         }
 
         private void EndGuard()

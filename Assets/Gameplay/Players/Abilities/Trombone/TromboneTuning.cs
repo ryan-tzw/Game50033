@@ -7,7 +7,7 @@ namespace Game50033
     public sealed class TromboneTuning : ScriptableObject
     {
         [Min(0.01f)] public float actionDuration = 0.25f;
-        public AttackSettings primary = new() { cooldown = 0.5f, minimumDamage = 1f, maximumDamage = 5f };
+        public PrimarySettings primary = new();
         public AttackSettings special = new()
         {
             cooldown = 3f, minimumDamage = 2f, maximumDamage = 10f,
@@ -18,6 +18,18 @@ namespace Game50033
         public DefensiveSettings defensive = new();
         public PlaceholderSettings placeholder = new();
         [Range(0.01f, 1f)] public float specialReverberationStrengthMultiplier = 0.5f;
+
+        [Serializable]
+        public sealed class PrimarySettings
+        {
+            [Tooltip("Shot interval at zero Pressure, in seconds. Cast duration also limits firing cadence.")]
+            [Min(0.01f)] public float cooldown = 0.5f;
+            [Tooltip("Shot interval at maximum Pressure, in seconds. Use a lower value for faster firing; values above Cooldown are capped. Cast duration still applies.")]
+            [Min(0.01f)] public float maximumPressureCooldown = 0.5f;
+            [Min(0f)] public float minimumDamage = 1f;
+            [Min(0f)] public float maximumDamage = 5f;
+            public ProjectileSettings projectile = new();
+        }
 
         [Serializable]
         public sealed class AttackSettings
