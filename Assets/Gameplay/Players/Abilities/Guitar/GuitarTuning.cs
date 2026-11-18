@@ -274,6 +274,10 @@ namespace Game50033
             public Color sweetSpotColor = new(1f, 0.8f, 0.25f);
             [Min(0.01f)] public float normalImpactSize = 0.06f;
             [Min(0.01f)] public float sweetSpotImpactSize = 0.1f;
+
+            [Header("Hit Splat")]
+            [Tooltip("Impact sprite, damage number and sound played at every Guitar hit (combo, Special, Defensive, Strum). Sweet-spot hits use its big style.")]
+            public HitEffect hitEffect;
         }
     }
 }

@@ -19,7 +19,7 @@ MonoBehaviour:
       approach: 0.08
       followThrough: 0.08
       recovery: 0.16
-      damage: 4
+      damage: 16
       lungeDistance: 0.25
       bigHit: 0
       left:
@@ -35,7 +35,7 @@ MonoBehaviour:
       approach: 0.07
       followThrough: 0.09
       recovery: 0.14
-      damage: 3
+      damage: 10
       lungeDistance: 0.2
       bigHit: 0
       left:
@@ -51,7 +51,7 @@ MonoBehaviour:
       approach: 0.07
       followThrough: 0.09
       recovery: 0.14
-      damage: 3
+      damage: 10
       lungeDistance: 0.2
       bigHit: 0
       left:
@@ -67,7 +67,7 @@ MonoBehaviour:
       approach: 0.07
       followThrough: 0.09
       recovery: 0.14
-      damage: 3
+      damage: 10
       lungeDistance: 0.2
       bigHit: 0
       left:
@@ -83,7 +83,7 @@ MonoBehaviour:
       approach: 0.08
       followThrough: 0.06
       recovery: 0.3
-      damage: 7
+      damage: 24
       lungeDistance: 0.35
       bigHit: 1
       left:
@@ -182,14 +182,14 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     cooldown: 2
-    damage: 9999
+    damage: 80
     hitRadius: 0.25
     apexWindow: 0.3
     burstReverberation: {fileID: 2889904791511872818, guid: b9c3d9e891a3c6b46bcaa981eac63eaf, type: 3}
     burstStrength: 1
     dashSpeed: 10
     catchOffset: 0.2
-    dashDamage: 2
+    dashDamage: 100
     dashEasing:
       serializedVersion: 2
       m_Curve:
@@ -225,7 +225,7 @@ MonoBehaviour:
     windup: 0.25
     impactHold: 0.1
     recovery: 0.35
-    damage: 20
+    damage: 240
     length: 2
     width: 1.5
     waveMaterial: {fileID: 2100000, guid: a9669291b16dafa46b90709e5f5e22af, type: 2}

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SustainEffect
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.SustainEffect
   explosionRadius: 0.6
-  explosionDamage: 0.5
+  explosionDamage: 40
   explosionHitMask:
     serializedVersion: 2
     m_Bits: 4294967295

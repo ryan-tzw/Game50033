@@ -51,7 +51,7 @@ MonoBehaviour:
     hitMask:
       serializedVersion: 2
       m_Bits: 4294967295
-    damage: 2
+    damage: 50
     sweetSpotMultiplier: 1.5
     movementSpeedMultiplier: 0.15
     lungeEasing:
@@ -158,7 +158,7 @@ MonoBehaviour:
     active: 0.2
     recovery: 0.28
     cooldown: 0.5
-    damage: 1
+    damage: 36
     empowermentMultiplier: 1.5
     wavePrefab: {fileID: 2152569088444530032, guid: 6f87678d3fb96af0499b0c431969f9cd, type: 3}
     travelDuration: 0.75
@@ -290,7 +290,7 @@ MonoBehaviour:
     active: 0.3
     recovery: 0.15
     cooldown: 7
-    damage: 2
+    damage: 40
     hitstopDuration: 0.04
     impactFraction: 0.5
     angle: 160
@@ -421,7 +421,7 @@ MonoBehaviour:
     hitMask:
       serializedVersion: 2
       m_Bits: 4294967295
-    damage: 8
+    damage: 166
     sweetSpotMultiplier: 2
     movementSpeedMultiplier: 0.2
     hitstopDuration: 0.1
@@ -536,3 +536,4 @@ MonoBehaviour:
     sweetSpotColor: {r: 1, g: 0.8, b: 0.25, a: 1}
     normalImpactSize: 0.06
     sweetSpotImpactSize: 0.1
+    hitEffect: {fileID: 11400000, guid: 888df520788700647b43862f0fc801f6, type: 2}

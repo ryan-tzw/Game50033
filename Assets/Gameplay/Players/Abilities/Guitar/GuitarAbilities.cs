@@ -271,8 +271,9 @@ namespace Game50033
                     hitDirection.y = 0f;
                     hitDirection = hitDirection.sqrMagnitude > 0.0001f ? hitDirection.normalized : _direction;
                     _hitThisSwing.Add(target);
-                    target.TakeHit(new HitInfo(gameObject, damage * _damageMultiplier
-                        * (normalHit ? 1f : sweetMultiplier), hitDirection));
+                    var dealt = damage * _damageMultiplier * (normalHit ? 1f : sweetMultiplier);
+                    target.TakeHit(new HitInfo(gameObject, dealt, hitDirection));
+                    PlayHitSplat(contact, hitDirection, dealt, !normalHit);
                     if (!IsAttacking || !isActiveAndEnabled) return;
                     hitstopDuration = Mathf.Max(hitstopDuration, normalHit ? _swing.hitstopDuration : _swing.sweetSpotHitstopDuration);
                     if (vfx != null) vfx.PlayImpact(contact, !normalHit);
@@ -322,7 +323,9 @@ namespace Game50033
 
                         var sweetSpot = !IsDefending && distance >= _swingSweetSpotRadius;
                         _hitThisSwing.Add(target);
-                        target.TakeHit(new HitInfo(gameObject, damage * _damageMultiplier * (sweetSpot ? sweetMultiplier : 1f), radial.normalized));
+                        var dealt = damage * _damageMultiplier * (sweetSpot ? sweetMultiplier : 1f);
+                        target.TakeHit(new HitInfo(gameObject, dealt, radial.normalized));
+                        PlayHitSplat(contact, radial.normalized, dealt, sweetSpot);
 
                         // a hit callback may down or disable the attacker; stop resolving immediately.
                         if (!IsAttacking || !isActiveAndEnabled) return;
@@ -464,8 +467,9 @@ namespace Game50033
                     direction.y = 0f;
                     direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : _direction;
                     _hitThisSwing.Add(target);
-                    target.TakeHit(new HitInfo(gameObject, special.damage * _damageMultiplier
-                        * (sweet ? special.sweetSpotMultiplier : 1f), direction));
+                    var dealt = special.damage * _damageMultiplier * (sweet ? special.sweetSpotMultiplier : 1f);
+                    target.TakeHit(new HitInfo(gameObject, dealt, direction));
+                    PlayHitSplat(contact, direction, dealt, true);
                     if (!IsAttacking || _action != GuitarAction.Special || !isActiveAndEnabled) return;
                     hitstop = Mathf.Max(hitstop, sweet ? special.sweetSpotHitstopDuration : special.hitstopDuration);
                     if (vfx != null) vfx.PlayImpact(contact, sweet);
@@ -499,8 +503,9 @@ namespace Game50033
                     var sweet = offset.sqrMagnitude <= _specialSweetSpotRadius * _specialSweetSpotRadius + 0.000001f;
                     var direction = offset.sqrMagnitude > 0.0001f ? offset.normalized : _direction;
                     _hitThisSwing.Add(target);
-                    target.TakeHit(new HitInfo(gameObject, special.damage * _damageMultiplier
-                        * (sweet ? special.sweetSpotMultiplier : 1f), direction));
+                    var dealt = special.damage * _damageMultiplier * (sweet ? special.sweetSpotMultiplier : 1f);
+                    target.TakeHit(new HitInfo(gameObject, dealt, direction));
+                    PlayHitSplat(contact, direction, dealt, true);
                     if (!IsAttacking || _action != GuitarAction.Special || !isActiveAndEnabled) return;
                     hitstop = Mathf.Max(hitstop, sweet ? special.sweetSpotHitstopDuration : special.hitstopDuration);
                     if (vfx != null) vfx.PlayImpact(contact, sweet);
@@ -630,6 +635,13 @@ namespace Game50033
             BlocksDodge = true;
             BlocksAbilities = true;
             return true;
+        }
+
+        // presentation only: the hit splat (sprite, damage number, sound) shared with the Strum wave.
+        private void PlayHitSplat(Vector3 point, Vector3 direction, float damage, bool big)
+        {
+            var effect = tuning != null ? tuning.vfx.hitEffect : null;
+            if (effect != null) effect.Play(new HitEffectRequest(point, direction, damage, big));
         }
 
         public override void Cancel()

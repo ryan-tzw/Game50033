@@ -136,7 +136,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.SustainField
   radius: 1
-  damagePerTick: 0.25
+  damagePerTick: 14
   tickInterval: 0.5
   duration: 3
   hitMask:
