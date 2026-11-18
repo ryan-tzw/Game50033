@@ -27,12 +27,19 @@ namespace Game50033
         [SerializeField] private BaseTelegraph telegraphPrefab;
         [SerializeField] private bool extendToWall = false;
         [SerializeField] private float maxDistance = 30f;
+        [SerializeField] private string bossWindUpAnimationName;
+        [SerializeField] private string bossAttackAnimationName;
+        private int bossWindUpAnimationId;
+        private int bossAttackAnimationId;
 
         private int projectileCount;
 
         protected override void Awake()
         {
             base.Awake();
+            if(bossWindUpAnimationName != null) bossWindUpAnimationId = Animator.StringToHash(bossWindUpAnimationName);
+            if(bossAttackAnimationName != null) bossAttackAnimationId = Animator.StringToHash(bossAttackAnimationName);
+
         }
 
         public override void Setup(BaseBoss owner)
@@ -136,6 +143,11 @@ namespace Game50033
                 telegraph.Begin(from, end, windUpTime);
             }
 
+            if (bossWindUpAnimationId != 0 & windUpTime > 0f)
+            {
+                boss.PlayAnimationTrigger(bossWindUpAnimationId);
+            }
+
             //yield return new WaitForSeconds(windUpTime);
             float waited = 0f;
             while (waited < windUpTime)
@@ -153,6 +165,7 @@ namespace Game50033
 
             if (telegraph != null) Destroy(telegraph.gameObject);
 
+            if(bossAttackAnimationId != 0) boss.PlayAnimationTrigger(bossAttackAnimationId);
             var projectile = Instantiate(_projectile, transform.position, Quaternion.identity);
             projectile.InitializeProjectile(player, boss, end, this);
         }

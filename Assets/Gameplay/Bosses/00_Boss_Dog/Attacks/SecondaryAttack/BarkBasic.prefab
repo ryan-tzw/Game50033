@@ -60,9 +60,12 @@ MonoBehaviour:
   lingeringEffect: 0
   piercing: 1
   projectileSpeed: 0
+  projectileSpeedMultiplier: 1
   projectileHomingHeight: 0
   spreadAngle: 0
   spreadRadius: 0
   telegraphPrefab: {fileID: 3603931349917282795, guid: 5315c8d727c5cc44395d6683821efd35, type: 3}
   extendToWall: 0
   maxDistance: 30
+  bossWindUpAnimationName: WindUpHowl
+  bossAttackAnimationName: ReleaseHowl

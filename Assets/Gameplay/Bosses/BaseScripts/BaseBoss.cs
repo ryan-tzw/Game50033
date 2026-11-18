@@ -100,6 +100,11 @@ namespace Game50033
             // }
         }
 
+        public void PlayAnimationTrigger(int triggerId)
+        {
+            if (_attackAnimator != null) _attackAnimator.SetTrigger(triggerId);
+        }
+
         internal void Initialize()
         {
             if (_initialized) return;
