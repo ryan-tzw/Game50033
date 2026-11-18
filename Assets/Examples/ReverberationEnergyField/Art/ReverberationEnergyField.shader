@@ -18,6 +18,10 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
         _BackgroundVariation("Background Variation", Range(0, 1)) = 0.5
         _MidgroundLayerOpacity("Midground Layer Opacity", Range(0, 1)) = 0
         _MidgroundWidth("Midground Width", Range(0.01, 1)) = 0.4
+        _FieldShapeKind("Field Shape Kind", Float) = 0
+        _ShapeOriginDirection("Shape Origin And Direction", Vector) = (0, 0, 0, 1)
+        _ShapeGeometry("Inner Radius, Outer Radius, Half Angle", Vector) = (0, 1, 3.14159265, 0)
+        _ShapeStretch("Stretch Axis, Factor, Inverse", Vector) = (0, 1, 1, 1)
         _Layer("Layer", Float) = 0
     }
     SubShader
@@ -31,6 +35,9 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
                 float _BackgroundLayerOpacity, _BackgroundVariation, _MidgroundLayerOpacity, _MidgroundWidth;
                 float _Density, _LayerOpacity, _Emission, _BrightnessBands;
                 float _EdgeDistortionStrength, _EdgeDistortionSpeed;
+                float _FieldShapeKind;
+                float4 _ShapeOriginDirection, _ShapeGeometry, _ShapeStretch;
+                float4x4 _FieldWorldToLocal;
                 float _NoiseScale, _FlowSpeed, _Turbulence, _EdgeFalloff, _Layer;
             CBUFFER_END
             struct Attributes { float3 positionOS : POSITION; float2 uv : TEXCOORD0; };
@@ -73,8 +80,51 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
                 return warp;
             }
 
-            float FieldEnvelope(float2 uv, float2 warp)
+            float ProceduralDistance(float2 offset)
             {
+                // undo Guitar's fixed-axis stretch before radial/angular tests, rather than stretching along aim.
+                offset -= _ShapeStretch.xy * (dot(offset, _ShapeStretch.xy) * (1 - _ShapeStretch.w));
+                float radius = length(offset);
+                if (_FieldShapeKind < 1.5) return radius - _ShapeGeometry.y;
+
+                float inner = _ShapeGeometry.x;
+                float outer = _ShapeGeometry.y;
+                float halfAngle = _ShapeGeometry.z;
+                if (halfAngle >= 3.141592 - 0.000001)
+                    return inner > 0 ? max(radius - outer, inner - radius) : radius - outer;
+
+                float2 direction = _ShapeOriginDirection.zw;
+                float2 q = float2(abs(dot(offset, float2(direction.y, -direction.x))), dot(offset, direction));
+                float2 edge = float2(sin(halfAngle), cos(halfAngle));
+                bool insideAngle = q.y >= radius * edge.y;
+                // distance to the outer arc, optional inner arc and closest radial segment.
+                // reflecting X lets one segment handle both sides, including sectors larger than 180 degrees.
+                float distance = insideAngle ? abs(radius - outer) : length(q - edge * outer);
+                if (inner > 0)
+                    distance = min(distance, insideAngle ? abs(radius - inner) : length(q - edge * inner));
+                distance = min(distance, length(q - edge * clamp(dot(q, edge), inner, outer)));
+                bool inside = halfAngle > 0 && insideAngle && radius >= inner && radius <= outer;
+                return inside ? -distance : distance;
+            }
+
+            float FieldEnvelope(float2 uv, float2 warp, float3 positionWS)
+            {
+                if (_FieldShapeKind > 0.5)
+                {
+                    float2 local = mul(_FieldWorldToLocal, float4(positionWS, 1)).xz - _ShapeOriginDirection.xy;
+                    float distance = ProceduralDistance(local);
+                    float radius = _ShapeGeometry.y;
+                    if (_EdgeDistortionStrength > 0)
+                    {
+                        // shared root-local noise affects curved, angular and inner boundaries alike.
+                        float edgeTime = _Time.y * _EdgeDistortionSpeed;
+                        float edgeNoise = Noise(local / radius * 1.6 + float2(5.2, 9.7) + edgeTime * float2(0.37, -0.29));
+                        distance += (edgeNoise * 2 - 1) * _EdgeDistortionStrength * radius;
+                    }
+                    // softness is an inward band; the zero-distance contour remains the supplied geometry.
+                    // padded sheets contain all possible outward motion, so no ellipse or quad-edge mask is applied.
+                    return 1 - smoothstep(-_EdgeFalloff * radius, 0, distance);
+                }
                 // fade through the interior before reaching a quad edge, without drawing a hollow rim.
                 float2 edgeUV = uv * 2 - 1;
                 float radial = length(edgeUV) + (warp.y - 0.5) * 0.16;
@@ -106,7 +156,7 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
                 float concentration = smoothstep(0.12, 0.8, warp.x * 0.6 + warp.y * 0.4);
                 float energy = (currents * 0.9 + 0.08) * concentration;
 
-                float envelope = FieldEnvelope(input.uv, warp);
+                float envelope = FieldEnvelope(input.uv, warp, input.positionWS);
                 float alpha = saturate(energy * _LayerOpacity * _EnergyColor.a) * envelope;
 
                 float bands = max(2, _BrightnessBands) - 1;
@@ -141,7 +191,7 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
                 clip(visible - 0.000001);
                 float2 p;
                 float2 warp = FieldWarp(input.positionWS, p);
-                return FieldEnvelope(input.uv, warp).xxxx;
+                return FieldEnvelope(input.uv, warp, input.positionWS).xxxx;
             }
         ENDHLSL
 

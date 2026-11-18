@@ -9,6 +9,15 @@ namespace Game50033.Examples
     {
         [SerializeField] private ReverberationEnergyFieldTuning tuning;
         [SerializeField] private MeshRenderer[] layers;
+        [SerializeField] private ReverberationFieldShape shape = new()
+        {
+            direction = Vector2.up,
+            outerRadius = 1f,
+            sweepAngle = 140f,
+            stretchAxis = Vector2.up,
+            stretchFactor = 1f
+        };
+        private Matrix4x4 _appliedRootMatrix;
         private MaterialPropertyBlock _properties;
         private ReverberationEnergyFieldTuning _appliedTuning;
         private int _appliedRevision = -1;
@@ -29,6 +38,11 @@ namespace Game50033.Examples
         private static readonly int BackgroundVariationId = Shader.PropertyToID("_BackgroundVariation");
         private static readonly int MidgroundOpacityId = Shader.PropertyToID("_MidgroundLayerOpacity");
         private static readonly int MidgroundWidthId = Shader.PropertyToID("_MidgroundWidth");
+        private static readonly int ShapeKindId = Shader.PropertyToID("_FieldShapeKind");
+        private static readonly int ShapeFrameId = Shader.PropertyToID("_ShapeOriginDirection");
+        private static readonly int ShapeGeometryId = Shader.PropertyToID("_ShapeGeometry");
+        private static readonly int ShapeStretchId = Shader.PropertyToID("_ShapeStretch");
+        private static readonly int RootInverseId = Shader.PropertyToID("_FieldWorldToLocal");
         private static readonly int LayerId = Shader.PropertyToID("_Layer");
 
         private void OnEnable()
@@ -37,10 +51,24 @@ namespace Game50033.Examples
             _appliedRevision = -1;
         }
 
+        public void SetShape(ReverberationFieldShape geometry)
+        {
+            shape = geometry;
+            _appliedRevision = -1;
+        }
+
+        private void OnValidate()
+        {
+            _appliedRevision = -1;
+        }
+
         private void LateUpdate()
         {
             if (tuning == null || layers == null || layers.Length == 0) return;
-            if (_appliedTuning == tuning && _appliedRevision == tuning.Revision) return;
+            // legacy uses mesh UVs; procedural shapes need the shared root frame refreshed only when it changes.
+            var rootMatrix = shape.kind == ReverberationFieldShapeKind.LegacyEllipse ? Matrix4x4.identity : transform.localToWorldMatrix;
+            if (_appliedTuning == tuning && _appliedRevision == tuning.Revision && _appliedRootMatrix == rootMatrix) return;
+            _appliedRootMatrix = rootMatrix;
             _appliedTuning = tuning;
             _appliedRevision = tuning.Revision;
 
@@ -76,6 +104,28 @@ namespace Game50033.Examples
             _properties.SetFloat(FalloffId, Mathf.Clamp(tuning.edgeFalloff, 0.05f, 0.95f));
 
             // ==================================================
+            // per-instance footprint and shared root coordinates
+            // ==================================================
+
+            var direction = shape.direction.sqrMagnitude > 0.0001f ? shape.direction.normalized : Vector2.up;
+            var stretchAxis = shape.stretchAxis.sqrMagnitude > 0.0001f ? shape.stretchAxis.normalized : Vector2.up;
+            var stretch = Mathf.Max(1f, shape.stretchFactor);
+            var radius = Mathf.Max(0.01f, shape.outerRadius);
+            _properties.SetFloat(ShapeKindId, (float)shape.kind);
+            _properties.SetMatrix(RootInverseId, rootMatrix.inverse);
+            _properties.SetVector(ShapeFrameId, new Vector4(shape.origin.x, shape.origin.y, direction.x, direction.y));
+            _properties.SetVector(ShapeGeometryId, new Vector4(Mathf.Clamp(shape.innerRadius, 0f, radius), radius,
+                Mathf.Clamp(shape.sweepAngle, 0f, 360f) * Mathf.Deg2Rad * 0.5f, 0f));
+            _properties.SetVector(ShapeStretchId, new Vector4(stretchAxis.x, stretchAxis.y, stretch, 1f / stretch));
+
+            // bound the complete stretched circle conservatively, including maximum outward boundary motion.
+            // these bounds also contain reflex sectors and full rings without a separate mesh for each shape.
+            var paddedRadius = radius * (1.05f + Mathf.Clamp(tuning.edgeDistortionStrength, 0f, 1f));
+            var stretchSquared = stretch * stretch - 1f;
+            var extentX = paddedRadius * Mathf.Sqrt(1f + stretchSquared * stretchAxis.x * stretchAxis.x);
+            var extentZ = paddedRadius * Mathf.Sqrt(1f + stretchSquared * stretchAxis.y * stretchAxis.y);
+
+            // ==================================================
             // static sheet placement; flow itself runs entirely on the gpu
             // ==================================================
 
@@ -88,9 +138,22 @@ namespace Game50033.Examples
                 var fraction = (i + 0.5f) / count;
                 var tilt = Mathf.Clamp(tuning.layerTilt, 0f, 10f);
                 // different tilts and flow phases break up the appearance of evenly stacked ground decals.
-                layer.transform.SetLocalPositionAndRotation(new Vector3(0f, dimensions.z * fraction, 0f),
-                    Quaternion.Euler(90f + Mathf.Sin(i * 2.3f) * tilt, 0f, Mathf.Cos(i * 1.7f) * tilt));
-                layer.transform.localScale = new Vector3(dimensions.x, dimensions.y, 1f);
+                var rotation = Quaternion.Euler(90f + Mathf.Sin(i * 2.3f) * tilt, 0f, Mathf.Cos(i * 1.7f) * tilt);
+                var center = new Vector3(0f, dimensions.z * fraction, 0f);
+                var scale = new Vector3(dimensions.x, dimensions.y, 1f);
+                if (shape.kind != ReverberationFieldShapeKind.LegacyEllipse)
+                {
+                    center.x = shape.origin.x;
+                    center.z = shape.origin.y;
+                    // invert this tilted quad's XZ projection to cover the same root-space bounds on every sheet.
+                    var right = rotation * Vector3.right;
+                    var up = rotation * Vector3.up;
+                    var determinant = right.x * up.z - up.x * right.z;
+                    scale.x = 2f * (Mathf.Abs(up.z / determinant) * extentX + Mathf.Abs(up.x / determinant) * extentZ);
+                    scale.y = 2f * (Mathf.Abs(right.z / determinant) * extentX + Mathf.Abs(right.x / determinant) * extentZ);
+                }
+                layer.transform.SetLocalPositionAndRotation(center, rotation);
+                layer.transform.localScale = scale;
                 layer.shadowCastingMode = ShadowCastingMode.Off;
                 layer.receiveShadows = false;
                 _properties.SetFloat(LayerId, i);

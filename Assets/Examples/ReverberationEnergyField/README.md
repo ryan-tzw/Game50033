@@ -11,6 +11,56 @@ This is an isolated visual experiment. It does not reference, replace or spawn g
 
 Parameters are grouped into Field Shape, Energy Appearance, Background, Midground and Flow. Lower Noise Scale makes larger structures. Density widens/populates the currents; Opacity controls their transparency independently of Emission brightness. Brightness Bands quantizes the energy's brightness while opacity and edge fading remain soft. Field Dimensions, Layer Count (1–8), Layer Tilt and Edge Falloff control the approximate volume. All authored appearance parameters belong to the tuning SO; the material is shared wiring, not a second preset.
 
+## Procedural ability shapes
+
+Each `ReverberationEnergyField` now has a per-instance **Shape** snapshot. Existing instances default to **Legacy Ellipse** and retain the original dimensions, mesh placement and UV envelope exactly. No textures or texture-authoring workflow are needed.
+
+- **Circle:** Origin and Outer Radius define a disc. Direction, Inner Radius and Sweep Angle are ignored.
+- **Annular Sector:** Origin, Direction, Inner/Outer Radius and Sweep Angle define the footprint. Inner Radius zero makes a filled sector. Angles above 180 degrees, full 360-degree rings/discs and zero-width sectors are handled explicitly.
+- **Stretch Axis / Factor:** optional fixed-axis stretch, independent of Direction. The shader undoes the same transformation used by Guitar hit detection before distance evaluation. A circle can also be stretched deliberately. Factor is at least 1; a zero axis/direction falls back to local +Z.
+
+Vectors use `(local X, local Z)`. Radii and Origin use field-root local Unity units. Root position, rotation and nonuniform scale transform the entire footprint. Procedural shapes use their own radii rather than appearance Field Dimensions X/Y; Field Dimensions Z continues to control layer height. The component sends the root world-to-local matrix to every sheet and refreshes it when that root transform changes. Steady instances perform only tuning/matrix checks, without per-frame mesh rebuilding or material creation. Inspector edits and `SetShape(...)` invalidate the cached setup.
+
+The existing quad slots retain their heights and tilts. For procedural shapes, their centre and scale cover a conservative stretched-circle bound plus the full allowed outward distortion and a small margin. Inverting each tilted sheet's XZ projection ensures every layer covers the same root-space footprint. The shader does not intersect new shapes with the legacy ellipse or its mesh-edge guard.
+
+Both colour and outline passes call the same shape-aware `FieldEnvelope`. Procedural distance is negative inside and positive outside. Sector distance measures the nearest inner/outer arc or radial edge; full-circle cases omit radial edges. Distance is measured before directional stretch, so softness/distortion stretch with the geometry rather than having constant world thickness. The original foreground noise, colour bands, background/midground, flow and opacity normalization are unchanged.
+
+At zero Edge Distortion Strength, new shapes use only their procedural distance. Edge Falloff produces an inward soft band proportional to Outer Radius. Nonzero distortion offsets that distance with centred low-frequency noise in root-local coordinates; it can move outer, inner and straight edges both outward and inward. Its speed is independent of internal flow. Large distortion or broad falloff can close small holes or erase thin parts, and very thin boundaries may be lost at 640×360; tune these controls to the shape. This is a layered surface approximation, so different heights still project differently from the angled camera and opaque geometry can cut the sheets. Outline threshold selects a contour inside the soft edge, rather than the exact mathematical zero-distance boundary.
+
+### Scene examples
+
+Disable `01 - Single field (default)` before enabling one of:
+
+- `Shape - Circle (Special)`
+- `Shape - Annular Sector (Primary)`
+- `Shape - Stretched Sector (Primary)`
+
+The examples snapshot current Guitar Special radius and Primary first-swing geometry during setup. They do not read Guitar tuning every frame or alter combat. Inspect each field's Shape to try other angles, inner radii and axes. Their root transforms can be rotated/scaled normally. All share the original appearance tuning/material and merged outline settings.
+
+### Future integration entry point
+
+Call `SetShape(ReverberationFieldShape geometry)` once when spawning a field. For a root placed at the impact origin with identity rotation and unit scale, a caller can pass the existing attack's resolved geometry directly:
+
+```csharp
+field.SetShape(new ReverberationFieldShape
+{
+    kind = ReverberationFieldShapeKind.AnnularSector,
+    origin = Vector2.zero,
+    direction = new Vector2(attackDirection.x, attackDirection.z),
+    innerRadius = innerRadius,
+    outerRadius = resolvedReach,
+    sweepAngle = sweepAngle,
+    stretchAxis = stretchAxis,
+    stretchFactor = stretchFactor
+});
+```
+
+`resolvedReach` should include the current combo strike's reach multiplier. A rotated/scaled root needs geometry expressed in its local frame; root scaling intentionally changes the footprint. Appearance stays in the shared tuning asset, while this struct is a per-spawn geometry snapshot, avoiding duplicate ability presets. No gameplay script is changed by this prototype.
+
+Secondary's travelling strum is **not** represented by a static annular sector: it changes radius/width while travelling and tapers its tips, with additional collision thickness. It needs a dedicated wave snapshot/envelope and a lifetime/motion decision during a later scoped integration. The present API does not claim to match it.
+
+No additional draw calls, passes, textures or meshes are required. Procedural shapes add distance/transform arithmetic to the existing fragment passes, with no extra noise sample over the animated legacy field. GPU timing remains unmeasured.
+
 ## Background and midground
 
 The field now composites three components in the existing shader: a diffuse base from the two broad warp channels, wider connecting concentrations from the existing contour, and the original banded foreground on top. There are still three noise evaluations per fragment, the same sheets and the same draw calls. The new components share the existing Flow Speed. No additional meshes, materials or render passes are needed.
@@ -84,6 +134,8 @@ Measured in Unity 6000.3.24f1 Editor batch Play mode, URP 17.3, OpenGL 4.5 on NV
 The frame-wide GC counter median was 246 bytes in every case; this includes the Editor/test sampler and does not establish per-effect allocation cost. Hardware GPU frame timing was unavailable, so no GPU milliseconds or speedup claim is made. Each four-layer instance adds four measured draw calls. Profile a release build on target hardware after approving the visual direction.
 
 ## Checks and limitations
+
+- Procedural shape checks passed in isolated Unity Play mode: the legacy capture matched exactly (0/255 RGB difference); nine GPU membership cases matched independent Guitar-style radius/angle tests at 16,868 sampled points. Cases included circles, 0/60/140/180/240/270/300/360-degree sectors, filled/hollow shapes, oblique directional stretch, rotated/nonuniformly scaled roots and 1/4/8 layers. Gameplay-angle circle/sector/stretched-sector previews were rendered and inspected. A 270-degree hollow sector also passed outline toggle, animated boundary with internal flow stopped, and zero-distortion frozen-output checks. Sampling excludes a narrow raster-boundary tolerance and does not establish GPU timing or visual quality at every parameter combination.
 
 - Merged outlines compiled and rendered in isolated Unity Play mode at 1920×1080 through the real 640×360 pass. With Outline Enabled off, the refactored field shader matched the previous shader exactly (0 changed RGB pixels). Single, coincident and overlapping fields were captured; overlapping fields were visually inspected for a merged border. Partial and full opaque occlusion and an empty mask were checked; removing a fully hidden field changed no pixels. Width/threshold artistic tuning and target-build GPU profiling remain manual work.
 
