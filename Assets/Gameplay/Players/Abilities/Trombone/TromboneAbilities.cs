@@ -142,7 +142,7 @@ namespace Game50033
             var projectile = Instantiate(specialProjectilePrefab, ProjectilePosition, Quaternion.LookRotation(direction));
             var damage = Mathf.Lerp(tuning.special.minimumDamage, tuning.special.maximumDamage, PressureNormalized);
             projectile.InitializeSpecial(Player, direction, damage, specialReverberationPrefab,
-                Mathf.Max(0.01f, damage * tuning.specialReverberationStrengthMultiplier));
+                Mathf.Max(0.01f, damage * tuning.specialReverberationStrengthMultiplier), specialProjectilePrefab);
             if (_commandZone != null) _commandZone.ConsumeZone();
             _commandZone = null;
             BeginAction(ref _specialReadyAt, tuning.special.cooldown, blockMovement: true, blockDodge: true);

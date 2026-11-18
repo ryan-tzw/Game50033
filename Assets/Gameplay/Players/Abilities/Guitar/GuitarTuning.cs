@@ -194,6 +194,7 @@ namespace Game50033
             public LayerMask hitMask = ~0;
             [Min(0f)] public float damage = 8f;
             [Min(1f)] public float sweetSpotMultiplier = 2f;
+            public Reverberation repriseReverberation;
 
             [Header("Movement and Hitstop")]
             [Range(0f, 1f)] public float movementSpeedMultiplier = 0.2f;

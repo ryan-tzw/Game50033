@@ -13,10 +13,10 @@ namespace Game50033
         [SerializeField] private ProjectileKind kind;
         private TromboneTuning.ProjectileSettings Settings => kind == ProjectileKind.Special
             ? tuning.special.projectile : tuning.primary.projectile;
-        private float speed => Settings.speed;
-        private float maximumDistance => Settings.maximumDistance;
-        private float lifetime => Settings.lifetime;
-        private LayerMask collisionMask => Settings.collisionMask;
+        private float speed => _replayFlight?.Speed ?? Settings.speed;
+        private float maximumDistance => _replayFlight?.Distance ?? Settings.maximumDistance;
+        private float lifetime => _replayFlight?.Lifetime ?? Settings.lifetime;
+        private LayerMask collisionMask => _replayFlight?.Mask ?? Settings.collisionMask;
         private SphereCollider _hitVolume;
         private Rigidbody _rigidbody;
         private ResonatingAttack _resonatingAttack;
@@ -28,6 +28,8 @@ namespace Game50033
         private float _expiresAt;
         private Reverberation _reverberationPrefab;
         private float _reverberationStrength;
+        private SpecialReplay _specialReplay;
+        private FlightSettings? _replayFlight;
         private bool _finished;
         public float MaximumTravelDistance => Mathf.Min(maximumDistance, speed * lifetime);
         public LayerMask CollisionMask => collisionMask;
@@ -92,7 +94,7 @@ namespace Game50033
             _sourcePlayer = source;
             _flightDirection = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.forward;
             _damage = Mathf.Max(0f, damage);
-            _hitVolume.radius = Mathf.Max(0.01f, Settings.radius);
+            _hitVolume.radius = Mathf.Max(0.01f, _replayFlight?.Radius ?? Settings.radius);
             _expiresAt = Time.time + Mathf.Max(0.01f, lifetime);
             _resonatingAttack.Initialize(source, collisionMask);
             _resonatingAttack.enabled = canResonate;
@@ -102,9 +104,9 @@ namespace Game50033
         {
             Initialize(source, direction, damage, canResonate);
         }
-        public void InitializeSpecial(Player source, Vector3 direction, float damage, Reverberation reverberationPrefab, float reverberationStrength)
+        public void InitializeSpecial(Player source, Vector3 direction, float damage, Reverberation reverberationPrefab,
+            float reverberationStrength, TromboneProjectile replayPrefab = null)
         {
-            // The prefab defines the follow-up effect; Burst is the current placeholder.
             if (float.IsNaN(reverberationStrength) || float.IsInfinity(reverberationStrength) || reverberationStrength <= 0f)
             {
                 throw new ArgumentOutOfRangeException(nameof(reverberationStrength));
@@ -113,6 +115,9 @@ namespace Game50033
             Initialize(source, direction, damage, false);
             _reverberationPrefab = reverberationPrefab;
             _reverberationStrength = reverberationStrength;
+            if (replayPrefab != null)
+                _specialReplay = new SpecialReplay(replayPrefab, source, transform.position, _flightDirection, _damage,
+                    new FlightSettings(Settings));
         }
         private void FixedUpdate()
         {
@@ -265,7 +270,50 @@ namespace Game50033
             if (createReverberation && _sourcePlayer != null && _reverberationPrefab != null)
             {
                 var reverberation = Instantiate(_reverberationPrefab, transform.position, Quaternion.identity);
-                reverberation.Initialize(_sourcePlayer, _reverberationStrength);
+                reverberation.Initialize(_sourcePlayer, _reverberationStrength, null, _specialReplay);
+            }
+        }
+
+        private readonly struct FlightSettings
+        {
+            public readonly float Speed, Distance, Lifetime, Radius;
+            public readonly LayerMask Mask;
+
+            public FlightSettings(TromboneTuning.ProjectileSettings settings)
+            {
+                Speed = settings.speed;
+                Distance = settings.maximumDistance;
+                Lifetime = settings.lifetime;
+                Radius = settings.radius;
+                Mask = settings.collisionMask;
+            }
+        }
+
+        private sealed class SpecialReplay : IAttackReplay
+        {
+            private readonly TromboneProjectile _prefab;
+            private readonly Player _owner;
+            private readonly Vector3 _origin;
+            private readonly Vector3 _direction;
+            private readonly float _damage;
+            private readonly FlightSettings _flight;
+
+            public SpecialReplay(TromboneProjectile prefab, Player owner, Vector3 origin, Vector3 direction, float damage, FlightSettings flight)
+            {
+                _prefab = prefab;
+                _owner = owner;
+                _origin = origin;
+                _direction = direction;
+                _damage = damage;
+                _flight = flight;
+            }
+
+            public void Replay(float damageMultiplier)
+            {
+                if (_owner == null || _prefab == null) return;
+                var shot = Instantiate(_prefab, _origin, Quaternion.LookRotation(_direction));
+                shot._replayFlight = _flight;
+                shot.Initialize(_owner, _direction, _damage * damageMultiplier, canResonate: false);
             }
         }
     }

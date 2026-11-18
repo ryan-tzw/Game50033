@@ -378,6 +378,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3885672621503035260, guid: 54d14410a406964f98f9e3c220de0abb, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2202766225286466177}
+    - targetCorrespondingSourceObject: {fileID: 3885672621503035260, guid: 54d14410a406964f98f9e3c220de0abb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6569371629994968258}
   m_SourcePrefab: {fileID: 100100000, guid: 54d14410a406964f98f9e3c220de0abb, type: 3}
 --- !u!4 &1628742547630583448 stripped
 Transform:
@@ -404,6 +407,7 @@ MonoBehaviour:
   weaponVisual: {fileID: 2546516862324853289}
   vfx: {fileID: 2202766225286466177}
   tuning: {fileID: 11400000, guid: a4ecf3fee9186063897b77006eb91110, type: 2}
+  smashResonance: {fileID: 6569371629994968258}
 --- !u!114 &2546516862324853289
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -437,6 +441,24 @@ MonoBehaviour:
   smashFilter: {fileID: 3955692954648331253}
   tuning: {fileID: 11400000, guid: a4ecf3fee9186063897b77006eb91110, type: 2}
   avatarRenderer: {fileID: 9138158728770028337}
+--- !u!114 &6569371629994968258
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6749072333033206490}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75c3bc28147d4299b0503053b66bd307, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.ResonatingAttack
+  hitVolume: {fileID: 0}
+  compatibleEffects:
+  - {fileID: 11400000, guid: 1c8996d5907024dd780e942d92e42c96, type: 2}
+  - {fileID: 11400000, guid: b5167cbc2b5d3494eb5ba7447acf66d4, type: 2}
+  - {fileID: 11400000, guid: 8df43cf72fe9dbb43a651623bc1565f7, type: 2}
+  - {fileID: 11400000, guid: 36b311987c5b67202b0730baa9905f88, type: 2}
 --- !u!212 &9138158728770028337 stripped
 SpriteRenderer:
   m_CorrespondingSourceObject: {fileID: 1627041761190954647, guid: 54d14410a406964f98f9e3c220de0abb, type: 3}

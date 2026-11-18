@@ -1,6 +1,7 @@
 namespace Game50033
 {
     using System;
+    using System.Collections.Generic;
     using UnityEngine;
 
     public readonly struct ResonanceActivation
@@ -94,6 +95,20 @@ namespace Game50033
         {
             return CanActivate(field, attack) && ReverberationOverlap.OverlapsTriangle(field, tip, left, right, camera)
                 && Consume(field, attack);
+        }
+
+        internal static void ActivateInGroundCircle(ResonatingAttack attack, Vector3 centre, float radius)
+        {
+            var activeFields = Reverberation.Active;
+            if (!attack.IsReady || activeFields.Count == 0) return;
+
+            // a reaction may change the live list; only fields present at this impact belong to the smash.
+            var fields = new List<Reverberation>(activeFields);
+            foreach (var field in fields)
+            {
+                if (CanActivate(field, attack) && ReverberationOverlap.OverlapsGroundCircle(field, centre, radius))
+                    Consume(field, attack);
+            }
         }
 
         private static bool CanActivate(Reverberation reverberation, ResonatingAttack attack)

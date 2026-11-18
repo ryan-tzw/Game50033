@@ -48,6 +48,7 @@ namespace Game50033
         }
 
         internal SphereCollider Volume => _volume;
+        internal IAttackReplay OriginalAttack { get; private set; }
         internal Vector3 GroundOrigin { get; private set; }
         internal Vector3 GroundAimPoint => GroundOrigin + _groundAimOffset * FootprintScale;
         internal Vector3[] FootprintEdges { get; private set; }
@@ -83,6 +84,11 @@ namespace Game50033
 
         /// <summary>Supplies a footprint in world-aligned XZ units relative to the grounded spawn centre.</summary>
         public void Initialize(Player creator, float strength, ReverberationFieldShape? footprint)
+        {
+            Initialize(creator, strength, footprint, null);
+        }
+
+        internal void Initialize(Player creator, float strength, ReverberationFieldShape? footprint, IAttackReplay originalAttack)
         {
             if (creator == null)
             {
@@ -136,6 +142,7 @@ namespace Game50033
                 _energyField.ConfigureGameplayAppearance(color, Color.Lerp(Color.black, color, 0.35f), Camera.main, _spawn);
             }
             Creator = creator;
+            OriginalAttack = originalAttack;
             Strength = strength;
             _expiresAt = startedAt + GameplayLifetime;
             if (IsAvailable) _active.Add(this);

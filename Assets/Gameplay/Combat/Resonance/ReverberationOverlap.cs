@@ -38,6 +38,12 @@ namespace Game50033
             return edges;
         }
 
+        internal static bool OverlapsGroundCircle(Reverberation field, Vector3 centre, float radius)
+        {
+            // both footprints are on the ground, so their overlap is unchanged by the camera projection.
+            return OverlapsSweep(field, centre, centre, radius, null);
+        }
+
         internal static bool OverlapsSweep(Reverberation field, Vector3 start, Vector3 end, float radius, Camera camera)
         {
             GetViewAxes(camera, out var right, out var up);

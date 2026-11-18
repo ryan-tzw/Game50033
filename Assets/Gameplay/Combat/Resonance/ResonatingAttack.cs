@@ -12,13 +12,14 @@ namespace Game50033
         [SerializeField] private ReverberationEffect[] compatibleEffects = Array.Empty<ReverberationEffect>();
 
         private int _collisionMask = Physics.AllLayers;
+        private bool _areaActive;
 
         public Player SourcePlayer { get; private set; }
         public Collider HitVolume => hitVolume;
         internal float DamageMultiplier { get; private set; } = 1f;
         public bool IsReady =>
             SourcePlayer != null && isActiveAndEnabled
-            && hitVolume != null && hitVolume.gameObject == gameObject && hitVolume.enabled;
+            && (_areaActive || hitVolume != null && hitVolume.gameObject == gameObject && hitVolume.enabled);
 
         private void Awake()
         {
@@ -62,10 +63,25 @@ namespace Game50033
 
         internal bool CanHit(Collider other)
         {
-            return other != null && hitVolume != null
+            return other != null
                 && (_collisionMask & (1 << other.gameObject.layer)) != 0
-                && !Physics.GetIgnoreLayerCollision(hitVolume.gameObject.layer, other.gameObject.layer)
-                && !Physics.GetIgnoreCollision(hitVolume, other);
+                && (_areaActive || hitVolume != null
+                    && !Physics.GetIgnoreLayerCollision(hitVolume.gameObject.layer, other.gameObject.layer)
+                    && !Physics.GetIgnoreCollision(hitVolume, other));
+        }
+
+        internal void BeginArea(Player sourcePlayer, int collisionMask)
+        {
+            SourcePlayer = sourcePlayer;
+            _collisionMask = collisionMask;
+            _areaActive = true;
+            ResetDamageMultiplier();
+        }
+
+        internal void EndArea()
+        {
+            _areaActive = false;
+            SourcePlayer = null;
         }
 
         internal void ApplyDamageMultiplier(float multiplier)

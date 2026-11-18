@@ -423,6 +423,7 @@ MonoBehaviour:
       m_Bits: 4294967295
     damage: 166
     sweetSpotMultiplier: 2
+    repriseReverberation: {fileID: 2066137996174825113, guid: 51e7a2cf295f82b1194ebdc54002adcf, type: 3}
     movementSpeedMultiplier: 0.2
     hitstopDuration: 0.1
     sweetSpotHitstopDuration: 0.15

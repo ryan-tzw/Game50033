@@ -3,6 +3,7 @@ namespace Game50033
     using static PlayerAbilityStats;
     using System;
     using System.Collections.Generic;
+    using Game50033.Examples;
     using UnityEngine;
 
     // snapshot the impact after player movement; presentation never determines hit coverage.
@@ -24,6 +25,7 @@ namespace Game50033
         [SerializeField] private GuitarWeaponVisual weaponVisual;
         [SerializeField] private GuitarVFX vfx;
         [SerializeField] private GuitarTuning tuning;
+        [SerializeField] private ResonatingAttack smashResonance;
 
         private readonly HashSet<IHittable> _hitThisSwing = new();
         private readonly List<CombatHurtbox> _hurtboxBuffer = new();
@@ -54,6 +56,7 @@ namespace Game50033
         private float _empowerMultiplier = 1f;
         private float _damageMultiplier = 1f;
 
+        internal bool IsResolvingSmash => _action == GuitarAction.Special && isActiveAndEnabled;
         public bool IsAttacking => _action != GuitarAction.None;
         public bool IsStrumming => _action == GuitarAction.Secondary;
         public bool IsDefending => _action == GuitarAction.Defensive;
@@ -441,7 +444,6 @@ namespace Game50033
 
         private void UpdateSpecial(float elapsed)
         {
-            var special = tuning.special;
             var windingUp = elapsed < _specialWindup;
             var recovering = elapsed >= _specialWindup + _specialActive;
             var phase = windingUp ? PlayerAttackPhase.Windup : recovering ? PlayerAttackPhase.Recovery : PlayerAttackPhase.Active;
@@ -462,72 +464,38 @@ namespace Game50033
                 Player.Session?.Debug.RecordAttack(new DebugAttackSnapshot(centre, _direction, 0f, _specialRadius,
                     360f, Vector3.forward, 1f, _specialSweetSpotRadius, sweetSpotInside: true));
                 if (vfx != null) vfx.PlaySmashImpact();
-                var hitstop = 0f;
-                var camera = Camera.main;
-                _hurtboxBuffer.Clear();
-                foreach (var hurtbox in CombatHurtbox.Active) _hurtboxBuffer.Add(hurtbox);
-                foreach (var hurtbox in _hurtboxBuffer)
+                var special = tuning.special;
+                var smash = new GuitarSmash(Player, centre, _direction, _specialRadius, _specialSweetSpotRadius,
+                    _damageMultiplier, tuning, vfx);
+                var resonanceDamage = 1f;
+                if (smashResonance != null)
                 {
-                    if (hurtbox == null || !hurtbox.isActiveAndEnabled
-                        || (special.hitMask.value & (1 << hurtbox.gameObject.layer)) == 0
-                        || hurtbox.GetComponentInParent<Player>() != null) continue;
-                    var target = hurtbox.Target;
-                    if (target == null || _hitThisSwing.Contains(target)
-                        || target is Behaviour behaviour && !behaviour.isActiveAndEnabled) continue;
-                    if (!hurtbox.TryOverlapSector(camera, centre, _direction, 0f, _specialRadius,
-                            360f, Vector3.forward, 1f, out var contact)) continue;
+                    smashResonance.BeginArea(Player, special.hitMask);
+                    try
+                    {
+                        ResonanceResolver.ActivateInGroundCircle(smashResonance, centre, _specialRadius);
+                        resonanceDamage = smashResonance.DamageMultiplier;
+                    }
+                    finally
+                    {
+                        smashResonance.EndArea();
+                    }
+                }
+                if (!IsResolvingSmash) return;
 
-                    // sweet spots use the ground footprint; height must not shift the centre along the camera ray.
-                    var targetCentre = hurtbox.WorldCenter;
-                    targetCentre.y = centre.y;
-                    var sweet = (targetCentre - centre).sqrMagnitude <= _specialSweetSpotRadius * _specialSweetSpotRadius + 0.000001f;
-                    var direction = targetCentre - centre;
-                    direction.y = 0f;
-                    direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : _direction;
-                    _hitThisSwing.Add(target);
-                    var dealt = special.damage * _damageMultiplier * (sweet ? special.sweetSpotMultiplier : 1f);
-                    target.TakeHit(new HitInfo(gameObject, dealt, direction));
-                    PlayHitSplat(contact, direction, dealt, true);
-                    if (!IsAttacking || _action != GuitarAction.Special || !isActiveAndEnabled) return;
-                    hitstop = Mathf.Max(hitstop, sweet ? special.sweetSpotHitstopDuration : special.hitstopDuration);
-                    if (vfx != null) vfx.PlayImpact(contact, sweet);
+                var hitstop = smash.Resolve(resonanceDamage, _hitThisSwing, _hurtboxBuffer, ref _hitBuffer, this);
+                if (!IsResolvingSmash) return;
+                if (special.repriseReverberation != null)
+                {
+                    var field = Instantiate(special.repriseReverberation, centre, Quaternion.identity);
+                    field.Initialize(Player, 1f, new ReverberationFieldShape
+                    {
+                        kind = ReverberationFieldShapeKind.Circle,
+                        outerRadius = _specialRadius,
+                        stretchFactor = 1f
+                    }, smash);
                 }
 
-                // retain the existing physics fallback for targets without an authored projected hurtbox.
-                int count;
-                while (true)
-                {
-                    var halfHeight = Vector3.up * Mathf.Max(0f, special.hitHeight) * 0.5f;
-                    count = Physics.OverlapCapsuleNonAlloc(centre - halfHeight, centre + halfHeight, _specialRadius,
-                        _hitBuffer, special.hitMask, QueryTriggerInteraction.Collide);
-                    if (count < _hitBuffer.Length) break;
-                    Array.Resize(ref _hitBuffer, _hitBuffer.Length * 2);
-                }
-                for (var i = 0; i < count; i++)
-                {
-                    var candidate = _hitBuffer[i];
-                    if (candidate == null || candidate.GetComponentInParent<Player>() != null
-                        || candidate.GetComponentInParent<CombatHurtbox>() != null) continue;
-                    var target = candidate.GetComponentInParent<IHittable>();
-                    if (target == null || _hitThisSwing.Contains(target)
-                        || target is Behaviour behaviour && !behaviour.isActiveAndEnabled) continue;
-                    var contact = candidate.ClosestPoint(centre);
-                    var near = contact - centre;
-                    near.y = 0f;
-                    if (near.sqrMagnitude > _specialRadius * _specialRadius + 0.000001f) continue;
-                    var targetCentre = candidate.bounds.center;
-                    var offset = targetCentre - centre;
-                    offset.y = 0f;
-                    var sweet = offset.sqrMagnitude <= _specialSweetSpotRadius * _specialSweetSpotRadius + 0.000001f;
-                    var direction = offset.sqrMagnitude > 0.0001f ? offset.normalized : _direction;
-                    _hitThisSwing.Add(target);
-                    var dealt = special.damage * _damageMultiplier * (sweet ? special.sweetSpotMultiplier : 1f);
-                    target.TakeHit(new HitInfo(gameObject, dealt, direction));
-                    PlayHitSplat(contact, direction, dealt, true);
-                    if (!IsAttacking || _action != GuitarAction.Special || !isActiveAndEnabled) return;
-                    hitstop = Mathf.Max(hitstop, sweet ? special.sweetSpotHitstopDuration : special.hitstopDuration);
-                    if (vfx != null) vfx.PlayImpact(contact, sweet);
-                }
                 Player.Hitstop.Request(hitstop);
                 if (Player.Hitstop.IsStopped) return;
             }

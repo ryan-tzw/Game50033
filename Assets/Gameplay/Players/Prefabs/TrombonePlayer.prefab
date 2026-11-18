@@ -85,7 +85,7 @@ MonoBehaviour:
   projectileOrigin: {fileID: 0}
   primaryProjectilePrefab: {fileID: -3744925585312438481, guid: 4b0d4e5e99556fe469aa1b1595727ae9, type: 3}
   specialProjectilePrefab: {fileID: 6545077532654094786, guid: 172792b3283e51743ae9089355a1e964, type: 3}
-  specialReverberationPrefab: {fileID: 2889904791511872818, guid: b9c3d9e891a3c6b46bcaa981eac63eaf, type: 3}
+  specialReverberationPrefab: {fileID: 2066137996174825113, guid: 51e7a2cf295f82b1194ebdc54002adcf, type: 3}
   commandZonePrefab: {fileID: 6156935639932666535, guid: c09bb9f647c664e4d8a551896fb86bf3, type: 3}
 --- !u!114 &8754150504494004185
 MonoBehaviour:
