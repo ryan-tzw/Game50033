@@ -468,7 +468,7 @@ MonoBehaviour:
   fadeInSeconds: 1
   holdSeconds: 1.5
   fadeOutSeconds: 1
-  nextSceneName: Game
+  nextSceneName: BossOneScene
 --- !u!4 &1332899630
 Transform:
   m_ObjectHideFlags: 0
