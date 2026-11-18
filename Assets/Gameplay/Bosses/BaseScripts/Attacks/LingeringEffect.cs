@@ -24,5 +24,10 @@ namespace Game50033
             try { _trail = GetComponentInChildren<TrailRenderer>(); }
             catch { }
         }
+
+        protected override void StrikePosition()
+        {
+            if (_elapsed >= _windUpDuration + _activeDuration + 0.1f) DestroyProjectile();
+        }
     }
 }

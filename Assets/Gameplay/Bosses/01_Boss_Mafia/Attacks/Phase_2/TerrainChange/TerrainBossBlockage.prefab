@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &573678811361676751
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 801145815732760946}
+  - component: {fileID: 5162561172418914502}
+  m_Layer: 0
+  m_Name: TerrainBossBlockage
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &801145815732760946
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 573678811361676751}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 4, y: 0, z: -2}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5162561172418914502
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 573678811361676751}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83f9c11390a58b94cbe561ea2fa6c7aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.TerrainBossBlockage
+  windUpTime: 0
+  activeTime: 999
+  recoveryTime: 5
+  _projectile: {fileID: 0}
+  _numberOfProjectiles: 1
+  _numberOfTargets: 1
+  TriggerAttack: 0
+  _targetedPlayers:
+  - {fileID: 0}
+  lingeringObject: {fileID: 5133259734487143826, guid: 13fbc6e8f0c96364a891de1f8707bb9b, type: 3}
+  homing: 0
+  destroyOnArrival: 0
+  bouncy: 0
+  blockedByObstacles: 0
+  lingeringEffect: 0
+  piercing: 0
+  projectileSpeed: 0
+  projectileSpeedMultiplier: 1
+  projectileHomingHeight: 0
+  spreadAngle: 0
+  spreadRadius: 0
+  telegraphPrefab: {fileID: 0}
+  extendToWall: 0
+  maxDistance: 30
+  numberOfPoints: 35
+  radius: 5.5
+  rotating: 0
+  rotationSpeed: 0

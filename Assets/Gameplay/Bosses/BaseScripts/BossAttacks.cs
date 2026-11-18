@@ -87,6 +87,11 @@ namespace Game50033
         protected void EndAttack()
         {
             IsAttacking = false;
+            if (_boss.Movement.movingToCenter) 
+            {
+                _boss.Movement.movingToCenter = false;
+                _boss.Movement.StopMovement(false);
+            }
         }
 
         public void SetPhase(int phase)

@@ -3,6 +3,8 @@ namespace Game50033
     using System.Collections.Generic;
     using System.Linq;
     using UnityEngine;
+    using UnityEngine.EventSystems;
+
     /// <summary>
     /// Handles targeting and movement
     /// </summary>
@@ -18,11 +20,13 @@ namespace Game50033
 
         private Player _followTarget;
         private List<Player> _players = new();
-        private bool _canMove;
+        public bool canMove;
 
         public bool IsMoving => (_rb.linearVelocity.sqrMagnitude > 0.01f) ? true : false;
         public bool InRange = false;
         public bool FlipX => _sr.flipX;
+
+        public bool movingToCenter = false;
 
         internal void Initialize()
         {
@@ -46,14 +50,15 @@ namespace Game50033
 
         protected virtual void FixedUpdate()
         {
-            TargetPlayer();
+            if (movingToCenter) MoveToCenter();
+            else TargetPlayer();
         }
 
         public void StopMovement(bool lockMovement = true)
         {
             _rb.linearVelocity = Vector3.zero;
             _rb.angularVelocity = Vector3.zero;
-            _canMove = !lockMovement;
+            canMove = !lockMovement;
         }
 
         protected virtual void TargetPlayer()
@@ -87,7 +92,7 @@ namespace Game50033
             //     return;
             // }
 
-            if (_canMove)
+            if (canMove)
             {
                 // Debug.Log("Starting to Follow Player!");
                 var playerPosition = _followTarget.transform.position;
@@ -113,6 +118,25 @@ namespace Game50033
                 // Debug.Log("Player not in range, proceeding to continue to follow!");
                 var moveDir = toPlayer.normalized;
                 _rb.linearVelocity = new Vector3(moveDir.x * BossMovementSpeed, _rb.linearVelocity.y, moveDir.z * BossMovementSpeed);
+            }
+        }
+
+        public bool MoveToCenter()
+        {
+            movingToCenter = true;
+            if ((Mathf.Abs(transform.position.x) > 0.05f) && (Mathf.Abs(transform.position.z) > 0.05f))
+            {
+                StopMovement(false);
+                Vector3 moveDist = new Vector3(0f, 0f, 0f) - transform.position;
+                Vector3 moveDir = moveDist.normalized;
+                _rb.linearVelocity = new Vector3(moveDir.x * BossMovementSpeed, _rb.linearVelocity.y, moveDir.z * BossMovementSpeed);
+                movingToCenter = true;
+                return false;
+            }
+            else
+            {
+                StopMovement(true);
+                return true;
             }
         }
 

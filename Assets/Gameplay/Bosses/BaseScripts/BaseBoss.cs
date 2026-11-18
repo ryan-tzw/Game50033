@@ -19,19 +19,8 @@ namespace Game50033
         private bool _initialized;
 
         private GameSession _session;
-        //public List<Player> players;
         public List<Player> players = new();
 
-        // [SerializeField] protected float BossMovementSpeed = 5f;
-        // [SerializeField, Min(0.01f)] protected float BossHealthPoints = 20000f;
-        // [SerializeField] protected float BossStopDistance = 2f;
-        // [SerializeField] protected float attackDuration = 1f;
-        // [SerializeField] protected float BossAttackInterval = 3f;
-        // protected float bossAttackIntervalTimer;
-
-        // [SerializeField, Min(-1f)]
-        // [Tooltip("Use -1 to start at full HP. Shows current HP during Play.")]
-        // protected float BossCurrentHealth = -1f;
         protected int BossTotalPhases = 3;
         protected int BossCurrentPhase = 1;
         protected float BossTargetClearTime = 120f;
@@ -40,28 +29,16 @@ namespace Game50033
         protected Rigidbody _rb;
 
         protected bool InRange = false;
-
         protected Player TargetedPlayer;
-
-        // protected bool IsAttacking; //Will probably change to states later on
-
-        // [SerializeField] private GameObject BoneProjectile;
 
         [SerializeField] private string _bossName;
         [SerializeField] private Slider _healthBar;
         [SerializeField] private Text _bossText;
-        // [SerializeField, Min(0.01f)] private float hitFlashDuration = 0.15f;
 
-        // private static readonly int FlashAmountId = Shader.PropertyToID("_FlashAmount");
         private static readonly int AttackId = Animator.StringToHash("Attack");
         private static readonly int IsWalkingId = Animator.StringToHash("IsWalking");
-        // private MaterialPropertyBlock _hitProperties;
-        // private float _lastHitTime = float.NegativeInfinity;
-        private Animator _attackAnimator;
 
-        // public float MaxHealth => BossHealthPoints;
-        // public float CurrentHealth => BossCurrentHealth;
-        // public bool IsDead => BossCurrentHealth <= 0f;
+        private Animator _attackAnimator;
 
         public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDead && !Attacks.IsAttacking;
         public bool CanTryAttacking => isActiveAndEnabled && Movement.InRange && !Health.IsDead && !Attacks.IsAttacking;
@@ -81,23 +58,6 @@ namespace Game50033
             _bossText = GameObject.Find("BossText").GetComponent<Text>();
             _healthBar = GameObject.Find("BossHealthBar").GetComponent<Slider>();
             HandleHealthChange(Health.CurrentHealth, Health.MaxHealth);
-
-            // _session = FindFirstObjectByType<GameSession>();
-            // _players = new(_session.Players);
-
-            // Keep the boss at its arena height when players collide with it.
-            // _hitProperties = new MaterialPropertyBlock();
-            // BossHealthPoints = Mathf.Max(0.01f, BossHealthPoints);
-            // BossCurrentHealth = BossCurrentHealth < 0f
-            //     ? BossHealthPoints
-            //     : Mathf.Clamp(BossCurrentHealth, 0f, BossHealthPoints);
-            // UpdateHealthBar();
-            // UpdateBossText();
-
-            // if (IsDead)
-            // {
-            //     Die();
-            // }
         }
 
         internal void Initialize()
@@ -131,12 +91,6 @@ namespace Game50033
 
         private void OnDisable()
         {
-            // CancelInvoke(nameof(EndAttack));
-            // IsAttacking = false;
-            // if (_attackAnimator != null && _attackAnimator.isActiveAndEnabled)
-            // {
-            //     _attackAnimator.SetBool(IsWalkingId, false);
-            // }
             _session.PlayerRegistered -= UpdatePlayers;
             _session.PlayerUnregistered -= UpdatePlayers;
         }
@@ -149,19 +103,8 @@ namespace Game50033
 
         protected virtual void Update()
         {
-            // if (bossAttackIntervalTimer > 0f)
-            // {
-            //     bossAttackIntervalTimer -= Time.deltaTime;
-            // }
-
-            // var elapsed = Time.time - _lastHitTime;
-            // SetHitFlash(Mathf.Clamp01(1f - elapsed / Mathf.Max(0.01f, hitFlashDuration)));
-
             if (_attackAnimator != null)
             {
-                // var velocity = _rb.linearVelocity;
-                // velocity.y = 0f;
-                // _attackAnimator.SetBool(IsWalkingId, Movement.IsMoving && !IsAttacking && velocity.sqrMagnitude > 0.001f);
                 _attackAnimator.SetBool(IsWalkingId, Movement.IsMoving);
             }
 
@@ -182,48 +125,12 @@ namespace Game50033
             gameObject.SetActive(false);
         }
 
-        private void HandlePhaseChange(int phaseNumber)
+        protected virtual void HandlePhaseChange(int phaseNumber)
         {
             Attacks.SetPhase(phaseNumber);
             Attacks.SetAttackIntervalTime(2);
             Attacks.SetProjectileSpeed(1.5f);
         }
-
-        //Will clean up and use a new script for boss1 later on, this is temporary for checkoff
-        // private void BasicAttack()
-        // {
-        //     IsAttacking = true;
-        //     if (_attackAnimator != null)
-        //     {
-        //         _attackAnimator.SetTrigger(BoneAttackId);
-        //     }
-
-        //     int numberOfProjectiles = 2;
-        //     foreach (var player in Movement.players)
-        //     {
-        //         var currentPosition = player.transform.position;
-        //         for (int i = 0; i < numberOfProjectiles; i++)
-        //         {
-        //             Vector2 spread = Random.insideUnitCircle * 1.5f;
-        //             var target = currentPosition + new Vector3(spread.x, 0f, spread.y);
-
-        //             var bone = Instantiate(BoneProjectile, transform.position, Quaternion.identity);
-        //             bone.GetComponent<Bone>().FlyTo(target);
-        //         }
-        //     }
-        //     bossAttackIntervalTimer = BossAttackInterval;
-        //     Invoke(nameof(EndAttack), attackDuration);
-        // }
-
-        // private void EndAttack()
-        // {
-        //     IsAttacking = false;
-        // }
-
-        // private void ChargeToPlayer()
-        // {
-
-        // }
 
         // Temporary implementation for finding players, will change later on
         private void OnTriggerEnter(Collider other)
@@ -243,7 +150,8 @@ namespace Game50033
             players.Remove(player);
         }
 
-        public void SetVisibility(bool visibility) {
+        public void SetVisibility(bool visibility)
+        {
             _sr.gameObject.SetActive(visibility);
         }
 
