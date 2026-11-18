@@ -349,7 +349,7 @@ namespace Game50033
             {
                 return;
             }
-            if (activation.Attack.TryGetComponent(out FluteProjectile projectile) && projectile.RewardsSecondaryFlow)
+            if (activation.Attack.TryGetComponent(out FluteProjectile projectile) && projectile.TryClaimSecondaryFlowReward())
             {
                 flow.Gain(tuning.secondary.resonanceFlowGain);
             }

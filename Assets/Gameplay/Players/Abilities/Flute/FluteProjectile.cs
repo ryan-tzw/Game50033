@@ -49,8 +49,15 @@ namespace Game50033
         private float _visualSide = 1f;
         private float _visualFlow;
         private float _resonanceFlashUntil = float.NegativeInfinity;
+        private bool _secondaryFlowRewarded;
 
-        public bool RewardsSecondaryFlow => kind == Kind.Secondary && _source != null;
+        internal bool TryClaimSecondaryFlowReward()
+        {
+            if (kind != Kind.Secondary || _source == null || _secondaryFlowRewarded) return false;
+            _secondaryFlowRewarded = true;
+            return true;
+        }
+
         public LayerMask CollisionMask => collisionMask;
         public SphereCollider HitVolume => GetComponent<SphereCollider>();
         public ResonatingAttack ResonatingAttack => GetComponent<ResonatingAttack>();
@@ -381,6 +388,7 @@ namespace Game50033
             {
                 return;
             }
+            var damage = _damage * _resonatingAttack.DamageMultiplier;
             if (kind == Kind.Secondary && target is Component component)
             {
                 _pulsing = true;
@@ -388,8 +396,8 @@ namespace Game50033
                 _pulseReceiver = component;
                 _contactOffset = component.transform.InverseTransformPoint(transform.position);
                 _pulsesRemaining = Mathf.Clamp(tuning.secondary.pulseCount, 1, 8);
-                _pulseDamage = _damage / _pulsesRemaining;
-                _damageRemaining = _damage;
+                _pulseDamage = damage / _pulsesRemaining;
+                _damageRemaining = damage;
                 StopCollisions();
                 HideHead();
                 ApplyPulse();
@@ -401,8 +409,8 @@ namespace Game50033
             Finish(true);
             if (target != null)
             {
-                target.TakeHit(new HitInfo(_source.gameObject, _damage, _direction));
-                PlayHit(point, _damage);
+                target.TakeHit(new HitInfo(_source.gameObject, damage, _direction));
+                PlayHit(point, damage);
             }
         }
 
@@ -449,8 +457,6 @@ namespace Game50033
             {
                 return;
             }
-            // Preserve one Flow reward per Secondary without stopping its flight through the REV.
-            _resonatingAttack.enabled = false;
             _resonanceFlashUntil = Time.time + tuning.melody.resonanceFlashDuration;
             var effect = tuning.melody.resonanceEffect != null
                 ? tuning.melody.resonanceEffect : tuning.visuals.accentEffect;

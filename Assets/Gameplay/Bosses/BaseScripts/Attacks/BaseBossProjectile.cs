@@ -104,7 +104,9 @@ namespace Game50033
         {
             if (other.TryGetComponent(out Player player))
             {
-                bool hit = player.Health.TryTakeDamage(1);
+                var incomingFrom = -_targetDirection;
+                if (incomingFrom == Vector3.zero) incomingFrom = transform.position - player.transform.position;
+                bool hit = player.Health.TryTakeDamage(1, incomingFrom);
                 if (!hit) return;
                 Debug.Log("Player damaged");
 

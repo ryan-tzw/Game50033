@@ -53,11 +53,9 @@ namespace Game50033
 
         void OnTriggerEnter(Collider other)
         {
-            if (rotating && other.TryGetComponent(out Player player))
-            {
-                player.Health.TryTakeDamage(1);
+            if (rotating && other.TryGetComponent(out Player player)
+                && player.Health.TryTakeDamage(1, transform.position - player.transform.position))
                 Debug.Log("Player damaged");
-            }
         }
 
         private void CalculateSpirals(Vector3 pointOnCircumference)

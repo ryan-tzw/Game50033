@@ -85,6 +85,12 @@ namespace Game50033
 
         public bool TryTakeDamage(int damage)
         {
+            return TryTakeDamage(damage, Vector3.zero);
+        }
+
+        // incomingFrom points toward the hit source; zero represents damage with no direction.
+        public bool TryTakeDamage(int damage, Vector3 incomingFrom)
+        {
             Debug.Log($"TakeDamage: movement={(_movement != null)}, dodgeInvulnerable={(_movement != null && _movement.IsInvulnerable)}, healthInvulnerable={IsInvulnerable}", this);
             if (damage > 0 && !IsDowned && AbilityInvulnerabilityRemaining > 0f
                 && PostHitInvulnerabilityRemaining <= 0f && RevivalImmunityRemaining <= 0f && (_movement == null || !_movement.IsInvulnerable)
@@ -94,6 +100,8 @@ namespace Game50033
                 return false;
             }
             if (damage <= 0 || CurrentHealth <= 0 || IsDowned || IsInvulnerable) return false;
+            if (incomingFrom != Vector3.zero && _player != null && _player.isActiveAndEnabled
+                && _player.Abilities != null && _player.Abilities.TryParryHit(incomingFrom)) return false;
 
             var applied = Mathf.Min(CurrentHealth, damage);
             CurrentHealth -= applied;

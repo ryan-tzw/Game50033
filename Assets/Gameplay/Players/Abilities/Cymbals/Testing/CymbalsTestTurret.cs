@@ -14,8 +14,6 @@ namespace Game50033
         [SerializeField, Min(0.05f)] private float radius = 0.2f;
         [Tooltip("Height the shots travel at.")]
         [SerializeField] private float height = 0.5f;
-        [Tooltip("Tag given to each shot so the parry recognises it.")]
-        [SerializeField] private string projectileTag = "BossProjectile";
         [Tooltip("Optional material for the shots.")]
         [SerializeField] private Material material;
 
@@ -40,7 +38,6 @@ namespace Game50033
 
             var shot = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             shot.name = "Cymbals test projectile";
-            shot.tag = projectileTag;
             shot.transform.position = from;
             shot.transform.localScale = Vector3.one * (radius * 2f);
             shot.GetComponent<SphereCollider>().isTrigger = true;

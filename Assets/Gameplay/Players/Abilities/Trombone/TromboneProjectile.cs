@@ -221,11 +221,12 @@ namespace Game50033
             var target = other.GetComponentInParent<IHittable>();
             if (target != null)
             {
-                target.TakeHit(new HitInfo(_sourcePlayer.gameObject, _damage, _flightDirection));
+                var damage = _damage * _resonatingAttack.DamageMultiplier;
+                target.TakeHit(new HitInfo(_sourcePlayer.gameObject, damage, _flightDirection));
                 // presentation only: the hit splat (sprite, damage number, sound).
                 if (tuning != null && tuning.hitEffect != null)
                     tuning.hitEffect.Play(new HitEffectRequest(other.ClosestPoint(transform.position), _flightDirection,
-                        _damage, kind == ProjectileKind.Special));
+                        damage, kind == ProjectileKind.Special));
             }
             Finish(createReverberation: true);
         }

@@ -80,8 +80,9 @@ namespace Game50033
 
             if (Physics.Linecast(_lockedPosition, rayEndPosition, out _hitInfo, layerMask))
             {
-                Debug.Log("Damaging Player");
-                _hitInfo.rigidbody.GetComponent<Player>().Health.TryTakeDamage(1);
+                var hitPlayer = _hitInfo.collider.GetComponentInParent<Player>();
+                if (hitPlayer != null && hitPlayer.Health.TryTakeDamage(1, _lockedPosition - hitPlayer.transform.position))
+                    Debug.Log("Damaging Player");
             }
 
             // Debug.DrawLine(_lockedPosition, rayEndPosition, new Color(0f, 0f, 1f), 2f);

@@ -221,7 +221,7 @@ namespace Game50033
         public sealed class ParrySettings
         {
             [Header("Timing")]
-            [Tooltip("How long the parry cone stays up. Every tagged projectile entering it in this time is destroyed. A dash ends it early.")]
+            [Tooltip("How long the parry can block frontal damage. A dash ends it early.")]
             [Min(0.05f)] public float duration = 2f;
             [Tooltip("Cooldown, counted from when the parry ends (time out or dash cancel).")]
             [Min(0f)] public float cooldown = 7f;
@@ -229,16 +229,14 @@ namespace Game50033
             [Min(0.01f)] public float raiseTime = 0.08f;
 
             [Header("Cone")]
-            [Tooltip("Full angle of the cone, centred on the aim. It follows the aim while the parry is up.")]
+            [Tooltip("Full angle of the cone, centred on the aim locked when parry starts.")]
             [Range(1f, 180f)] public float coneAngle = 60f;
-            [Tooltip("Reach of the cone from the player's centre, so projectiles already between the player and the cymbals are caught too.")]
+            [Tooltip("Ground reach of the parry visual and its Amp field.")]
             [Min(0.1f)] public float range = 2.5f;
-            [Tooltip("Tag on projectiles that can be parried.")]
-            public string projectileTag = "BossProjectile";
-
             [Header("Reward")]
             [Tooltip("Crash charges granted by the first parry of a press; later parries in the same press give nothing more.")]
             [Min(0)] public int crashChargeReward = 1;
+            public Reverberation ampReverberation;
             [Tooltip("Played where each projectile is parried. Optional; use one without damage numbers.")]
             public HitEffect parryEffect;
             [Tooltip("Scale pop on both cymbals (and a flash on the parry line) when a projectile is parried.")]

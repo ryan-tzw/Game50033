@@ -3,6 +3,7 @@ namespace Game50033
     using static PlayerAbilityStats;
     using System;
     using System.Collections.Generic;
+    using Game50033.Examples;
     using UnityEngine;
 
     // runs after Player so a dodge started this frame is seen before the hit advances.
@@ -58,9 +59,7 @@ namespace Game50033
         private int _crashCharges = -1;
         private bool _crashVolumeReady;
 
-        // defensive: parry, a cone in front that destroys tagged projectiles; one reward per press.
-        private readonly HashSet<GameObject> _parriedThisFrame = new();
-        private Collider[] _parryBuffer = new Collider[32];
+        // defensive: locked frontal parry, with one reward per press.
         private Vector3 _parryDirection = Vector3.forward;
         private float _parryStartedAt;
         private float _parryReadyAt;
@@ -636,8 +635,6 @@ namespace Game50033
 
             var settings = tuning.parry;
             var elapsed = Time.time - _parryStartedAt;
-            ParryProjectiles(settings);
-            if (!IsParrying || !isActiveAndEnabled) return;
             if (elapsed >= settings.duration)
             {
                 EndParry();
@@ -646,73 +643,45 @@ namespace Game50033
             if (weaponVisual != null) weaponVisual.SetParryPose(_parryDirection, elapsed / settings.raiseTime);
         }
 
-        // anything tagged inside the cone is destroyed before it can reach the player's body;
-        // the player's own damage is untouched, so hits from other directions still land.
-        private void ParryProjectiles(CymbalsTuning.ParrySettings settings)
+        internal override bool TryParryHit(Vector3 incomingFrom)
         {
-            if (string.IsNullOrEmpty(settings.projectileTag)) return;
-            var origin = transform.position;
-            var height = tuning.combo.hitColumnHeight;
-            Physics.SyncTransforms();
-            int count;
-            while (true)
-            {
-                count = Physics.OverlapCapsuleNonAlloc(origin, origin + Vector3.up * height, settings.range,
-                    _parryBuffer, ~0, QueryTriggerInteraction.Collide);
-                if (count < _parryBuffer.Length) break;
-                Array.Resize(ref _parryBuffer, _parryBuffer.Length * 2);
-            }
+            if (!IsParrying || !isActiveAndEnabled || !Player.HasActiveInput || Player.Movement.IsDodging) return false;
+            var settings = tuning.parry;
+            if (Time.time - _parryStartedAt >= settings.duration) return false;
+            incomingFrom.y = 0f;
+            if (incomingFrom.sqrMagnitude < 0.00000001f
+                || Vector3.Angle(_parryDirection, incomingFrom) > settings.coneAngle * 0.5f) return false;
 
-            _parriedThisFrame.Clear();
-            var halfAngle = settings.coneAngle * 0.5f;
-            for (var i = 0; i < count; i++)
-            {
-                var candidate = _parryBuffer[i];
-                if (candidate == null) continue;
-                var projectile = FindTagged(candidate.transform, settings.projectileTag);
-                if (projectile == null || !_parriedThisFrame.Add(projectile)) continue;
-
-                // cone test on the ground plane, from the player's centre, generous by the projectile's size.
-                var bounds = candidate.bounds;
-                var offset = bounds.center - origin;
-                offset.y = 0f;
-                var distance = offset.magnitude;
-                if (distance < 0.0001f || distance > settings.range + Mathf.Max(bounds.extents.x, bounds.extents.z)) continue;
-                if (Vector3.Angle(_parryDirection, offset) > halfAngle) continue;
-
-                Parry(projectile, bounds.center, settings);
-                if (!IsParrying || !isActiveAndEnabled) return;
-            }
-        }
-
-        private static GameObject FindTagged(Transform from, string tag)
-        {
-            // string comparison, not CompareTag, so a tag missing from the project does not log errors every frame.
-            for (var t = from; t != null; t = t.parent)
-                if (t.gameObject.tag == tag) return t.gameObject;
-            return null;
-        }
-
-        private void Parry(GameObject projectile, Vector3 point, CymbalsTuning.ParrySettings settings)
-        {
-            // deactivate first so it cannot touch the player in a physics step before Destroy runs.
-            projectile.SetActive(false);
-            Destroy(projectile);
             _debugParryAt = Time.time;
             if (settings.parryEffect != null)
+            {
+                var point = tuning.combo.GetHitPoint(transform.position, incomingFrom.normalized);
                 settings.parryEffect.Play(new HitEffectRequest(point, _parryDirection, 0f, true));
+            }
             if (weaponVisual != null) weaponVisual.PlayParryPop();
 
-            if (_parryRewarded) return;
+            if (_parryRewarded) return true;
             _parryRewarded = true;
             for (var i = 0; i < settings.crashChargeReward; i++) AddCrashCharge();
+            if (settings.ampReverberation != null)
+            {
+                var field = Instantiate(settings.ampReverberation, transform.position, Quaternion.identity);
+                field.Initialize(Player, 1f, new ReverberationFieldShape
+                {
+                    kind = ReverberationFieldShapeKind.AnnularSector,
+                    direction = new Vector2(_parryDirection.x, _parryDirection.z),
+                    outerRadius = settings.range,
+                    sweepAngle = settings.coneAngle,
+                    stretchFactor = 1f
+                });
+            }
+            return true;
         }
 
         private void EndParry()
         {
             IsParrying = false;
             _parryReadyAt = Time.time + tuning.parry.cooldown;
-            _parriedThisFrame.Clear();
             BlocksMovement = false;
             BlocksDodge = false;
             BlocksAbilities = false;
@@ -827,6 +796,7 @@ namespace Game50033
             _debugCrashAt = Time.time;
             if (weaponVisual != null) weaponVisual.PlayCrashWaves(_crashTip, _crashDirection);
             if (!_crashVolumeReady) return;
+            crashVolume.ResetDamageMultiplier();
 
             // shape and place the prism, then query it once with the collider enabled.
             var rotation = Quaternion.LookRotation(_crashDirection, Vector3.up);
@@ -850,7 +820,8 @@ namespace Game50033
                     if (!isActiveAndEnabled || Player.Health.IsDowned) return;
                 }
 
-                // damage: solid bodies whose shape overlaps the prism.
+                // amp has already modified this crash before any direct damage is applied.
+                var damage = settings.damage * crashVolume.DamageMultiplier;
                 for (var i = 0; i < count; i++)
                 {
                     var candidate = _crashBuffer[i];
@@ -863,12 +834,12 @@ namespace Game50033
                     if (!OverlapsCrash(candidate, rotation)) continue;
 
                     _hitThisCrash.Add(target);
-                    target.TakeHit(new HitInfo(gameObject, settings.damage, _crashDirection));
+                    target.TakeHit(new HitInfo(gameObject, damage, _crashDirection));
                     if (!isActiveAndEnabled || Player.Health.IsDowned) return;
                     if (combo.hitEffect != null)
                         combo.hitEffect.Play(new HitEffectRequest(
                             ContactPoint(candidate, _crashTip + _crashDirection * (settings.length * 0.4f)),
-                            _crashDirection, settings.damage, true));
+                            _crashDirection, damage, true));
                 }
             }
             finally

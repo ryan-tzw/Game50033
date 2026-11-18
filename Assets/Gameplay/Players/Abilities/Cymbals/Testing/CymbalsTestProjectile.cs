@@ -26,7 +26,7 @@ namespace Game50033
         private void OnTriggerEnter(Collider other)
         {
             if (!other.TryGetComponent(out Player player)) return;
-            player.Health.TryTakeDamage(1);
+            player.Health.TryTakeDamage(1, -_velocity);
             Destroy(gameObject);
         }
     }

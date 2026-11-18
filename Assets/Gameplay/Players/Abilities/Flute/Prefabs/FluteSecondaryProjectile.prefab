@@ -118,6 +118,7 @@ MonoBehaviour:
   compatibleEffects:
   - {fileID: 11400000, guid: 1c8996d5907024dd780e942d92e42c96, type: 2}
   - {fileID: 11400000, guid: b5167cbc2b5d3494eb5ba7447acf66d4, type: 2}
+  - {fileID: 11400000, guid: 8df43cf72fe9dbb43a651623bc1565f7, type: 2}
 --- !u!1 &8215149270598765950
 GameObject:
   m_ObjectHideFlags: 0

@@ -49,6 +49,7 @@ namespace Game50033
         public virtual float MovementSpeedMultiplier => 1f;
         public virtual Vector3 GetMovementVelocity(Vector3 desiredVelocity, float deltaTime) => desiredVelocity;
         public virtual PlayerAttackPhase AnimationPhase => PlayerAttackPhase.None;
+        internal virtual bool TryParryHit(Vector3 incomingFrom) => false;
 
         protected virtual void OnDisable()
         {

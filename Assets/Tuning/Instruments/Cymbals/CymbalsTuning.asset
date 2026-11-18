@@ -241,8 +241,8 @@ MonoBehaviour:
     raiseTime: 0.08
     coneAngle: 120
     range: 1
-    projectileTag: BossProjectile
     crashChargeReward: 1
+    ampReverberation: {fileID: 6120829934472891941, guid: 9f8d5c95d3dd9672aa57f572dedaa02e, type: 3}
     parryEffect: {fileID: 11400000, guid: 8c765654a4db8374c93a6dc6e3c808a7, type: 2}
     parryPopScale: 1.4
     parryPopTime: 0.15

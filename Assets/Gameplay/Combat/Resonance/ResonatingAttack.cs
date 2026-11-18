@@ -15,6 +15,7 @@ namespace Game50033
 
         public Player SourcePlayer { get; private set; }
         public Collider HitVolume => hitVolume;
+        internal float DamageMultiplier { get; private set; } = 1f;
         public bool IsReady =>
             SourcePlayer != null && isActiveAndEnabled
             && hitVolume != null && hitVolume.gameObject == gameObject && hitVolume.enabled;
@@ -65,6 +66,16 @@ namespace Game50033
                 && (_collisionMask & (1 << other.gameObject.layer)) != 0
                 && !Physics.GetIgnoreLayerCollision(hitVolume.gameObject.layer, other.gameObject.layer)
                 && !Physics.GetIgnoreCollision(hitVolume, other);
+        }
+
+        internal void ApplyDamageMultiplier(float multiplier)
+        {
+            DamageMultiplier = Mathf.Max(DamageMultiplier, multiplier);
+        }
+
+        internal void ResetDamageMultiplier()
+        {
+            DamageMultiplier = 1f;
         }
 
         internal bool Accepts(ReverberationEffect effect)
