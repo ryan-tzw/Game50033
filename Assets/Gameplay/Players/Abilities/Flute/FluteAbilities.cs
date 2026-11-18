@@ -18,7 +18,6 @@ namespace Game50033
         [SerializeField] private Reverberation specialReverberationPrefab;
 
         private FluteWeaponVisual _visual;
-        private float _primaryReadyAt;
         private float _secondaryReadyAt;
         private float _specialReadyAt;
         private float _defensiveReadyAt;
@@ -32,6 +31,7 @@ namespace Game50033
         private int _shotIndex;
         private bool _specialRequiresRelease = true;
         private bool _paused;
+        private Vector3 _movementVelocity;
 
         internal bool SpecialRequiresRelease => _specialRequiresRelease;
 
@@ -80,6 +80,42 @@ namespace Game50033
 
         private bool CanStartAbility => _gameplayReady && HasControl
             && !Player.Hitstop.IsStopped && !BlocksAbilities;
+
+        public override Vector3 GetMovementVelocity(Vector3 desiredVelocity, float deltaTime)
+        {
+            if (!Player.CanMove || !Player.HasActiveInput || Player.Movement.IsDodging)
+            {
+                _movementVelocity = Vector3.zero;
+                return _movementVelocity;
+            }
+            if (Player.Movement.IsDisplacing)
+            {
+                // Keep Defensive's existing raw-input walking plus fixed displacement.
+                _movementVelocity = desiredVelocity;
+                return _movementVelocity;
+            }
+
+            var settings = tuning.movement;
+            var desiredSpeed = desiredVelocity.magnitude;
+            var speed = _movementVelocity.magnitude;
+            if (desiredSpeed < 0.0001f
+                || Vector3.Dot(_movementVelocity, desiredVelocity) < -0.0001f * speed * desiredSpeed)
+            {
+                // Opposing input brakes to a real stop before starting the new direction.
+                _movementVelocity = Vector3.MoveTowards(_movementVelocity, Vector3.zero,
+                    settings.deceleration * deltaTime);
+                return _movementVelocity;
+            }
+
+            var direction = speed > 0.0001f
+                ? Vector3.RotateTowards(_movementVelocity / speed, desiredVelocity / desiredSpeed,
+                    settings.turnRate * Mathf.Deg2Rad * deltaTime, 0f)
+                : desiredVelocity / desiredSpeed;
+            speed = Mathf.MoveTowards(speed, desiredSpeed,
+                (speed < desiredSpeed ? settings.acceleration : settings.deceleration) * deltaTime);
+            _movementVelocity = direction * speed;
+            return _movementVelocity;
+        }
 
         private void OnEnable()
         {
@@ -155,7 +191,7 @@ namespace Game50033
 
         public override bool TryUsePrimary()
         {
-            if (!CanStartAbility || (!IgnoreCooldowns && Time.time < _primaryReadyAt)
+            if (!CanStartAbility
                 || primaryProjectilePrefab == null || !primaryProjectilePrefab.IsConfigured)
             {
                 return false;
@@ -177,7 +213,6 @@ namespace Game50033
             var projectile = Spawn(primaryProjectilePrefab, position, direction);
             var damage = Mathf.Lerp(tuning.primary.minimumDamage, tuning.primary.maximumDamage, flow.Normalized);
             projectile.InitializePrimary(Player, direction, target, damage);
-            _primaryReadyAt = IgnoreCooldowns ? 0f : Time.time + tuning.primary.interval;
             BeginAction(Action.Primary, direction, tuning.primary.activeTime, tuning.primary.recovery);
             return true;
         }
@@ -351,6 +386,7 @@ namespace Game50033
 
         public override void Cancel()
         {
+            _movementVelocity = Vector3.zero;
             EndAction();
             _specialRequiresRelease = true;
             _speedRewardUntil = 0f;
@@ -363,10 +399,15 @@ namespace Game50033
 
         public override void ClearCooldowns()
         {
-            _primaryReadyAt = 0f;
             _secondaryReadyAt = 0f;
             _specialReadyAt = 0f;
             _defensiveReadyAt = 0f;
+        }
+
+        public override void ResetForEncounter()
+        {
+            base.ResetForEncounter();
+            flow.ResetForEncounter();
         }
 
         private void HandleSceneChanged(Scene previous, Scene current)
