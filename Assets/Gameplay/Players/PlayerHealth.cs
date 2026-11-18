@@ -32,6 +32,8 @@ namespace Game50033
         public event Action<int, int> HealthChanged;
         public event Action Downed;
         public event Action Revived;
+        // Report real hit attempts rejected specifically by ability immunity.
+        public event Action AbilityHitAvoided;
 
         private void Awake()
         {
@@ -75,6 +77,13 @@ namespace Game50033
 
         public bool TryTakeDamage(int damage)
         {
+            if (damage > 0 && !IsDowned && AbilityInvulnerabilityRemaining > 0f
+                && RevivalImmunityRemaining <= 0f && (_movement == null || !_movement.IsInvulnerable)
+                && !(_player != null && _player.Session != null && _player.Session.Debug.Invincibility))
+            {
+                AbilityHitAvoided?.Invoke();
+                return false;
+            }
             if (damage <= 0 || IsDowned || IsInvulnerable) return false;
 
             CurrentHealth = Mathf.Max(0, CurrentHealth - damage);

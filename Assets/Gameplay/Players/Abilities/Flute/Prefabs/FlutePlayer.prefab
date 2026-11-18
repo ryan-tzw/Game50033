@@ -63,6 +63,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3885672621503035260, guid: 54d14410a406964f98f9e3c220de0abb, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6253581509208530250}
+    - targetCorrespondingSourceObject: {fileID: 3885672621503035260, guid: 54d14410a406964f98f9e3c220de0abb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2142364528269168572}
   m_SourcePrefab: {fileID: 100100000, guid: 54d14410a406964f98f9e3c220de0abb, type: 3}
 --- !u!1 &5785889258957447968 stripped
 GameObject:
@@ -81,16 +84,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0609c2fd56fa4bb4ba727fc00c8b697c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.FluteFlow
-  maximumFlow: 100
-  initialFlow: 0
-  movementGainPerSecond: 8
-  stationaryLossPerSecond: 12
-  turningLossPerSecond: 12
-  abruptTurnAngle: 70
-  abruptTurnLoss: 10
-  maximumSmoothTurnRate: 120
-  minimumMovementSpeed: 0.1
-  teleportDistance: 3
+  tuning: {fileID: 11400000, guid: 5be57cde5e0749ccbf0c635ad0cd0934, type: 2}
 --- !u!114 &6253581509208530250
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -103,18 +97,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d1e8136f8373451e90613ce6322e15e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.FluteAbilities
+  tuning: {fileID: 11400000, guid: 5be57cde5e0749ccbf0c635ad0cd0934, type: 2}
   flow: {fileID: 5252340009633167774}
   projectileOrigin: {fileID: 0}
+  primaryProjectilePrefab: {fileID: 9175823185845635720, guid: cc2fecb2ab8944f6b79309f5f0a1eb75, type: 3}
   secondaryProjectilePrefab: {fileID: 9175823185845635720, guid: c5f801b52535b4db994b47f522506c93, type: 3}
   chargedProjectilePrefab: {fileID: 368587766763197796, guid: f8e00dba9be0e45aa917b017269ab698, type: 3}
-  specialReverberationPrefab: {fileID: 2031090188996249898, guid: aaabfd6e475e04362bfe232ba9e9daf9, type: 3}
-  secondaryCooldown: 0.5
-  secondaryDamage: 2
-  secondaryResonanceFlowGain: 15
-  specialCooldown: 2
-  maximumChargeDuration: 1.5
-  minimumSpecialDamage: 1
-  maximumSpecialDamage: 5
-  minimumReverberationStrength: 0.5
-  maximumReverberationStrength: 1.5
-  maximumChargeFlowCost: 25
+  specialReverberationPrefab: {fileID: 2889904791511872818, guid: 539a1205093641f98ef9cf3d92b0f247, type: 3}
+--- !u!114 &2142364528269168572
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5785889258957447968}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7613c0467c444cf9bd63f36c065109f9, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.FluteWeaponVisual
+  tuning: {fileID: 11400000, guid: 5be57cde5e0749ccbf0c635ad0cd0934, type: 2}

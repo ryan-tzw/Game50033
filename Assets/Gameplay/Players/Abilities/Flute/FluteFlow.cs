@@ -2,71 +2,93 @@ namespace Game50033
 {
     using System;
     using UnityEngine;
+    using UnityEngine.SceneManagement;
 
     [DefaultExecutionOrder(50)]
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Player))]
     public sealed class FluteFlow : MonoBehaviour
     {
-        [SerializeField, Min(0.01f)] private float maximumFlow = 100f;
-        [SerializeField, Min(0f)] private float initialFlow;
-        [SerializeField, Min(0f)] private float movementGainPerSecond = 8f;
-        [SerializeField, Min(0f)] private float stationaryLossPerSecond = 12f;
-        [SerializeField, Min(0f)] private float turningLossPerSecond = 12f;
-        [SerializeField, Range(1f, 180f)] private float abruptTurnAngle = 70f;
-        [SerializeField, Min(0f)] private float abruptTurnLoss = 10f;
-        [SerializeField, Min(0f)] private float maximumSmoothTurnRate = 120f;
-        [SerializeField, Min(0.01f)] private float minimumMovementSpeed = 0.1f;
-        [SerializeField, Min(0.1f)] private float teleportDistance = 3f;
+        [SerializeField] private FluteTuning tuning;
 
         private Player _player;
         private Vector3 _previousPosition;
         private Vector3 _previousDirection;
         private bool _hasDirection;
+        private bool _skipMovementSample;
 
         public float Current { get; private set; }
-        public float Maximum => maximumFlow;
-        public float Normalized => Mathf.Clamp01(Current / Mathf.Max(0.01f, maximumFlow));
+        public float Maximum => tuning.flow.maximum;
+        public float Normalized => Mathf.Clamp01(Current / Mathf.Max(0.01f, tuning.flow.maximum));
         public bool IsMoving { get; private set; }
+        public bool IsGainingFromMovement { get; private set; }
+        public bool TurnedAbruptly { get; private set; }
         public event Action<float, float> Changed;
 
         private void Awake()
         {
             _player = GetComponent<Player>();
-            Current = Mathf.Clamp(initialFlow, 0f, maximumFlow);
+            if (tuning == null)
+            {
+                Debug.LogError("FluteFlow requires Flute tuning.", this);
+                enabled = false;
+                return;
+            }
+            Current = Mathf.Clamp(tuning.flow.initial, 0f, tuning.flow.maximum);
         }
 
         private void OnEnable()
         {
             ResetMovementTracking();
+            _skipMovementSample = true;
+            SceneManager.activeSceneChanged += HandleSceneChanged;
         }
 
         private void OnDisable()
         {
+            SceneManager.activeSceneChanged -= HandleSceneChanged;
+            ResetMovementTracking();
+        }
+
+        private void HandleSceneChanged(Scene previous, Scene current)
+        {
+            // Ignore the encounter entry teleport, even when it is shorter than the teleport threshold.
+            _skipMovementSample = true;
             ResetMovementTracking();
         }
 
         private void LateUpdate()
         {
+            // Expose the existing movement decision without changing resource arithmetic.
+            IsGainingFromMovement = false;
+            TurnedAbruptly = false;
             var displacement = transform.position - _previousPosition;
             _previousPosition = transform.position;
             displacement.y = 0f;
 
+            if (_skipMovementSample)
+            {
+                _skipMovementSample = false;
+                ResetMovementTracking();
+                return;
+            }
+
             // Skip teleports and inactive gameplay so that it wouldn't count as movement/ lack of movement
             if (_player == null || !_player.isActiveAndEnabled || !_player.HasActiveInput
                 || _player.Health == null || _player.Health.IsDowned
+                || _player.Hitstop.IsStopped
                 || Time.deltaTime <= 0f
-                || displacement.sqrMagnitude > teleportDistance * teleportDistance)
+                || displacement.sqrMagnitude > tuning.flow.teleportDistance * tuning.flow.teleportDistance)
             {
                 ResetMovementTracking();
                 return;
             }
 
-            IsMoving = displacement.magnitude / Time.deltaTime >= minimumMovementSpeed;
+            IsMoving = displacement.magnitude / Time.deltaTime >= tuning.flow.minimumMovementSpeed;
             if (!IsMoving)
             {
                 _hasDirection = false;
-                Lose(stationaryLossPerSecond * Time.deltaTime);
+                Lose(tuning.flow.stationaryLoss * Time.deltaTime);
                 return;
             }
 
@@ -74,17 +96,19 @@ namespace Game50033
             var angle = _hasDirection ? Vector3.Angle(_previousDirection, direction) : 0f;
 
             // Reward steady movement and penalize sharp turns or repeated spinning.
-            if (_hasDirection && angle >= abruptTurnAngle)
+            if (_hasDirection && angle >= tuning.flow.abruptTurnAngle)
             {
-                Lose(abruptTurnLoss);
+                TurnedAbruptly = true;
+                Lose(tuning.flow.abruptTurnLoss);
             }
-            else if (_hasDirection && angle / Time.deltaTime > maximumSmoothTurnRate)
+            else if (_hasDirection && angle / Time.deltaTime > tuning.flow.maximumTurnRate)
             {
-                Lose(turningLossPerSecond * Time.deltaTime);
+                Lose(tuning.flow.turningLoss * Time.deltaTime);
             }
             else
             {
-                Gain(movementGainPerSecond * Time.deltaTime);
+                IsGainingFromMovement = true;
+                Gain(tuning.flow.movementGain * Time.deltaTime);
             }
 
             _previousDirection = direction;
@@ -120,14 +144,14 @@ namespace Game50033
 
         private void SetValue(float value)
         {
-            var next = Mathf.Clamp(value, 0f, maximumFlow);
+            var next = Mathf.Clamp(value, 0f, tuning.flow.maximum);
             if (next == Current)
             {
                 return;
             }
 
             Current = next;
-            Changed?.Invoke(Current, maximumFlow);
+            Changed?.Invoke(Current, tuning.flow.maximum);
         }
 
         private void ResetMovementTracking()
@@ -135,6 +159,8 @@ namespace Game50033
             _previousPosition = transform.position;
             _hasDirection = false;
             IsMoving = false;
+            IsGainingFromMovement = false;
+            TurnedAbruptly = false;
         }
     }
 }
