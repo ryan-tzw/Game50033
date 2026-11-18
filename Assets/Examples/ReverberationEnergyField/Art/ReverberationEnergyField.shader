@@ -23,16 +23,7 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
     SubShader
     {
         Tags { "RenderPipeline" = "UniversalPipeline" "RenderType" = "Transparent" "Queue" = "Transparent" }
-        Pass
-        {
-            Blend SrcAlpha OneMinusSrcAlpha
-            ZWrite Off
-            ZTest LEqual
-            Cull Off
-            HLSLPROGRAM
-            #pragma target 3.0
-            #pragma vertex Vert
-            #pragma fragment Frag
+        HLSLINCLUDE
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
@@ -68,26 +59,24 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
                     lerp(Hash(cell + float2(0, 1)), Hash(cell + 1), f.x), f.y);
             }
 
-            half4 Frag(Varyings input) : SV_Target
+            float2 FieldWarp(float3 positionWS, out float2 p)
             {
                 float time = _Time.y * _FlowSpeed;
                 float angle = _Layer * 1.73 + 0.4;
                 float2 direction = float2(cos(angle), sin(angle));
-                float2 p = input.positionWS.xz * _NoiseScale + float2(17.17, 31.13) * _Layer;
+                p = positionWS.xz * _NoiseScale + float2(17.17, 31.13) * _Layer;
                 p += direction * time * (0.85 + 0.07 * _Layer);
 
                 // two broad warp channels and one contour sample, with no octave loop or texture dependencies.
                 float2 warp = float2(Noise(p * 0.63 + time * float2(0.11, -0.08)),
                     Noise(p * 0.63 + float2(9.2, 14.7) - time * float2(0.06, 0.09)));
-                float field = Noise(p + (warp - 0.5) * _Turbulence * 2);
-                float ridge = 1 - abs(field * 2 - 1);
-                float width = clamp(_Density * 0.1, 0.015, 0.35);
-                float currents = smoothstep(1 - width * 2, 1 - width * 0.25, ridge);
-                float concentration = smoothstep(0.12, 0.8, warp.x * 0.6 + warp.y * 0.4);
-                float energy = (currents * 0.9 + 0.08) * concentration;
+                return warp;
+            }
 
+            float FieldEnvelope(float2 uv, float2 warp)
+            {
                 // fade through the interior before reaching a quad edge, without drawing a hollow rim.
-                float2 edgeUV = input.uv * 2 - 1;
+                float2 edgeUV = uv * 2 - 1;
                 float radial = length(edgeUV) + (warp.y - 0.5) * 0.16;
                 if (_EdgeDistortionStrength > 0)
                 {
@@ -103,6 +92,21 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
                     // fade out before the square mesh edge even at peak outward displacement; disabled is exactly legacy.
                     envelope *= 1 - smoothstep(0.9, 1, max(abs(edgeUV.x), abs(edgeUV.y)));
                 }
+                return envelope;
+            }
+
+            half4 Frag(Varyings input) : SV_Target
+            {
+                float2 p;
+                float2 warp = FieldWarp(input.positionWS, p);
+                float field = Noise(p + (warp - 0.5) * _Turbulence * 2);
+                float ridge = 1 - abs(field * 2 - 1);
+                float width = clamp(_Density * 0.1, 0.015, 0.35);
+                float currents = smoothstep(1 - width * 2, 1 - width * 0.25, ridge);
+                float concentration = smoothstep(0.12, 0.8, warp.x * 0.6 + warp.y * 0.4);
+                float energy = (currents * 0.9 + 0.08) * concentration;
+
+                float envelope = FieldEnvelope(input.uv, warp);
                 float alpha = saturate(energy * _LayerOpacity * _EnergyColor.a) * envelope;
 
                 float bands = max(2, _BrightnessBands) - 1;
@@ -127,6 +131,48 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
                 clip(combinedAlpha - 0.001);
                 return half4(combinedColor, combinedAlpha);
             }
+
+            half4 MaskFrag(Varyings input) : SV_Target
+            {
+                // outline the continuous field envelope, not each luminous current or transparency gap.
+                // max blending unions sheets and separate fields without adding opacity at overlaps.
+                float visible = max(_LayerOpacity * _EnergyColor.a,
+                    max(_MidgroundLayerOpacity * _EnergyColor.a, _BackgroundLayerOpacity * _BackgroundColor.a));
+                clip(visible - 0.000001);
+                float2 p;
+                float2 warp = FieldWarp(input.positionWS, p);
+                return FieldEnvelope(input.uv, warp).xxxx;
+            }
+        ENDHLSL
+
+        Pass
+        {
+            Name "Energy"
+            Blend SrcAlpha OneMinusSrcAlpha
+            ZWrite Off
+            ZTest LEqual
+            Cull Off
+            HLSLPROGRAM
+            #pragma target 3.0
+            #pragma vertex Vert
+            #pragma fragment Frag
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "FieldBoundaryMask"
+            Tags { "LightMode" = "PixelWorldOutline" }
+            Blend One One
+            BlendOp Max
+            ColorMask R
+            ZWrite Off
+            ZTest LEqual
+            Cull Off
+            HLSLPROGRAM
+            #pragma target 3.0
+            #pragma vertex Vert
+            #pragma fragment MaskFrag
             ENDHLSL
         }
     }

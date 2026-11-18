@@ -38,6 +38,20 @@ With deformation enabled, an additional soft guard fades the last 10% of normali
 
 There are four noise evaluations per fragment with boundary distortion enabled (three internal plus one boundary), versus the previous three. No geometry, materials, draw calls, CPU mesh animation or renderer changes were added. The old performance table is not a measurement of this refinement.
 
+## Merged silhouette outline
+
+Edit `Assets/Tuning/Experiments/ReverberationEnergyFieldOutline.asset` for **Outline Enabled**, **Color**, **Width** (1–4 internal pixels), and **Threshold**. One internal pixel becomes three pixels at a 1080p output with a 640×360 internal target. All participating fields share these settings because overlapping outlines merge. Disable Outline Enabled to remove both outline passes.
+
+The energy shader has an additional `PixelWorldOutline` LightMode pass. It evaluates the same animated boundary envelope as the colour pass, ignoring interior current gaps. Max blending unions all participating sheets/fields into one single-channel mask without accumulating coverage at overlaps. Only explicitly tagged materials participate; Guitar smears and other transparent effects are unaffected.
+
+The pixel renderer draws this mask against the existing low-resolution opaque depth. A fullscreen composite draws a thresholded border just inside the visible silhouette before nearest-neighbour upscaling. Drawing inside avoids expanding the line over opaque occluders. Opaque intersections can create contours where the visible field is cut away; subsequent full-resolution sprites still cover the field normally. The outline follows the outer region envelope, not each luminous current or its brightness. Fully transparent fields are excluded, but threshold placement is intentionally independent of the current density/brightness.
+
+A lower Threshold follows fainter outer parts of the soft boundary; higher values bring the line inward. The finite threshold makes a crisp toon-style line over otherwise soft transparency. It can visually sharpen the field and can flicker by individual internal pixels as the silhouette moves. Bloom can soften its final appearance.
+
+The renderer adds one mask draw per enabled field sheet plus one fullscreen composite, and a 640×360 R8 mask at the default resolution. Mask fragments reuse the two broad warp samples and animated boundary noise without calculating current brightness. No extra meshes or per-frame materials are created. Empty scenes still have the enabled mask/composite setup; turn Outline Enabled off to remove this work globally. The older performance measurements below exclude this feature; new GPU timings have not been measured.
+
+`PC_Renderer.asset` wires the outline material and shared settings into `PixelArtRendererFeature`. The renderer depends on `PixelWorldOutlineTuning`, not this experimental component. Other materials can opt in explicitly via the same LightMode in future; no general VFX framework was introduced.
+
 ## Optional bloom preview
 
 The test scene starts with `Bloom Preview` enabled. Toggle that GameObject to compare bloom on/off without changing the field. Edit `Assets/Tuning/Experiments/ReverberationEnergyFieldBloom.asset` for Intensity (initially 1), Threshold (0.8) and Scatter (0.65). The camera has HDR and post-processing enabled. This is ordinary scene-wide URP bloom after pixel upscaling: it adds a soft glow to bright pixels, including any bright environment objects, and does not pixelate the glow itself. The shader and field prefab remain independent of bloom.
@@ -52,7 +66,7 @@ The sheets are slightly tilted at different heights. Ordinary back-to-front tran
 
 ## Pixel renderer
 
-Every layer is on `PixelWorldVFX` (layer 12). Existing `PC_Renderer` already includes this layer in `transparentWorldLayers` (4096) and excludes it from URP's later Transparent Layer Mask (4294963199). Thus each sheet is rendered once at 640×360 before nearest-neighbour upscale. The test camera uses the actual 45° orthographic view with size 3.6. No renderer feature, renderer asset, pipeline setting or existing gameplay prefab was modified.
+Every layer is on `PixelWorldVFX` (layer 12). Existing `PC_Renderer` already includes this layer in `transparentWorldLayers` (4096) and excludes it from URP's later Transparent Layer Mask (4294963199). Thus each sheet is rendered once at 640×360 before nearest-neighbour upscale. The test camera uses the actual 45° orthographic view with size 3.6. The field colour still uses this unchanged transparency route. The optional merged outline extends the renderer feature and adds material/settings references to PC_Renderer; pipeline settings and gameplay prefabs are unchanged.
 
 The floor, capsule and pillar are static depth/scale references, with a shared prototype environment material. The only authored post-processing override is the optional Bloom Preview volume.
 
@@ -70,6 +84,8 @@ Measured in Unity 6000.3.24f1 Editor batch Play mode, URP 17.3, OpenGL 4.5 on NV
 The frame-wide GC counter median was 246 bytes in every case; this includes the Editor/test sampler and does not establish per-effect allocation cost. Hardware GPU frame timing was unavailable, so no GPU milliseconds or speedup claim is made. Each four-layer instance adds four measured draw calls. Profile a release build on target hardware after approving the visual direction.
 
 ## Checks and limitations
+
+- Merged outlines compiled and rendered in isolated Unity Play mode at 1920×1080 through the real 640×360 pass. With Outline Enabled off, the refactored field shader matched the previous shader exactly (0 changed RGB pixels). Single, coincident and overlapping fields were captured; overlapping fields were visually inspected for a merged border. Partial and full opaque occlusion and an empty mask were checked; removing a fully hidden field changed no pixels. Width/threshold artistic tuning and target-build GPU profiling remain manual work.
 
 - Animated boundary compiled/rendered in isolated Unity Play mode. Strength zero matched the previous shader exactly at 1080p (0 changed RGB pixels). With internal Flow Speed zero, moving boundary noise changed 62,489 pixels over two simulation seconds; also zeroing Edge Distortion Speed produced identical captures. Maximum-strength output was rendered and inspected for soft mesh-edge fading. These checks do not establish shader GPU cost or visual quality at every view/setting.
 

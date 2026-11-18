@@ -15,19 +15,19 @@ MonoBehaviour:
   fieldDimensions: {x: 3, y: 2, z: 0.6}
   layerCount: 3
   layerTilt: 3
-  edgeDistortionStrength: 0.18
-  edgeDistortionSpeed: 0.3
-  edgeFalloff: 0.345
+  edgeFalloff: 0.221
+  edgeDistortionStrength: 0.3
+  edgeDistortionSpeed: 2.47
   energyColor: {r: 0.6485088, g: 0.2216981, b: 1, a: 1}
-  density: 2.28
-  opacity: 0.423
-  emission: 7
-  brightnessBands: 3
+  density: 2.45
+  opacity: 0.145
+  emission: 6.49
+  brightnessBands: 4
   backgroundColor: {r: 0.63734365, g: 0.1273585, b: 1, a: 1}
   backgroundOpacity: 0.525
   backgroundVariation: 0.716
-  midgroundOpacity: 0.564
+  midgroundOpacity: 0.351
   midgroundWidth: 0.434
-  noiseScale: 1.02
-  flowSpeed: 0.3
-  turbulence: 1.184
+  noiseScale: 0.8
+  flowSpeed: 0.5
+  turbulence: 1.266
