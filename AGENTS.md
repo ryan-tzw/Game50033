@@ -17,13 +17,14 @@ This is a Unity 6 (6000.3.24f1), URP, local 2–4-player, music-themed boss-rush
 9. **No speculative rewrites.** A folder in the architecture tree marked *planned* is not permission to create placeholder managers or to migrate all assets. Implement only what the feature needs; update the architecture doc if a stable boundary changes.
 10. **Verify and report accurately.** Check compilation where a Unity environment is available; otherwise explicitly say Unity compilation and play-mode behaviour are unverified. Test feature behaviour and at least one multi-player interaction where relevant. Never claim a test passed without running it.
 11. **Keep the docs accurate.** When adding a significant component, changing a public combat contract, relocating features, or altering scene lifetimes, update `docs/agents/ARCHITECTURE.md` and, if controls or how-to-run change, `README.md` in the same change.
+12. **Centralize feature tuning.** Put authored gameplay and presentation tweaks in feature-owned ScriptableObject assets under the top-level `Assets/Tuning/` folder, grouped by feature. Keep their C# types beside the owning feature code. Components reference these assets; do not duplicate the same settings across prefabs or scene components. Keep per-instance object wiring on prefabs/scenes and runtime state on components. Use separate assets for independently owned features, with grouped sections where several components share a feature's tuning. Adopt this convention for new work; migrate existing settings only within an explicitly scoped change.
 
 ## How to approach a feature task
 
 - Inspect the latest branch and the relevant existing scripts/prefabs before editing. Do not assume old prototype files or prior instructions have been integrated.
 - State which files and public contracts need to change; prefer feature-local files first.
 - Reuse existing interfaces such as `IHittable`, `HitInfo`, `PlayerAbilities`, and existing `Reverberation`/`ResonanceResolver` mechanics instead of creating parallel systems.
-- Expose only the small public API needed by the next feature. Put tuning values in serialized fields where appropriate.
+- Expose only the small public API needed by the next feature. Put tuning values in the feature's ScriptableObject under `Assets/Tuning/`; serialize asset references on the consuming components.
 - When finished, report: files changed, behavioural/API changes, tests actually run, Unity Editor checks remaining, and any shared files that teammates should avoid editing simultaneously.
 
 ## Code review focus

@@ -15,3 +15,4 @@ MonoBehaviour:
   displayName: Guitar
   sprite: {fileID: 5395042229362328217, guid: f4aa2dc303f9da7669b91fe830b83084, type: 3}
   tint: {r: 0.35, g: 0.8, b: 0.85, a: 1}
+  playerPrefab: {fileID: 9019545368423628371, guid: 37531a99c5eee3496ac27af004e69c68, type: 3}

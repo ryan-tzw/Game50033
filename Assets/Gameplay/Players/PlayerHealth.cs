@@ -11,7 +11,10 @@ namespace Game50033
         [SerializeField, Min(1)] private int reviveHealth = 1;
         [SerializeField, Min(0f)] private float revivalImmunityDuration = 1f;
 
+        private Player _player;
         private PlayerMovement _movement;
+        private PlayerHitstop _hitstop;
+        private float _abilityImmuneUntil;
         private bool _initialized;
         private float _reviveAt;
         private float _immuneUntil;
@@ -21,11 +24,16 @@ namespace Game50033
         public bool IsDowned { get; private set; }
         public float RevivalRemaining => IsDowned ? Mathf.Max(0f, _reviveAt - Time.time) : 0f;
         public float RevivalImmunityRemaining => Mathf.Max(0f, _immuneUntil - Time.time);
-        public bool IsInvulnerable => RevivalImmunityRemaining > 0f || (_movement != null && _movement.IsInvulnerable);
+        public float AbilityInvulnerabilityRemaining => Mathf.Max(0f, _abilityImmuneUntil - (_hitstop != null ? _hitstop.ActionTime : Time.time));
+        public bool IsInvulnerable => (_player != null && _player.Session != null && _player.Session.Debug.Invincibility)
+            || RevivalImmunityRemaining > 0f || AbilityInvulnerabilityRemaining > 0f
+            || (_movement != null && _movement.IsInvulnerable);
 
         public event Action<int, int> HealthChanged;
         public event Action Downed;
         public event Action Revived;
+        // Report real hit attempts rejected specifically by ability immunity.
+        public event Action AbilityHitAvoided;
 
         private void Awake()
         {
@@ -36,7 +44,9 @@ namespace Game50033
         {
             if (_initialized) return;
 
+            _player = GetComponent<Player>();
             _movement = GetComponent<PlayerMovement>();
+            _hitstop = GetComponent<PlayerHitstop>();
             CurrentHealth = maxHealth;
             _initialized = true;
         }
@@ -52,8 +62,28 @@ namespace Game50033
             Revived?.Invoke();
         }
 
+        // one active ability owns this deadline; clearing it never removes dodge or revival immunity.
+        public void GrantAbilityInvulnerability(float duration)
+        {
+            Initialize();
+            if (!isActiveAndEnabled || IsDowned || duration <= 0f || float.IsNaN(duration) || float.IsInfinity(duration)) return;
+            var now = _hitstop != null ? _hitstop.ActionTime : Time.time;
+            _abilityImmuneUntil = Mathf.Max(_abilityImmuneUntil, now + duration);
+        }
+
+        public void ClearAbilityInvulnerability() => _abilityImmuneUntil = 0f;
+
+        private void OnDisable() => ClearAbilityInvulnerability();
+
         public bool TryTakeDamage(int damage)
         {
+            if (damage > 0 && !IsDowned && AbilityInvulnerabilityRemaining > 0f
+                && RevivalImmunityRemaining <= 0f && (_movement == null || !_movement.IsInvulnerable)
+                && !(_player != null && _player.Session != null && _player.Session.Debug.Invincibility))
+            {
+                AbilityHitAvoided?.Invoke();
+                return false;
+            }
             if (damage <= 0 || IsDowned || IsInvulnerable) return false;
 
             CurrentHealth = Mathf.Max(0, CurrentHealth - damage);

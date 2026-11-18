@@ -121,9 +121,9 @@ namespace Game50033
         private bool TryActivate(TromboneAbilitiesType ability, ref float readyAt, float cooldown, bool blockMovement, bool blockDodge)
         {
             if (!isActiveAndEnabled || Player.Health.IsDowned || Player.Movement.IsDodging
-                || BlocksAbilities || Time.time < readyAt) return false;
+                || BlocksAbilities || (!IgnoreCooldowns && Time.time < readyAt)) return false;
 
-            readyAt = Time.time + cooldown;
+            readyAt = IgnoreCooldowns ? 0f : Time.time + cooldown;
             _tromboneActiveUntil = Time.time + tromboneActionDuration;
             BlocksMovement = blockMovement;
             BlocksDodge = blockDodge;
@@ -259,6 +259,11 @@ namespace Game50033
             }
             _activeCommandZone = null;
         }
+        public override void ClearCooldowns()
+        {
+            _trombonePrimaryReadyAt = _tromboneSecondaryReadyAt = _tromboneDefensiveReadyAt = _tromboneSpecialReadyAt = 0f;
+        }
+
         public override void Cancel()
         {
             _tromboneActiveUntil = 0f;

@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9525a9c0a8f07b4b192cf953915c6f16, type: 3}
+  m_Name: ReverberationEnergyFieldTuning
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.Examples.ReverberationEnergyFieldTuning
+  fieldDimensions: {x: 3, y: 2, z: 0.6}
+  layerCount: 3
+  layerTilt: 3
+  edgeFalloff: 0.221
+  edgeDistortionStrength: 0.13
+  edgeDistortionSpeed: 2.4
+  energyColor: {r: 0.6485088, g: 0.2216981, b: 1, a: 1}
+  density: 2.45
+  opacity: 0.145
+  emission: 6.49
+  brightnessBands: 4
+  backgroundColor: {r: 0.63734365, g: 0.1273585, b: 1, a: 1}
+  backgroundOpacity: 0.525
+  backgroundVariation: 0.716
+  midgroundOpacity: 0.351
+  midgroundWidth: 0.434
+  noiseScale: 0.8
+  flowSpeed: 0.5
+  turbulence: 1.266

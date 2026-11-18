@@ -1,0 +1,27 @@
+.debug-panel {
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    width: 320px;
+    padding: 14px;
+    background-color: rgba(18, 21, 28, 0.96);
+    border-width: 1px;
+    border-color: rgb(100, 112, 135);
+    border-radius: 6px;
+    font-size: 16px;
+}
+.debug-panel Label { color: rgb(238, 241, 248); }
+.debug-title { font-size: 20px; -unity-font-style: bold; margin-bottom: 4px; }
+.debug-hint { font-size: 12px; margin-bottom: 10px; }
+.debug-section { -unity-font-style: bold; margin-bottom: 4px; }
+.debug-panel Toggle { margin-top: 5px; margin-bottom: 5px; }
+.debug-panel Button {
+    margin-top: 12px;
+    padding: 6px;
+    background-color: rgb(54, 63, 80);
+    border-width: 1px;
+    border-color: rgb(100, 112, 135);
+    border-radius: 4px;
+    color: rgb(238, 241, 248);
+}
+.debug-panel Button:hover { background-color: rgb(72, 84, 106); }

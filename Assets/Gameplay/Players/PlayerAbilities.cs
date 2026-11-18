@@ -2,6 +2,14 @@ namespace Game50033
 {
     using UnityEngine;
 
+    public enum PlayerAttackPhase
+    {
+        None,
+        Windup,
+        Active,
+        Recovery,
+    }
+
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Player))]
     public abstract class PlayerAbilities : MonoBehaviour
@@ -17,9 +25,17 @@ namespace Game50033
             }
         }
 
+        protected bool IgnoreCooldowns => Player.Session != null && Player.Session.Debug.NoCooldowns;
+
+        // reset deadlines only; active actions, resources and combo progression keep their normal owners.
+        public virtual void ClearCooldowns() { }
+
         public bool BlocksMovement { get; protected set; }
         public bool BlocksDodge { get; protected set; }
         public bool BlocksAbilities { get; protected set; }
+        public virtual bool BlocksDefensive => BlocksAbilities;
+        public virtual float MovementSpeedMultiplier => 1f;
+        public virtual PlayerAttackPhase AnimationPhase => PlayerAttackPhase.None;
 
         protected virtual void OnDisable()
         {

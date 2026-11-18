@@ -9,7 +9,15 @@ float3 AdjustSaturation(float3 color, float saturation)
     return luminance.xxx + saturation.xxx * (color - luminance.xxx);
 }
 
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
+    // replace only the main-light shadow lookup used by URP lighting; retain its PBR and additional-light paths.
+    #include "../PlayerShadows/PlayerShadows.hlsl"
+    #define MainLightShadow PlayerMainLightShadow
+#endif
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
+    #undef MainLightShadow
+#endif
 
 #if defined(LOD_FADE_CROSSFADE)
     #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
@@ -47,6 +55,10 @@ struct Varyings
     float3 normalWS                 : TEXCOORD2;
 #if defined(REQUIRES_WORLD_SPACE_TANGENT_INTERPOLATOR)
     half4 tangentWS                : TEXCOORD3;    // xyz: tangent, w: sign
+#endif
+
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
+    float3 casterPositionWS         : TEXCOORD4;
 #endif
 
 #ifdef _ADDITIONAL_LIGHTS_VERTEX
@@ -106,7 +118,10 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
     inputData.normalWS = NormalizeNormalPerPixel(inputData.normalWS);
     inputData.viewDirectionWS = viewDirWS;
 
-#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
+    // characters sample their caster mesh; upright weapons provide their occlusion-plane position below.
+    inputData.shadowCoord = PlayerWorldToShadowCoord(input.casterPositionWS);
+#elif defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
     inputData.shadowCoord = input.shadowCoord;
 #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
     inputData.shadowCoord = TransformWorldToShadowCoord(inputData.positionWS);
@@ -172,6 +187,9 @@ Varyings LitPassVertex(Attributes input)
     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
     VertexPositionInputs vertexInput = GetVertexPositionInputs(input.positionOS.xyz);
+#if defined(_RECEIVE_PLAYER_SHADOWS) || defined(_RECEIVE_WEAPON_SHADOWS)
+    output.casterPositionWS = vertexInput.positionWS;
+#endif
     
     // modifications start here
     
@@ -181,13 +199,57 @@ Varyings LitPassVertex(Attributes input)
         length(TransformObjectToWorldDir(float3(0,1,0), false))
     );
     
-    // (0,0,0) here is the sprite's origin, we apply the world and camera transform to get the origin's location relative to the camera
-    float3 originVS = TransformWorldToView(TransformObjectToWorld(float3(0,0,0)));
-    
-    float3 billboardPositionVS = originVS + float3(input.positionOS.xy * scale, 0);
-    
+    // rotate the visible image about an optional grip point, independently of world geometry.
+    // zero rotation/pivot reproduce the existing avatar projection.
+    float3 pivotVS = TransformWorldToView(TransformObjectToWorld(float3(_SpritePivot.xy, 0)));
+    float2 offsetVS = (input.positionOS.xy - _SpritePivot.xy) * scale;
+    float sine, cosine;
+    sincos(radians(_SpriteRotation), sine, cosine);
+    offsetVS = float2(cosine * offsetVS.x - sine * offsetVS.y,
+                     sine * offsetVS.x + cosine * offsetVS.y);
+    float3 billboardPositionVS = pivotVS + float3(offsetVS, 0);
+
+    float3 billboardPositionWS = TransformViewToWorld(billboardPositionVS);
     float4 billboardPositionCS = TransformWViewToHClip(billboardPositionVS);
-    billboardPositionCS.z = vertexInput.positionCS.z / vertexInput.positionCS.w * billboardPositionCS.w;
+    // modes 0/1 retain mesh/XZ depth; mode 2 uses a vertical plane through the grip.
+    float4 depthCS = vertexInput.positionCS;
+    if (_SpriteFlatDepth > 0.5 && _SpriteFlatDepth < 1.5)
+    {
+        // project the visible vertex back onto the weapon's horizontal plane for depth.
+        // otherwise a downward-rotated image can intersect the floor despite its mesh being above it.
+        float3 rayWS = unity_OrthoParams.w > 0.5
+            ? TransformViewToWorldDir(float3(0, 0, 1))
+            : billboardPositionWS - GetCameraPositionWS();
+        if (abs(rayWS.y) > 0.001)
+        {
+            float distance = (vertexInput.positionWS.y - billboardPositionWS.y) / rayWS.y;
+            depthCS = TransformWorldToHClip(billboardPositionWS + rayWS * distance);
+        }
+    }
+    if (_SpriteFlatDepth > 1.5)
+    {
+        // intersect the visible ray with a world-upright plane, facing only the camera's horizontal direction.
+        // depth follows world Y rather than the camera tilt; floor exclusion belongs to the weapon render pass.
+        float3 gripWS = TransformObjectToWorld(float3(_SpritePivot.xy, 0));
+        float3 cameraForwardWS = TransformViewToWorldDir(float3(0, 0, 1));
+        float3 planeNormal = float3(cameraForwardWS.x, 0, cameraForwardWS.z);
+        float3 rayWS = unity_OrthoParams.w > 0.5 ? cameraForwardWS : billboardPositionWS - GetCameraPositionWS();
+        float denominator = dot(rayWS, planeNormal);
+        float3 uprightPositionWS = billboardPositionWS;
+        if (abs(denominator) > 0.0001)
+        {
+            float distance = dot(gripWS - billboardPositionWS, planeNormal) / denominator;
+            uprightPositionWS += rayWS * distance;
+            depthCS = TransformWorldToHClip(uprightPositionWS);
+        }
+        else depthCS = billboardPositionCS;
+#if defined(_RECEIVE_WEAPON_SHADOWS)
+        // receive environment shadows at the same upright surface used for obstacle occlusion.
+        // the shadow-caster pass still uses the original mesh to cast onto the ground.
+        output.casterPositionWS = uprightPositionWS;
+#endif
+    }
+    billboardPositionCS.z = depthCS.z / depthCS.w * billboardPositionCS.w;
     
     // normalWS and tangentWS already normalize.
     // this is required to avoid skewing the direction during interpolation
@@ -197,7 +259,6 @@ Varyings LitPassVertex(Attributes input)
     
     // replace the above lighting calculation
     // lighting should treat sprite as rotated to face the camera too. (only shadows don't)
-    float3 billboardPositionWS = TransformViewToWorld(billboardPositionVS);
     half3 billboardNormalWS = TransformViewToWorldDir(float3(0,0,1), true); 
     half3 vertexLight = VertexLighting(billboardPositionWS, billboardNormalWS);
 

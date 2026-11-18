@@ -46,26 +46,24 @@ namespace Game50033
             if (_attackAction == null || _attackAction.actionMap.asset != actions)
                 _attackAction = actions.FindAction("Player/Primary", true);
             if (Time.frameCount == _enabledFrame) return false;
-            if (!_attackAction.WasPressedThisFrame() || Time.time < _nextAttackTime) return false;
+            if (!_attackAction.WasPressedThisFrame() || (!IgnoreCooldowns && Time.time < _nextAttackTime)) return false;
 
-            _nextAttackTime = Time.time + cooldown;
-            Attack();
+            _nextAttackTime = IgnoreCooldowns ? 0f : Time.time + cooldown;
+            Attack(Player.GetAttackDirection());
             return true;
         }
+
+        public override void ClearCooldowns() => _nextAttackTime = 0f;
 
         public override bool TryUseSecondary() => false;
         public override bool TryUseDefensive() => false;
         public override bool TryUseSpecial() => false;
         public override void Cancel() { }
 
-        private Vector3 AttackCenter =>
-            transform.position + Vector3.up * attackHeight
-            + Player.AimDirection * attackReach;
-
-        private void Attack()
+        private void Attack(Vector3 facing)
         {
-            var facing = Player.AimDirection;
-            var count = Physics.OverlapSphereNonAlloc(AttackCenter, attackRadius, HitBuffer, hitMask, QueryTriggerInteraction.Ignore);
+            var centre = transform.position + Vector3.up * attackHeight + facing * attackReach;
+            var count = Physics.OverlapSphereNonAlloc(centre, attackRadius, HitBuffer, hitMask, QueryTriggerInteraction.Ignore);
 
             _hitThisSwing.Clear();
             for (var i = 0; i < count; i++)
@@ -83,7 +81,8 @@ namespace Game50033
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(AttackCenter, attackRadius);
+            var facing = Player != null && Player.Movement != null ? Player.Movement.FacingDirection : transform.forward;
+            Gizmos.DrawWireSphere(transform.position + Vector3.up * attackHeight + facing * attackReach, attackRadius);
         }
     }
 }
