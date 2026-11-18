@@ -38,7 +38,7 @@ namespace Game50033
                 || target.GetComponentInParent<Player>() != null
                 || target.GetComponentInParent<Reverberation>() != null) return false;
             var boss = target.GetComponentInParent<BaseBoss>();
-            if (boss != null && (!boss.isActiveAndEnabled || boss.IsDead)) return false;
+            if (boss != null && (!boss.isActiveAndEnabled || boss.Health.IsDead)) return false;
             if (target is BaseBoss) return true;
             var hurtbox = target.GetComponent<CombatHurtbox>();
             return hurtbox != null && hurtbox.isActiveAndEnabled && ReferenceEquals(hurtbox.Target, target);
