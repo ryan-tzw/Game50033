@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &268353372496038347
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5595495886368367193}
+  - component: {fileID: 133819519238865925}
+  m_Layer: 0
+  m_Name: ChargeTelegraph
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5595495886368367193
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 268353372496038347}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &133819519238865925
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 268353372496038347}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 710f1c6a0cca72d43afe4037ba8236b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.ChargeTelegraph
+  laneMaterial: {fileID: 2100000, guid: b0404dc241823f04581ae802e5ea42a8, type: 2}
+  fillMaterial: {fileID: 2100000, guid: e573000645967d047b7a71e21fda097c, type: 2}
+  width: 1.5
+  heightAboveGround: 0.02
+  pixelsPerUnit: 16
+  outlinePixels: 1
+  highlightPixels: 1
+  stripeSpacing: 3
+  laneOutline: {r: 0.6, g: 0.1, b: 0.25, a: 0.85}
+  laneHighlight: {r: 1, g: 0.7, b: 0.8, a: 0.55}
+  laneInner: {r: 1, g: 0.45, b: 0.6, a: 0.25}
+  laneStripe: {r: 1, g: 0.35, b: 0.5, a: 0.4}
+  fillOutline: {r: 0.4, g: 0, b: 0.05, a: 1}
+  fillHighlight: {r: 1, g: 0.4, b: 0.45, a: 1}
+  fillInner: {r: 0.9, g: 0.05, b: 0.15, a: 0.9}
+  fillStripe: {r: 0.7, g: 0, b: 0.1, a: 0.9}
+  flashStart: 0.85
+  flashInterval: 0.08
+  flashColor: {r: 1, g: 0.85, b: 0.9, a: 1}
