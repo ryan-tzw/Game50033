@@ -13,6 +13,7 @@ namespace Game50033
 
         private static readonly int MovingId = Animator.StringToHash("Moving");
         private static readonly int SpeedId = Animator.StringToHash("Speed");
+        private static readonly int HitStunnedId = Animator.StringToHash("HitStunned");
         private static readonly int AttackPhaseId = Animator.StringToHash("AttackPhase");
 
         private Player _player;
@@ -28,6 +29,7 @@ namespace Game50033
 
         private void Update()
         {
+            animator.SetBool(HitStunnedId, _player.IsHitStunned);
             animator.SetInteger(AttackPhaseId, (int)(_abilities != null && _abilities.isActiveAndEnabled
                 ? _abilities.AnimationPhase : PlayerAttackPhase.None));
 
@@ -48,7 +50,9 @@ namespace Game50033
 
         private void OnDisable()
         {
-            if (animator != null) animator.speed = 1f;
+            if (animator == null) return;
+            animator.SetBool(HitStunnedId, false);
+            animator.speed = 1f;
         }
     }
 }

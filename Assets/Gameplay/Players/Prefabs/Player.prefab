@@ -134,6 +134,7 @@ GameObject:
   - component: {fileID: 794207836743235729}
   - component: {fileID: 1823924041723711795}
   - component: {fileID: 6512731523353069809}
+  - component: {fileID: 4604652734385103609}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -346,3 +347,17 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHurtbox
   tuning: {fileID: 11400000, guid: 0e6ae754d02acfe0da51e3e4e83be354, type: 2}
+--- !u!114 &4604652734385103609
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b31254aab2a6dd8487ce691acc6e896, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHitReaction
+  tuning: {fileID: 11400000, guid: 697da0963b4682fd387bb52b2c8325f8, type: 2}
+  avatarRenderer: {fileID: 1627041761190954647}

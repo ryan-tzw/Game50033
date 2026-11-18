@@ -45,6 +45,8 @@ namespace Game50033
         public PlayerHurtbox Hurtbox { get; private set; }
         public PlayerAbilities Abilities { get; private set; }
         public PlayerHitstop Hitstop { get; private set; }
+        public PlayerHitReaction HitReaction { get; private set; }
+        public bool IsHitStunned => HitReaction != null && HitReaction.IsHitStunned;
         public GameSession Session { get; internal set; }
         public int PlayerIndex { get; private set; } = -1;
         public Color PlayerColor { get; private set; } = Color.white;
@@ -58,14 +60,14 @@ namespace Game50033
         public bool SpecialPressedThisFrame => SpecialInputEnabled && _specialAction.WasPressedThisFrame();
         public bool SpecialHeld => SpecialInputEnabled && _specialAction.IsPressed();
 
-        public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDowned && !Hitstop.IsStopped
+        public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDowned && !IsHitStunned && !Hitstop.IsStopped
             && (Abilities == null || !Abilities.isActiveAndEnabled || !Abilities.BlocksMovement);
-        public bool CanDodge => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !Hitstop.IsStopped
+        public bool CanDodge => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !IsHitStunned && !Hitstop.IsStopped
             && Movement.CanDodge && (Abilities == null || !Abilities.isActiveAndEnabled || !Abilities.BlocksDodge);
-        public bool CanUseAbilities => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !Hitstop.IsStopped
+        public bool CanUseAbilities => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !IsHitStunned && !Hitstop.IsStopped
             && !Movement.IsDodging && Abilities != null && Abilities.isActiveAndEnabled && !Abilities.BlocksAbilities;
 
-        public bool CanUseDefensive => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !Hitstop.IsStopped
+        public bool CanUseDefensive => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !IsHitStunned && !Hitstop.IsStopped
             && !Movement.IsDodging && Abilities != null && Abilities.isActiveAndEnabled && !Abilities.BlocksDefensive;
 
         private void Awake()
@@ -107,6 +109,7 @@ namespace Game50033
             Hurtbox = GetComponent<PlayerHurtbox>();
             Abilities = GetComponent<PlayerAbilities>();
             Hitstop = GetComponent<PlayerHitstop>();
+            HitReaction = GetComponent<PlayerHitReaction>();
             if (avatarRenderer == null) avatarRenderer = GetComponentInChildren<SpriteRenderer>(true);
             Movement.Initialize();
             Health.Initialize();
@@ -305,6 +308,8 @@ namespace Game50033
             if (_ownsCursor) Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
             _ownsCursor = false;
             if (Hitstop != null) Hitstop.Clear();
+            HitReaction?.Clear();
+            Health?.ClearPostHitInvulnerability();
             Movement.CancelDodge();
             Movement.CancelDisplacement();
             Movement.ReadInput(Vector2.zero);
@@ -335,6 +340,7 @@ namespace Game50033
             PublishAutoTarget(null);
             Hitstop.Clear();
             Movement.ResetForEncounter();
+            HitReaction?.Clear();
             Health.ResetForEncounter();
             if (Abilities != null) Abilities.ResetForEncounter();
         }

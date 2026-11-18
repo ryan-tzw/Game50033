@@ -103,8 +103,7 @@ namespace Game50033
         {
             if (other.TryGetComponent(out Player player))
             {
-                player.Health.TryTakeDamage(1);
-                Debug.Log("Player damaged");
+                if (player.Health.TryTakeDamage(1)) Debug.Log("Player damaged");
 
                 if (!_piercing) DestroyProjectile();
                 return;

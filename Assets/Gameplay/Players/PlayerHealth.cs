@@ -15,18 +15,21 @@ namespace Game50033
         private bool _initialized;
         private float _reviveAt;
         private float _immuneUntil;
+        private float _postHitImmuneUntil;
 
         public int CurrentHealth { get; private set; }
         public int MaxHealth => tuning.maxHealth;
         public bool IsDowned { get; private set; }
         public float RevivalRemaining => IsDowned ? Mathf.Max(0f, _reviveAt - Time.time) : 0f;
+        public float PostHitInvulnerabilityRemaining => Mathf.Max(0f, _postHitImmuneUntil - Time.time);
         public float RevivalImmunityRemaining => Mathf.Max(0f, _immuneUntil - Time.time);
         public float AbilityInvulnerabilityRemaining => Mathf.Max(0f, _abilityImmuneUntil - (_hitstop != null ? _hitstop.ActionTime : Time.time));
         public bool IsInvulnerable => (_player != null && _player.Session != null && _player.Session.Debug.Invincibility)
-            || RevivalImmunityRemaining > 0f || AbilityInvulnerabilityRemaining > 0f
+            || PostHitInvulnerabilityRemaining > 0f || RevivalImmunityRemaining > 0f || AbilityInvulnerabilityRemaining > 0f
             || (_movement != null && _movement.IsInvulnerable);
 
         public event Action<int, int> HealthChanged;
+        public event Action<int> Damaged;
         public event Action Downed;
         public event Action Revived;
         // Report real hit attempts rejected specifically by ability immunity.
@@ -72,27 +75,41 @@ namespace Game50033
 
         public void ClearAbilityInvulnerability() => _abilityImmuneUntil = 0f;
 
-        private void OnDisable() => ClearAbilityInvulnerability();
+        internal void ClearPostHitInvulnerability() => _postHitImmuneUntil = 0f;
+
+        private void OnDisable()
+        {
+            ClearAbilityInvulnerability();
+            ClearPostHitInvulnerability();
+        }
 
         public bool TryTakeDamage(int damage)
         {
             if (damage > 0 && !IsDowned && AbilityInvulnerabilityRemaining > 0f
-                && RevivalImmunityRemaining <= 0f && (_movement == null || !_movement.IsInvulnerable)
+                && PostHitInvulnerabilityRemaining <= 0f && RevivalImmunityRemaining <= 0f && (_movement == null || !_movement.IsInvulnerable)
                 && !(_player != null && _player.Session != null && _player.Session.Debug.Invincibility))
             {
                 AbilityHitAvoided?.Invoke();
                 return false;
             }
-            if (damage <= 0 || IsDowned || IsInvulnerable) return false;
+            if (damage <= 0 || CurrentHealth <= 0 || IsDowned || IsInvulnerable) return false;
 
-            CurrentHealth = Mathf.Max(0, CurrentHealth - damage);
+            var applied = Mathf.Min(CurrentHealth, damage);
+            CurrentHealth -= applied;
             if (CurrentHealth == 0)
             {
+                ClearPostHitInvulnerability();
                 IsDowned = true;
                 _reviveAt = Time.time + tuning.downedDuration;
                 // cancel actions before observers of the health change can start more work.
                 Downed?.Invoke();
             }
+            else
+            {
+                _postHitImmuneUntil = Time.time + tuning.postHitInvulnerabilityDuration;
+            }
+
+            Damaged?.Invoke(applied);
 
             HealthChanged?.Invoke(CurrentHealth, MaxHealth);
             return true;
@@ -107,6 +124,7 @@ namespace Game50033
             CurrentHealth = MaxHealth;
             _reviveAt = 0f;
             _immuneUntil = 0f;
+            ClearPostHitInvulnerability();
             _abilityImmuneUntil = 0f;
             HealthChanged?.Invoke(CurrentHealth, MaxHealth);
             if (wasDowned) Revived?.Invoke();

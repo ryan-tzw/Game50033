@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: PlayerHealthTuning
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHealthTuning
   maxHealth: 5
+  postHitInvulnerabilityDuration: 2
   downedDuration: 15
   reviveHealth: 1
   revivalImmunityDuration: 1
