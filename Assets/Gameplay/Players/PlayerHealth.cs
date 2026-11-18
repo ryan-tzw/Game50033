@@ -90,6 +90,20 @@ namespace Game50033
             return true;
         }
 
+        // encounter boundary: full hearts, standing, and no leftover revive timer or immunity.
+        public void ResetForEncounter()
+        {
+            Initialize();
+            var wasDowned = IsDowned;
+            IsDowned = false;
+            CurrentHealth = maxHealth;
+            _reviveAt = 0f;
+            _immuneUntil = 0f;
+            _abilityImmuneUntil = 0f;
+            HealthChanged?.Invoke(CurrentHealth, maxHealth);
+            if (wasDowned) Revived?.Invoke();
+        }
+
         public void Heal(int amount)
         {
             if (amount <= 0 || IsDowned || CurrentHealth >= maxHealth) return;

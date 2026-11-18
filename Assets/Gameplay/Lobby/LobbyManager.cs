@@ -21,6 +21,7 @@ namespace Game50033
         private readonly List<PlayerCharacterSelect> _players = new();
         private readonly Dictionary<CharacterDefinition, PlayerCharacterSelect> _claims = new();
         private PlayerCharacterSelect _replacingPlayer;
+        private PlayerInputManager _boundInputManager;
 
         /// <summary>Raised whenever a character is claimed or released.</summary>
         public event Action SelectionChanged;
@@ -48,20 +49,65 @@ namespace Game50033
             {
                 if (panels[i]) panels[i].ShowEmpty(i);
             }
+
+            // by now a duplicate join manager loaded with this scene has switched itself off.
+            BindInputManager();
+            AdoptReturningPlayers();
         }
 
-        private void OnEnable()
+        private void OnEnable() => BindInputManager();
+
+        private void OnDisable() => UnbindInputManager();
+
+        // on a return to the lobby, the scene's own join manager is a duplicate of the persistent one
+        // and destroys itself; use the persistent one that still owns the players and their devices.
+        private void BindInputManager()
         {
-            if (!playerInputManager) return;
-            playerInputManager.onPlayerJoined += HandlePlayerJoined;
-            playerInputManager.onPlayerLeft += HandlePlayerLeft;
+            var manager = playerInputManager != null && playerInputManager.isActiveAndEnabled
+                ? playerInputManager
+                : PlayerInputManager.instance;
+            if (manager == _boundInputManager) return;
+
+            UnbindInputManager();
+            _boundInputManager = manager;
+            if (!manager) return;
+            manager.onPlayerJoined += HandlePlayerJoined;
+            manager.onPlayerLeft += HandlePlayerLeft;
         }
 
-        private void OnDisable()
+        private void UnbindInputManager()
         {
-            if (!playerInputManager) return;
-            playerInputManager.onPlayerJoined -= HandlePlayerJoined;
-            playerInputManager.onPlayerLeft -= HandlePlayerLeft;
+            if (_boundInputManager)
+            {
+                _boundInputManager.onPlayerJoined -= HandlePlayerJoined;
+                _boundInputManager.onPlayerLeft -= HandlePlayerLeft;
+            }
+            _boundInputManager = null;
+        }
+
+        // players coming back from a run keep their character: claimed, at their slot's spawn, ready.
+        // They can still unready in the ring to pick again. Players without a character pick one now.
+        private void AdoptReturningPlayers()
+        {
+            foreach (var playerInput in new List<PlayerInput>(PlayerInput.all))
+            {
+                if (!playerInput.TryGetComponent(out PlayerCharacterSelect player) || _players.Contains(player)) continue;
+
+                _players.Add(player);
+                playerInput.ActivateInput();
+
+                var character = player.Character;
+                if (character == null || !TryClaim(character, player))
+                {
+                    player.BeginSelection(this);
+                    continue;
+                }
+
+                var controller = playerInput.GetComponent<CharacterController>();
+                if (controller) controller.enabled = false;
+                player.transform.position = GetSpawnPosition(playerInput.playerIndex, player.transform.position);
+                player.CompleteSelection(this, character);
+            }
         }
 
         private void HandlePlayerJoined(PlayerInput playerInput)
@@ -101,12 +147,13 @@ namespace Game50033
         {
             var slot = _players.IndexOf(source);
             var prefab = character.PlayerPrefab;
-            var joinManager = playerInputManager != null
-                ? playerInputManager.GetComponent<PlayerJoinManager>()
+            var inputManager = _boundInputManager;
+            var joinManager = inputManager != null
+                ? inputManager.GetComponent<PlayerJoinManager>()
                 : null;
 
             if (slot < 0 || _replacingPlayer != null
-                || joinManager == null || !playerInputManager.joiningEnabled
+                || joinManager == null || !inputManager.joiningEnabled
                 || prefab == null || !prefab.gameObject.activeSelf
                 || prefab.GetComponent<PlayerCharacterSelect>() == null
                 || prefab.GetComponents<PlayerAbilities>().Length != 1)

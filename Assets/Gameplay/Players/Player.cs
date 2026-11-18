@@ -328,6 +328,17 @@ namespace Game50033
             if (Abilities != null) Abilities.Cancel();
         }
 
+        // called by the scene's GameManager at an encounter boundary (fight start, return to lobby).
+        public void ResetForEncounter()
+        {
+            Initialize();
+            PublishAutoTarget(null);
+            Hitstop.Clear();
+            Movement.ResetForEncounter();
+            Health.ResetForEncounter();
+            if (Abilities != null) Abilities.ResetForEncounter();
+        }
+
         public void ConfigurePlayer(int playerIndex)
         {
             gameObject.name = $"Player {playerIndex + 1}";

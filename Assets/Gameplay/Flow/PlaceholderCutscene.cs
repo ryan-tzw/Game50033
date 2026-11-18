@@ -10,10 +10,12 @@ namespace Game50033
     /// real cutscene (e.g. a Timeline) and keep the load-next-scene step at the end.
     ///
     /// Players carried over from the lobby are still alive in DontDestroyOnLoad with their
-    /// input switched off; GameSceneEntry turns it back on in the game scene.
+    /// input switched off; the encounter scene's EncounterManager turns it back on.
     /// </summary>
     public sealed class PlaceholderCutscene : MonoBehaviour
     {
+        [Tooltip("The scene's GameManager; it loads the next scene of the run. Without one, Next Scene Name is loaded.")]
+        [SerializeField] private GameManager gameManager;
         [SerializeField] private CanvasGroup content;
         [SerializeField, Min(0f)] private float fadeInSeconds = 1f;
         [SerializeField, Min(0f)] private float holdSeconds = 1.5f;
@@ -28,7 +30,8 @@ namespace Game50033
             yield return new WaitForSeconds(holdSeconds);
             yield return Fade(1f, 0f, fadeOutSeconds);
 
-            SceneManager.LoadScene(nextSceneName);
+            if (gameManager != null) gameManager.LoadNext();
+            else SceneManager.LoadScene(nextSceneName);
         }
 
         private IEnumerator Fade(float from, float to, float seconds)

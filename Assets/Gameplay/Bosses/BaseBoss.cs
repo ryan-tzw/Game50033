@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 
-public class BaseBoss : MonoBehaviour, IHittable
+public class BaseBoss : MonoBehaviour, IHittable, IEncounterBoss
 {
     [SerializeField] protected float BossMovementSpeed = 5f;
     [SerializeField, Min(0.01f)] protected float BossHealthPoints = 20000f;
@@ -43,6 +43,12 @@ public class BaseBoss : MonoBehaviour, IHittable
     public float MaxHealth => BossHealthPoints;
     public float CurrentHealth => BossCurrentHealth;
     public bool IsDead => BossCurrentHealth <= 0f;
+    public bool IsDefeated => IsDead;
+
+    public event System.Action<IEncounterBoss> Defeated;
+    public event System.Action<HitInfo, float> Damaged;
+    public event System.Action<int> PhaseChanged;
+    public int Phase => BossCurrentPhase;
 
     protected void Awake()
     {
@@ -95,6 +101,12 @@ public class BaseBoss : MonoBehaviour, IHittable
     {
         CancelInvoke(nameof(EndAttack));
         IsAttacking = false;
+        // a disabled boss (e.g. frozen when the fight ends) must not keep sliding.
+        if (_rb != null && !_rb.isKinematic)
+        {
+            _rb.linearVelocity = Vector3.zero;
+            _rb.angularVelocity = Vector3.zero;
+        }
         if (_attackAnimator != null && _attackAnimator.isActiveAndEnabled)
         {
             _attackAnimator.SetBool(IsWalkingId, false);
@@ -109,15 +121,26 @@ public class BaseBoss : MonoBehaviour, IHittable
             return;
         }
 
+        var before = BossCurrentHealth;
         BossCurrentHealth = Mathf.Max(0f, BossCurrentHealth - hit.Damage);
         UpdateHealthBar();
         _lastHitTime = Time.time;
         SetHitFlash(1f);
+        Damaged?.Invoke(hit, before - BossCurrentHealth);
 
         if (IsDead)
         {
+            Defeated?.Invoke(this);
             Die();
         }
+    }
+
+    // call when the boss moves to another phase; the encounter uses it to pick the Discordance rate.
+    protected void SetPhase(int phase)
+    {
+        if (phase == BossCurrentPhase) return;
+        BossCurrentPhase = phase;
+        PhaseChanged?.Invoke(phase);
     }
 
     private void UpdateHealthBar()

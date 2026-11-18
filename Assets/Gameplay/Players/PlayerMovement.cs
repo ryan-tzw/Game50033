@@ -104,6 +104,16 @@ namespace Game50033
             DodgeEnded?.Invoke(false);
         }
 
+        // encounter boundary: stop any dodge or push and refill every dodge charge.
+        public void ResetForEncounter()
+        {
+            Initialize();
+            CancelDodge();
+            CancelDisplacement();
+            ReadInput(Vector2.zero);
+            DodgeCharges = maxDodgeCharges;
+        }
+
         public bool TryStartDisplacement(Vector3 direction, float distance, float duration, AnimationCurve easing, float delay = 0f)
         {
             direction.y = 0f;

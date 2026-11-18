@@ -30,8 +30,9 @@ flowchart TB
     Specific --> Hits[IHittable / HitInfo + attack-specific hit volumes]
     Specific --> Resonance[Reverberation / ResonatingAttack / ResonanceResolver]
     Specific -. presentation signals .-> Visuals[Instrument weapon visuals / VFX / SFX]
-    Entry[Scene-local encounter entry / controller] --> Session
-    Entry --> Boss[Boss-specific behaviour]
+    GM[Scene-local GameManager: game state + scene order] --> Session
+    Entry[Scene-local EncounterManager] --> GM
+    Entry --> Boss[Boss-specific behaviour, via IEncounterBoss]
     Boss --> Health
     Hits --> Boss
 ```
@@ -46,7 +47,11 @@ flowchart TB
 - **GameSession:** persistent roster of participating `Player` objects, with registration/unregistration and roster notifications. It is not responsible for boss AI, lobby selection, or camera effects.
 - **PlayerJoinManager:** creates/configures player instances and owns joins, leaves, and device pairing. Other gameplay code should **not** depend on this class merely to find players.
 - **LobbyManager / character selection:** controls lobby selection and spawning of the chosen prefab. It owns lobby-only state; runtime player identity belongs to the surviving player instance. A ready player unreadies by standing in the cyan `UnreadyZone` ring (below the mic) for the countdown in `Assets/Tuning/Lobby/LobbyTuning.asset`, 2 s by default, shown above their head. `PlayerCharacterSelect.ReturnToSelection` releases their character and goes back to browsing with the cursor on it. Each pick spawns the player at their fixed slot point, `LobbyManager.spawnPoints` indexed by `playerIndex`. The points sit at the four room corners, matching the HUD panel corners and marked by a floor ring in that panel's accent colour, so nobody spawns where they unreadied. B/Q stays the character's Defensive ability after picking.
-- **Encounter entry/controller (when added):** scene-local encounter setup, spawn points, fight start/end and win/loss conditions. Boss AI should be independent of lobby/scene transition implementation.
+- **GameManager (`Flow/GameManager`):** scene-local; one in every scene of the flow (Lobby, Cutscene1, Game). Owns the game's state (`GameState`: Lobby, Cutscene, Encounter, Victory, Defeat) and moving between scenes in the order set by `Assets/Tuning/Flow/GameFlow.asset` (lobby scene, then the run's scenes; after the last one, back to the lobby). It holds nothing that must survive a scene change: where the run is comes from the active scene's position in `GameFlow.runScenes`, so a scene must not appear twice. API: `StartRun` (Lobby), `LoadNext` (cutscenes), `BeginEncounter` / `EndEncounter(victory)` (EncounterManager), `Continue`, `ReturnToLobby`. Events: `StateChanged(old, new)`, `EncounterReset`, `ReadyChanged`. Every load disables joining, deactivates player input, disables `Player` and keeps the player roots in DontDestroyOnLoad. In the Lobby it resets players and re-enables joining. After a **defeat** it freezes players (`Player.enabled = false`, input left active) and waits until every player presses Special (E / bottom face button), ignoring presses for `results.defeatReadyDelay` (0.5 s), then returns to the Lobby. After a **victory** it resets players (downed players stand up) and leaves them free to move; the scene's `VictoryReadyZone` calls `Continue` once everyone has stood in it for `results.victoryCountdownSeconds` (3 s), which continues the run.
+- **EncounterManager (`Game/EncounterManager`):** scene-local; one per encounter scene; it replaced `GameSceneEntry` (same script GUID, so scene wiring was kept). Places carried-over players on its spawn points, restores input, then calls `GameManager.BeginEncounter`. Victory is every listed boss (`IEncounterBoss`) defeated; defeat is every player downed at the same moment (polled, so mid-fight joiners count). Keeps the fight's stats: fight time and damage per player, credited from `IEncounterBoss.Damaged` through `HitInfo.Attacker`'s parent `Player`. When the fight ends it disables the boss behaviours and switches on the plain `victoryGroup` (a panel on the left, so the arena stays visible) or `defeatGroup` (full-screen dim with a centred dark panel) GameObject, filling any listed `statsLabels` and the defeat `readyLabels`.
+- **Discordance meter (in `EncounterManager`):** runs the value only and raises events; it applies no effects. The numbers come from the boss's `DiscordanceTuning` asset (`Assets/Tuning/Encounters/BossOneDiscordance.asset`, GDD defaults): gain per second for each boss phase (1.2, 1.8), +4 for each heart a player loses, −5 per successful Resonance (`ResonanceResolver.Activated`) scaled by `referencePlayers / players at fight start`, clamped 0–`max` (100), thresholds 33/66/100. It starts at 0 every encounter and only moves during the Encounter state. Events: `DiscordanceChanged(value)` and `DiscordanceLevelChanged(previous, level)`; the level is 0 below the first threshold and fires in both directions, because Resonance can bring the meter back down. **Bosses own the effects** (GDD: level 1 takes 25% less damage, level 2 attacks twice as often, level 3 has faster, more numerous projectiles): they subscribe to `DiscordanceLevelChanged` and treat the level as a state. A damage reduction applied inside the boss's `TakeHit` is automatically what `Damaged` reports, so the fight stats stay correct.
+- **VictoryReadyZone (`Game/VictoryReadyZone`):** scene-local, hidden until Victory. A floor ring (its own `Art/Encounter/VictoryReadyZone.mat`) with a screen-space label kept above it. When every player stands inside, the ring widens and a countdown runs; anyone leaving cancels it; at zero it calls `GameManager.Continue`. It reads positions only.
+- **`IEncounterBoss` (`Game/IEncounterBoss`):** the short list of things the encounter may know about any boss: `IsDefeated`, `Phase` (starting at 1), `Defeated` (raised once, before the boss hides), `Damaged(HitInfo, applied)` with the damage actually lost, and `PhaseChanged(phase)`, which the encounter uses to pick the Discordance fill rate. `BaseBoss` implements it, raises `PhaseChanged` from its protected `SetPhase(int)`, and zeroes its Rigidbody velocity when disabled. Boss AI stays independent of the flow.
 - **Boss-specific scripts:** targeting, movement, attack patterns and phase behaviour. Read active players from `GameSession` or context supplied by the scene entry; avoid hardcoded player GameObjects and `PlayerJoinManager` dependencies.
 - **Presentation:** animation, floating weapons, VFX, SFX, HUD. Presentation listens to gameplay events or explicit calls. It must not define authoritative damage, cooldown, or hit outcomes.
 
@@ -67,11 +72,12 @@ Lobby.unity -> Cutscene1.unity -> Game.unity (current first playable encounter)
 - The existing `GameSession` plus `PlayerJoinManager` live on a persistent manager root. Joined player roots (with `PlayerInput`) also survive scene transitions. This retains device pairing, player indices, and selected instrument instances.
 - **Current implementation uses `DontDestroyOnLoad` and ordinary scene loading.** Keep it for now. Separate boss scenes do **not** require a new `Core.unity` scene or mandatory additive loading. Additive loading is an option later for persistent shared environments or simultaneous streamed scenes, not a prerequisite.
 - Bosses, arena geometry, hazards, scene lighting, arena-specific UI, and encounter scripts are **scene-local** and get destroyed when their encounter is unloaded.
-- An encounter scene has one entry point (currently `GameSceneEntry` for `Game.unity`) that positions surviving players, restores input, and supplies encounter-specific references as needed. Don't repeat a `FindObject...` lookup every boss update.
+- An encounter scene has one entry point (its `EncounterManager`) that positions surviving players, restores input, and supplies encounter-specific references as needed. Don't repeat a `FindObject...` lookup every boss update.
+- **Returning to the Lobby:** the Lobby scene's own `PlayerJoinManager` copy destroys itself as a duplicate session, so `LobbyManager` binds to the persistent `PlayerInputManager.instance` when its serialized one is inactive. It adopts every surviving player: those with a character are claimed, placed at their slot spawn point and ready (they can still unready in the ring); those without one start selecting.
 - Do not serialize cross-scene references from encounter assets to persistent roots; resolve/inject them at runtime. Boss code can receive the roster/session via encounter initialization or a one-time lookup through the current player. No global singleton required.
-- Define reset rules explicitly before a second fight exists: HP, cooldowns, active projectiles/REV entities, attack restrictions, and boss state must start in a known condition. Preserve device pairing and selected instrument.
+- **Reset rules:** at every encounter start and on return to the Lobby, the GameManager calls `Player.ResetForEncounter()`: hitstop cleared, `PlayerMovement.ResetForEncounter` (dodge/push cancelled, all dodge charges), `PlayerHealth.ResetForEncounter` (full hearts, not downed, revive timer and all immunity cleared, `Revived` raised if it was downed) and the virtual `PlayerAbilities.ResetForEncounter` (default `Cancel()` + `ClearCooldowns()`; override to reset instrument resources). Projectiles, REV entities and boss state are scene-local and start fresh with the scene. Device pairing and selected instrument are preserved.
 - Keep existing `SceneNames` / Build Profiles accurate whenever a scene is renamed or added. If a boss scene is meant to work standalone in the Editor, provide test initialization rather than duplicating persistent managers in production prefabs.
-- The team-wipe/defeat condition is a *game-design decision* and intentionally not prescribed here; downed players currently auto-revive on a timer.
+- **Defeat** is every player downed at the same time; downed players still auto-revive on a timer, so a staggered wipe is not a defeat.
 
 ### Lifecycle ownership reference
 
@@ -80,7 +86,11 @@ Lobby.unity -> Cutscene1.unity -> Game.unity (current first playable encounter)
 | Device pairing, player index | `PlayerInput` / persistent player | Yes |
 | Selected instrument / character identity | Player + character selection data | Yes |
 | Player roster | `GameSession` | Yes |
-| HP/cooldowns | Player components; reset at encounter boundary | Object persists; values reset by policy |
+| HP/cooldowns | Player components; reset at encounter boundary by `GameManager` | Object persists; values reset by policy |
+| Game state, results ready-up | Scene-local `GameManager` | No (run position is derived from the active scene) |
+| Run order | `GameFlow` asset | Authored, no runtime state |
+| Fight stats, win/loss, Discordance value and level | Scene-local `EncounterManager` | No (Discordance restarts at 0) |
+| Discordance effects on the boss | Boss scripts, listening to the level | No |
 | Boss AI, phases, projectiles, arena hazards | Encounter scene | No |
 | Lobby selection UI | Lobby scene | No |
 | Weapon visuals | Instrument/player prefab | Yes; visuals reset with player |
@@ -335,8 +345,8 @@ Assets/
       CharacterRoster.cs
       Data/                             # immutable-ish authored character definitions
     Lobby/                              # lobby UI, ready/start and selection rules
-    Flow/                               # scene names, cutscene/transition utilities
-    Game/                               # encounter entry / player spawn handoff
+    Flow/                               # GameManager, GameFlow, scene names, cutscene/transition utilities
+    Game/                               # EncounterManager, IEncounterBoss
     UI/                                 # (new as needed) shared HUD and game UI
   Scenes/
     Lobby.unity                         # current path
@@ -411,7 +421,7 @@ This is a **migration order**, not a required single giant refactor:
 
 5. Move `Players/Trombone/` into `Players/Abilities/Trombone/` with metadata intact, coordinated with the Trombone owner.
 6. Move Bone-specific scripts, prefabs and animations under `Bosses/Bone/`; trim concrete attack logic out of `BaseBoss` only if the second boss exposes genuine duplication.
-7. Add `Scenes/Encounters/` and a scene-local encounter entry/controller when a second boss scene is created. Preserve persistent players and device pairing across scenes; reset encounter-specific state explicitly.
+7. Add `Scenes/Encounters/` when a second boss scene is created. Give it a `GameManager` and an `EncounterManager`, and add it to `GameFlow.runScenes` and Build Profiles.
 8. Separate any presentation code that currently decides hits/damage, as it is encountered during VFX work.
 9. Replace the current `BaseBoss` targeting dependency with a stable boss contract **only when** another boss implementation requires it.
 

@@ -30,6 +30,14 @@ namespace Game50033
         // reset deadlines only; active actions, resources and combo progression keep their normal owners.
         public virtual void ClearCooldowns() { }
 
+        // encounter boundary: stop whatever is running and start the fight with everything ready.
+        // Override to also reset instrument resources that should not carry between fights.
+        public virtual void ResetForEncounter()
+        {
+            Cancel();
+            ClearCooldowns();
+        }
+
         public bool BlocksMovement { get; protected set; }
         public bool BlocksDodge { get; protected set; }
         public bool BlocksAbilities { get; protected set; }
