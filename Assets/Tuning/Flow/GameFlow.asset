@@ -15,7 +15,9 @@ MonoBehaviour:
   lobbyScene: Lobby
   runScenes:
   - Cutscene1
-  - Game
+  - BossOneScene
+  - Cutscene2
+  - MafiaTest
   results:
     defeatReadyDelay: 0.5
     victoryCountdownSeconds: 3

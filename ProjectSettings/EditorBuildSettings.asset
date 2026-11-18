@@ -20,6 +20,15 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/TestScenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/Scenes/TestScenes/BossOneScene.unity
+    guid: 8f47be41636afdf48bd86132ce967902
+  - enabled: 1
+    path: Assets/Scenes/CutScenes/Cutscene2.unity
+    guid: 3b358a43ea3bece48b4a1b38e79c75f3
+  - enabled: 1
+    path: Assets/Scenes/TestScenes/MafiaTest.unity
+    guid: f169c6f1d4cf5c94abc0bd0a94286b93
   m_configObjects:
     com.unity.adaptivePerformance.basic.provider_settings: {fileID: 11400000, guid: 8de2ebe7b102be4a8a5026baffbb3ab1, type: 2}
     com.unity.adaptiveperformance.loader_settings: {fileID: 11400000, guid: fce5ce902338996df9fcf214228b4df4, type: 2}
