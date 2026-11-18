@@ -59,7 +59,7 @@ MonoBehaviour:
   blockedByObstacles: 0
   lingeringEffect: 0
   piercing: 0
-  projectileSpeed: 75
+  projectileSpeed: 30
   projectileSpeedMultiplier: 1
   projectileHomingHeight: 10
   spreadAngle: 0

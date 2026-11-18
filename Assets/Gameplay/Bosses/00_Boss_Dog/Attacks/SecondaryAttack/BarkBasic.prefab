@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.TargetedBossAttack
   windUpTime: 1.75
-  activeTime: 0.5
+  activeTime: 0.1
   recoveryTime: 2
   _projectile: {fileID: 621992513559929403, guid: 8d124fd84649e2e4081f441d448f6fdf, type: 3}
   _numberOfProjectiles: 1

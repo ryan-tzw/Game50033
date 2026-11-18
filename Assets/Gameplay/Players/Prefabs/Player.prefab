@@ -109,7 +109,7 @@ Animator:
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_AnimatePhysics: 0
-  m_WarningMessage:
+  m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
@@ -134,7 +134,7 @@ GameObject:
   - component: {fileID: 794207836743235729}
   - component: {fileID: 1823924041723711795}
   - component: {fileID: 6512731523353069809}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -225,10 +225,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.Player
   avatarRenderer: {fileID: 1627041761190954647}
-  autoAimRange: 14
-  enemyTargetMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
   aimTuning: {fileID: 11400000, guid: 2fa779bc418f42ab4a8528680f553e4a, type: 2}
 --- !u!114 &1544443953293736950
 MonoBehaviour:
@@ -242,9 +238,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 24b493a548b3863c2bf46d9bab41b2b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerMovement
-  moveSpeed: 2
-  dodgeDistance: 1
-  dodgeDuration: 0.2
+  moveSpeed: 3
+  dodgeDistance: 2
+  dodgeDuration: 0.4
   maxDodgeCharges: 2
   dodgeTuning: {fileID: 11400000, guid: d473bfd3cc677322896b629a1275ce92, type: 2}
   dodgeRechargeTime: 7
@@ -308,7 +304,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dff59e866ce1b7abdb381b46576a41f7, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHitstop
 --- !u!114 &794207836743235729
 MonoBehaviour:
@@ -320,7 +316,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: df175d64acac5d45d85a1a45f62850d9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerAnimation
   animator: {fileID: 4919758599312896812}
   controller: {fileID: 5018917414402032851}
@@ -336,7 +332,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b2f8dd350233c47b0a86c82dbdfaa9ff, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerDodgeVFX
   avatarRenderer: {fileID: 1627041761190954647}
   tuning: {fileID: 11400000, guid: d473bfd3cc677322896b629a1275ce92, type: 2}
@@ -350,6 +346,6 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 057c096b191de7efdb94c618527c53b7, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHurtbox
   tuning: {fileID: 11400000, guid: 0e6ae754d02acfe0da51e3e4e83be354, type: 2}

@@ -218,7 +218,7 @@ CapsuleCollider:
     m_Bits: 0
   m_ExcludeLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 4096
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
@@ -243,7 +243,7 @@ GameObject:
   - component: {fileID: 7725392279193540861}
   - component: {fileID: 1710179092313836549}
   - component: {fileID: 620830392411174829}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: BossOne
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -286,7 +286,7 @@ Rigidbody:
     m_Bits: 0
   m_ExcludeLayers:
     serializedVersion: 2
-    m_Bits: 4096
+    m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
   m_UseGravity: 1
@@ -337,8 +337,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d7ad55b7403cc204e98482e473b1d0bb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.BossMovement
-  BossMovementSpeed: 5
-  BossStopDistance: 6
+  BossMovementSpeed: 6
+  BossStopDistance: 8
   canMove: 0
   InRange: 0
   movingToCenter: 0
