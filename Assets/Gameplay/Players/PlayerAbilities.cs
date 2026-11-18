@@ -33,11 +33,20 @@ namespace Game50033
         // unsupported slots default to a disabled icon; concrete instruments expose their own live state.
         public virtual PlayerAbilityState GetAbilityState(PlayerAbility ability) => default;
 
+        // encounter boundary: stop whatever is running and start the fight with everything ready.
+        // Override to also reset instrument resources that should not carry between fights.
+        public virtual void ResetForEncounter()
+        {
+            Cancel();
+            ClearCooldowns();
+        }
+
         public bool BlocksMovement { get; protected set; }
         public bool BlocksDodge { get; protected set; }
         public bool BlocksAbilities { get; protected set; }
         public virtual bool BlocksDefensive => BlocksAbilities;
         public virtual float MovementSpeedMultiplier => 1f;
+        public virtual Vector3 GetMovementVelocity(Vector3 desiredVelocity, float deltaTime) => desiredVelocity;
         public virtual PlayerAttackPhase AnimationPhase => PlayerAttackPhase.None;
 
         protected virtual void OnDisable()

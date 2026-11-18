@@ -782,6 +782,51 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 377946803}
   m_CullTransparentMesh: 1
+--- !u!1 &385350574
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 385350576}
+  - component: {fileID: 385350575}
+  m_Layer: 0
+  m_Name: GameManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &385350575
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 385350574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 077776e9a4623304c9ae33838b9ce3a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.GameManager
+  flow: {fileID: 11400000, guid: 14ca858943e43894ebb232cc56125d45, type: 2}
+--- !u!4 &385350576
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 385350574}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &436611591
 GameObject:
   m_ObjectHideFlags: 0
@@ -1690,8 +1735,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e113f7b9779433b48860f66759440aaf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.StartGameSequence
-  playerInputManager: {fileID: 767690900}
-  nextSceneName: Cutscene1
+  gameManager: {fileID: 385350575}
 --- !u!114 &884010937
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3187,6 +3231,7 @@ GameObject:
   - component: {fileID: 2011138026}
   - component: {fileID: 2011138025}
   - component: {fileID: 2011138024}
+  - component: {fileID: 2011138027}
   m_Layer: 0
   m_Name: TrainingDummy (Mic)
   m_TagString: Untagged
@@ -3236,6 +3281,20 @@ CapsuleCollider:
   m_Height: 1.2
   m_Direction: 1
   m_Center: {x: 0, y: 0.6, z: 0}
+--- !u!114 &2011138027
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2011138023}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d67538803fc187461b7182b1a7d2ef32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.CombatHurtbox
+  tuning: {fileID: 11400000, guid: 7ae75eab9ec54b91902329cba2dfd6e5, type: 2}
+  anchor: {fileID: 0}
 --- !u!4 &2011138026
 Transform:
   m_ObjectHideFlags: 0
@@ -3356,3 +3415,4 @@ SceneRoots:
   - {fileID: 1773020077}
   - {fileID: 884010938}
   - {fileID: 350140839}
+  - {fileID: 385350576}

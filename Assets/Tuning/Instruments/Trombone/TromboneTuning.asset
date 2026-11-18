@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a6344fb6a85d45938f35058e10b0e2a, type: 3}
+  m_Name: TromboneTuning
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.TromboneTuning
+  actionDuration: 0.25
+  primary:
+    cooldown: 0.5
+    maximumPressureCooldown: 0.5
+    minimumDamage: 1
+    maximumDamage: 5
+    projectile:
+      speed: 8
+      maximumDistance: 16
+      lifetime: 3
+      collisionMask:
+        serializedVersion: 2
+        m_Bits: 4294967295
+      radius: 0.1
+  special:
+    cooldown: 3
+    minimumDamage: 2
+    maximumDamage: 10
+    projectile:
+      speed: 16
+      maximumDistance: 16
+      lifetime: 3
+      collisionMask:
+        serializedVersion: 2
+        m_Bits: 4294967295
+      radius: 0.08
+  commandZone:
+    cooldown: 1
+    radius: 1
+    pressureAccumulationMultiplier: 1.5
+    pressureDecayMultiplier: 0.5
+  pressure:
+    maximum: 100
+    gainPerAttack: 1
+    decayPerSecond: 1
+    consecutiveAttackInterval: 3
+  defensive:
+    cooldown: 2
+    guardLifespan: 5
+    movementSpeedMultiplier: 0.5
+  placeholder:
+    material: {fileID: 2100000, guid: 8db1f0ea6c2ef4de486ced4a7275f957, type: 2}
+    offset: {x: 0.3, y: 0.3, z: 0}
+    size: {x: 0.5, y: 0.1}
+    color: {r: 1, g: 0.75, b: 0.2, a: 1}
+  specialReverberationStrengthMultiplier: 0.5

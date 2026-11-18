@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6672295081510331196
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1828548510452584692}
+  - component: {fileID: 4508918518491671277}
+  m_Layer: 0
+  m_Name: TriggerMinionAttacks
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1828548510452584692
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6672295081510331196}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4508918518491671277
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6672295081510331196}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f07e885de35fa34dadc797035c5ee8b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.TriggerMinionAttacks
+  windUpTime: 0
+  activeTime: 1.7
+  recoveryTime: 2
+  _projectile: {fileID: 0}
+  _numberOfProjectiles: 1
+  _numberOfTargets: 1
+  TriggerAttack: 1
+  _targetedPlayers: []
+  lingeringObject: {fileID: 0}
+  homing: 0
+  destroyOnArrival: 0
+  bouncy: 0
+  blockedByObstacles: 0
+  lingeringEffect: 0
+  piercing: 0
+  projectileSpeed: 0
+  projectileSpeedMultiplier: 1
+  projectileHomingHeight: 0
+  spreadAngle: 0
+  spreadRadius: 0
+  telegraphPrefab: {fileID: 0}
+  extendToWall: 0
+  maxDistance: 30
+  minions: []

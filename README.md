@@ -3,9 +3,14 @@
 A music-themed, 2D top-down boss rush for 2–4 players in local co-op. See `50.033 GDD.pdf` for the full design.
 
 - **Unity:** 6000.3.24f1 (URP)
-- **Scene flow:** `Lobby` → `Cutscene1` → `Game` (the first three scenes in Build Profiles). Open `Lobby` and press Play to go through the whole flow. The main menu isn't built yet; it will go in front of `Lobby`.
+- **Scene flow:** `Lobby` → `Cutscene1` → `Game` → back to `Lobby` (the first three scenes in Build Profiles). Open `Lobby` and press Play to go through the whole flow. The main menu isn't built yet; it will go in front of `Lobby`.
+  - The order lives in `Assets/Tuning/Flow/GameFlow.asset`. Each scene has a `GameManager` that loads the next one.
   - `Cutscene1` is a placeholder: it fades the word "Placeholder" in and out, then loads `Game`.
-  - Players who joined in the lobby are carried through to `Game` with their characters.
+  - Players who joined in the lobby are carried through to `Game` with their characters, starting each fight with full hearts, dodges and cooldowns.
+  - **Victory:** the boss is defeated. A VICTORY panel on the left shows the fight time and each player's damage. Everyone stands up and can move; when all players stand in the gold circle on the right of the arena for 3 s, the game goes on to the next scene (the Lobby after the last one). Leaving the circle cancels the countdown.
+  - **Defeat:** every player is downed at the same time. The DEFEAT screen shows the same stats; every player presses A / E to return to the Lobby (presses in the first half second are ignored).
+  - **Discordance** starts at 0 every fight, rises over time and when players are hit, and drops with each successful Resonance. Numbers are in `Assets/Tuning/Encounters/BossOneDiscordance.asset`. There's no meter on screen yet, and bosses don't react to it yet.
+  - Back in the Lobby, everyone keeps their character and stands at their spawn point, ready. Stand in the cyan ring to pick again; new players can join.
 
 ---
 
@@ -148,13 +153,13 @@ For a quick check, dodge in `GuitarPrimaryTest`, dodge into its wall, spend both
 | `Assets/Gameplay/Players` | Player prefab, input/aim (`Player`), movement/dodge (`PlayerMovement`), health/revival (`PlayerHealth`), ability contract (`PlayerAbilities`), joining (`PlayerJoinManager`), lobby character select (`PlayerCharacterSelect`) |
 | `Assets/Gameplay` | Persistent player registry (`GameSession`) |
 | `Assets/Gameplay/Bosses` | Boss movement/targeting prototype (`BaseBoss`) and animated bone projectile (`Bone`); damage/phases unfinished |
-| `Assets/Gameplay/Lobby` | Lobby state, select panels, start zone, lobby → cutscene handoff (`StartGameSequence`) |
+| `Assets/Gameplay/Lobby` | Lobby state, select panels, start zone, lobby → run handoff (`StartGameSequence`), adopting players returning from a run |
 | `Assets/Gameplay/Characters` | `CharacterDefinition` / `CharacterRoster` and their data assets (`Data/`) |
 | `Assets/Gameplay/Combat` | `IHittable` (shared "can be hit" interface), mic training dummy, shared REV/RES mechanics |
 | `Assets/Gameplay/Players/Abilities/Guitar` | Guitar Primary combo, Strum/empowerment, overhead Special, weapon/VFX, prefabs, tuning types and art |
 | `Assets/Gameplay/Players/Abilities/Cymbals` | Cymbals Primary combo, two-cymbal weapon motion, prefab variant and placeholder art |
-| `Assets/Gameplay/Flow` | Scene names, placeholder cutscene (`PlaceholderCutscene`) |
-| `Assets/Gameplay/Game` | Game scene entry: puts carried-over players on spawn points and gives them control |
+| `Assets/Gameplay/Flow` | Scene-local `GameManager` (game state, scene order, reset, results ready-up), `GameFlow` run order, scene names, placeholder cutscene (`PlaceholderCutscene`) |
+| `Assets/Gameplay/Game` | `EncounterManager` (places players, victory/defeat, fight stats, results groups) and the `IEncounterBoss` contract |
 | `Assets/Rendering` | Pixel-art renderer feature and sprite / toon / dissolve shaders |
 | `Assets/Settings` | URP assets and the input actions |
 
