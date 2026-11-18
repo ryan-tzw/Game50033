@@ -43,6 +43,7 @@ namespace Game50033
         public bool BlocksAbilities { get; protected set; }
         public virtual bool BlocksDefensive => BlocksAbilities;
         public virtual float MovementSpeedMultiplier => 1f;
+        public virtual Vector3 GetMovementVelocity(Vector3 desiredVelocity, float deltaTime) => desiredVelocity;
         public virtual PlayerAttackPhase AnimationPhase => PlayerAttackPhase.None;
 
         protected virtual void OnDisable()

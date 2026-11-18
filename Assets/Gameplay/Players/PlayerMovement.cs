@@ -158,6 +158,15 @@ namespace Game50033
             // recharge uses world time above, but a frozen player must not move or depenetrate.
             if (_hitstop != null && _hitstop.IsStopped) return;
 
+
+            var walkingVelocity = canMove && !IsDodging
+                ? MoveDirection * (moveSpeed * Mathf.Max(0f, movementSpeedMultiplier)) : Vector3.zero;
+            var abilities = _player != null ? _player.Abilities : null;
+            if (abilities != null && abilities.isActiveAndEnabled)
+            {
+                walkingVelocity = abilities.GetMovementVelocity(walkingVelocity, deltaTime);
+            }
+
             var displacement = Vector3.zero;
             var dodging = IsDodging;
             if (dodging)
@@ -192,7 +201,7 @@ namespace Game50033
             // use the dodge state from this tick's start so its final frame cannot also add walking.
             if (canMove && !dodging)
             {
-                displacement += MoveDirection * (moveSpeed * Mathf.Max(0f, movementSpeedMultiplier) * deltaTime);
+                displacement += walkingVelocity * deltaTime;
             }
 
             // retain grounding while horizontal actions are blocked, including while downed.

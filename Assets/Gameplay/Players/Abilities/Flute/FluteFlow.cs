@@ -39,6 +39,10 @@ namespace Game50033
 
         private void OnEnable()
         {
+            _player.Initialize();
+            _player.Movement.DodgeStarted += HandleDodgeStarted;
+            _player.Movement.DodgeEnded += HandleDodgeEnded;
+            _player.Health.Revived += ResetForEncounter;
             ResetMovementTracking();
             _skipMovementSample = true;
             SceneManager.activeSceneChanged += HandleSceneChanged;
@@ -46,7 +50,37 @@ namespace Game50033
 
         private void OnDisable()
         {
+            if (_player != null && _player.Movement != null)
+            {
+                _player.Movement.DodgeStarted -= HandleDodgeStarted;
+                _player.Movement.DodgeEnded -= HandleDodgeEnded;
+            }
+            if (_player != null && _player.Health != null)
+            {
+                _player.Health.Revived -= ResetForEncounter;
+            }
             SceneManager.activeSceneChanged -= HandleSceneChanged;
+            ResetMovementTracking();
+        }
+
+        internal void ResetForEncounter()
+        {
+            SetValue(tuning.flow.initial);
+            _skipMovementSample = true;
+            ResetMovementTracking();
+        }
+
+        private void HandleDodgeStarted(Vector3 direction)
+        {
+            Lose(tuning.flow.dashLoss);
+            _skipMovementSample = true;
+            ResetMovementTracking();
+        }
+
+        private void HandleDodgeEnded(bool completed)
+        {
+            // DodgeEnded follows the final move, when IsDodging is already false.
+            _skipMovementSample = true;
             ResetMovementTracking();
         }
 
@@ -59,7 +93,6 @@ namespace Game50033
 
         private void LateUpdate()
         {
-            // Expose the existing movement decision without changing resource arithmetic.
             IsGainingFromMovement = false;
             TurnedAbruptly = false;
             var displacement = transform.position - _previousPosition;
@@ -76,6 +109,8 @@ namespace Game50033
             // Skip teleports and inactive gameplay so that it wouldn't count as movement/ lack of movement
             if (_player == null || !_player.isActiveAndEnabled || !_player.HasActiveInput
                 || _player.Health == null || _player.Health.IsDowned
+                || _player.Movement.IsDodging
+                || (_player.Abilities is FluteAbilities flute && flute.IsEvasive)
                 || _player.Hitstop.IsStopped
                 || Time.deltaTime <= 0f
                 || displacement.sqrMagnitude > tuning.flow.teleportDistance * tuning.flow.teleportDistance)
@@ -95,13 +130,15 @@ namespace Game50033
             var direction = displacement.normalized;
             var angle = _hasDirection ? Vector3.Angle(_previousDirection, direction) : 0f;
 
-            // Reward steady movement and penalize sharp turns or repeated spinning.
-            if (_hasDirection && angle >= tuning.flow.abruptTurnAngle)
+            // Controlled walking turns earn Flow, only direction changes beyond steering's cap
+            // can incur the existing turn penalties, allow a small angular tolerance for controller contact.
+            var exceedsSteering = angle > tuning.movement.turnRate * Time.deltaTime + 0.1f;
+            if (_hasDirection && exceedsSteering && angle >= tuning.flow.abruptTurnAngle)
             {
                 TurnedAbruptly = true;
                 Lose(tuning.flow.abruptTurnLoss);
             }
-            else if (_hasDirection && angle / Time.deltaTime > tuning.flow.maximumTurnRate)
+            else if (_hasDirection && exceedsSteering && angle / Time.deltaTime > tuning.flow.maximumTurnRate)
             {
                 Lose(tuning.flow.turningLoss * Time.deltaTime);
             }

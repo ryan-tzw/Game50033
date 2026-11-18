@@ -10,6 +10,7 @@ namespace Game50033
         public SecondarySettings secondary = new();
         public SpecialSettings special = new();
         public DefensiveSettings defensive = new();
+        public MovementSettings movement = new();
         public FlowSettings flow = new();
         public VisualSettings visuals = new();
         public MelodySettings melody = new();
@@ -17,16 +18,16 @@ namespace Game50033
         [Serializable]
         public sealed class PrimarySettings
         {
-            [Min(0.01f)] public float interval = 0.18f;
             [Min(0f)] public float minimumDamage = 0.55f;
             [Min(0f)] public float maximumDamage = 1.25f;
             [Min(0.01f)] public float speed = 11f;
-            [Min(0f)] public float turnRate = 240f;
+            [Tooltip("Maximum homing turn in degrees per second.")]
+            [Min(0f)] public float turnRate = 90f;
             [Min(0.01f)] public float lifetime = 2.5f;
             [Min(0.01f)] public float range = 18f;
             [Range(0f, 45f)] public float launchAngle = 16f;
-            [Min(0f)] public float activeTime = 0.045f;
-            [Min(0f)] public float recovery = 0.07f;
+            [Min(0f)] public float activeTime = 0.08f;
+            [Min(0f)] public float recovery = 0.14f;
         }
 
         [Serializable]
@@ -48,7 +49,7 @@ namespace Game50033
         public sealed class SpecialSettings
         {
             [Min(0f)] public float cooldown = 2f;
-            [Min(0.01f)] public float chargeDuration = 1.5f;
+            [Min(0.01f)] public float chargeDuration = 1.75f;
             [Min(0f)] public float minimumDamage = 1f;
             [Min(0f)] public float maximumDamage = 5f;
             [Min(0.01f)] public float minimumRevStrength = 0.5f;
@@ -76,10 +77,23 @@ namespace Game50033
         }
 
         [Serializable]
+        public sealed class MovementSettings
+        {
+            [Tooltip("Walking heading change in degrees per second, separate from projectile homing.")]
+            [Min(1f)] public float turnRate = 360f;
+            [Tooltip("Walking acceleration in world units per second squared.")]
+            [Min(0.01f)] public float acceleration = 16f;
+            [Tooltip("Braking when stopping or reversing, in world units per second squared.")]
+            [Min(0.01f)] public float deceleration = 20f;
+        }
+
+        [Serializable]
         public sealed class FlowSettings
         {
             [Min(0.01f)] public float maximum = 100f;
             [Min(0f)] public float initial;
+            [Tooltip("Flow lost once per successful dash, clamped at zero Flow.")]
+            [Min(0f)] public float dashLoss = 10f;
             [Min(0f)] public float movementGain = 8f;
             [Min(0f)] public float stationaryLoss = 12f;
             [Min(0f)] public float turningLoss = 12f;
