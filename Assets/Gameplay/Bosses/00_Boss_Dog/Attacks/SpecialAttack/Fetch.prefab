@@ -46,7 +46,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.TargetedBossAttack
   windUpTime: 3
   activeTime: 0.5
-  recoveryTime: 1
+  recoveryTime: 2
   _projectile: {fileID: 5460919325267313009, guid: 0c9477eba3e50b94e90b7a0152aa30e2, type: 3}
   _numberOfProjectiles: 1
   _numberOfTargets: 4
@@ -67,3 +67,5 @@ MonoBehaviour:
   telegraphPrefab: {fileID: 682573474394280341, guid: 6565387fa135b234b90e8771fd2f3f16, type: 3}
   extendToWall: 0
   maxDistance: 30
+  bossWindUpAnimationName: WindUpSpecial
+  bossAttackAnimationName: ReleaseSpecial
