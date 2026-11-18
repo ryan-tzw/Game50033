@@ -20,6 +20,7 @@ namespace Game50033
         private Collider[] _overlapBuffer = new Collider[16];
         private GameObject _attacker;
         private GuitarVFX _impacts;
+        private HitEffect _hitEffect;
         private Vector3 _direction;
         private Vector3 _stretchAxis;
         private float _stretch, _radius, _width, _angle, _thickness;
@@ -44,6 +45,7 @@ namespace Game50033
             _attacker = source.gameObject;
             _debug = source.Session?.Debug;
             _impacts = impacts;
+            _hitEffect = tuning.vfx.hitEffect;
             direction.y = 0f;
             _direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.forward;
             _stretchAxis = new Vector3(tuning.attack.stretchAxis.x, 0f, tuning.attack.stretchAxis.y);
@@ -170,6 +172,7 @@ namespace Game50033
 
                 _hitTargets.Add(target);
                 target.TakeHit(new HitInfo(_attacker, _damage, _direction));
+                if (_hitEffect != null) _hitEffect.Play(new HitEffectRequest(contact.point, _direction, _damage, false));
                 if (!isActiveAndEnabled || IsFinished) return;
                 if (_impacts != null) _impacts.PlayImpact(contact.point, false);
             }

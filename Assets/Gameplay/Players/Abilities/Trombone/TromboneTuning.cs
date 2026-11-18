@@ -18,6 +18,8 @@ namespace Game50033
         public DefensiveSettings defensive = new();
         public PlaceholderSettings placeholder = new();
         [Range(0.01f, 1f)] public float specialReverberationStrengthMultiplier = 0.5f;
+        [Tooltip("Impact sprite, damage number and sound played where a Trombone projectile hits. Special hits use its big style.")]
+        public HitEffect hitEffect;
 
         [Serializable]
         public sealed class PrimarySettings

@@ -536,3 +536,4 @@ MonoBehaviour:
     sweetSpotColor: {r: 1, g: 0.8, b: 0.25, a: 1}
     normalImpactSize: 0.06
     sweetSpotImpactSize: 0.1
+    hitEffect: {fileID: 11400000, guid: 888df520788700647b43862f0fc801f6, type: 2}

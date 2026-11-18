@@ -224,7 +224,14 @@ namespace Game50033
             }
 
             var target = other.GetComponentInParent<IHittable>();
-            target?.TakeHit(new HitInfo(_sourcePlayer.gameObject, _damage, _flightDirection));
+            if (target != null)
+            {
+                target.TakeHit(new HitInfo(_sourcePlayer.gameObject, _damage, _flightDirection));
+                // presentation only: the hit splat (sprite, damage number, sound).
+                if (tuning != null && tuning.hitEffect != null)
+                    tuning.hitEffect.Play(new HitEffectRequest(other.ClosestPoint(transform.position), _flightDirection,
+                        _damage, kind == ProjectileKind.Special));
+            }
             Finish(createReverberation: true);
         }
 

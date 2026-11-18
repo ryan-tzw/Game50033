@@ -58,3 +58,4 @@ MonoBehaviour:
     size: {x: 0.5, y: 0.1}
     color: {r: 1, g: 0.75, b: 0.2, a: 1}
   specialReverberationStrengthMultiplier: 0.5
+  hitEffect: {fileID: 11400000, guid: 645a021c6bfb12b42a710932ef781155, type: 2}
