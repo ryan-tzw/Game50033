@@ -108,6 +108,8 @@ GameObject:
   - component: {fileID: -2570218193996952752}
   - component: {fileID: 5036130649280889951}
   - component: {fileID: 5353910712170470397}
+  - component: {fileID: 7213515434291519152}
+  - component: {fileID: 8754150504494004185}
   m_Layer: 0
   m_Name: TrombonePlayer
   m_TagString: Untagged
@@ -198,6 +200,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 066ec035c6c1431c3a352198077b0c38, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.Player
+  avatarRenderer: {fileID: 1627041761190954647}
   aimTuning: {fileID: 11400000, guid: 2fa779bc418f42ab4a8528680f553e4a, type: 2}
 --- !u!114 &1544443953293736950
 MonoBehaviour:
@@ -209,7 +212,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 24b493a548b3863c2bf46d9bab41b2b9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerMovement
   moveSpeed: 5
   dodgeDistance: 1
@@ -226,26 +229,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 591db355528a998a03d30a9f6d119291, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHealth
   maxHealth: 5
   downedDuration: 15
   reviveHealth: 1
   revivalImmunityDuration: 1
---- !u!114 &5036130649280889951
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3885672621503035260}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c11a58669ff4ea043bf94e20010de78a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerCharacterSelect
-  avatarVisual: {fileID: 3231995453142075047}
-  navigateThreshold: 0.6
 --- !u!114 &-2570218193996952752
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -258,12 +247,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c7445a6fc64f186429492a663d6a53a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.TromboneAbilities
-  trombonePrimaryCooldown: 0.5
-  tromboneSecondaryCooldown: 1
-  tromboneDefensiveCooldown: 2
-  tromboneSpecialCooldown: 3
-  tromboneActionDuration: 0.25
-  tromboneCommandZone: {fileID: 6468572833640993516, guid: c09bb9f647c664e4d8a551896fb86bf3, type: 3}
+  tuning: {fileID: 11400000, guid: 72b1b2040c83842bb989743abb679e1c, type: 2}
+  projectileOrigin: {fileID: 0}
+  primaryProjectilePrefab: {fileID: -3744925585312438481, guid: 4b0d4e5e99556fe469aa1b1595727ae9, type: 3}
+  specialProjectilePrefab: {fileID: 6545077532654094786, guid: 172792b3283e51743ae9089355a1e964, type: 3}
+  specialReverberationPrefab: {fileID: 2889904791511872818, guid: b9c3d9e891a3c6b46bcaa981eac63eaf, type: 3}
+  commandZonePrefab: {fileID: 6156935639932666535, guid: c09bb9f647c664e4d8a551896fb86bf3, type: 3}
+--- !u!114 &5036130649280889951
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c11a58669ff4ea043bf94e20010de78a, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerCharacterSelect
+  avatarVisual: {fileID: 3231995453142075047}
+  navigateThreshold: 0.6
 --- !u!114 &5353910712170470397
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -277,3 +280,29 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHurtbox
   tuning: {fileID: 11400000, guid: 0e6ae754d02acfe0da51e3e4e83be354, type: 2}
+--- !u!114 &7213515434291519152
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dff59e866ce1b7abdb381b46576a41f7, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHitstop
+--- !u!114 &8754150504494004185
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 862409044c3194826a7f6a0febff236a, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.TrombonePlaceholder
+  tuning: {fileID: 11400000, guid: 72b1b2040c83842bb989743abb679e1c, type: 2}
+  avatarVisual: {fileID: 5081907533051185615}

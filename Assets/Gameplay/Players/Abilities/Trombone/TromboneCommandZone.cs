@@ -8,9 +8,8 @@ namespace Game50033
     [DisallowMultipleComponent]
     public class TromboneCommandZone : MonoBehaviour
     {
-        [SerializeField, Min(0.01f)] private float radius = 1f;
-        [SerializeField, Min(1f)] private float pressureAccumulationMultiplier = 1.5f;
-        [SerializeField, Range(0f, 1f)] private float pressureDecayMultiplier = 0.5f;
+        [SerializeField] private TromboneTuning tuning;
+        private float Radius => tuning != null ? tuning.commandZone.radius : 0f;
         [SerializeField] private Reverberation sustainReverberationPrefab;
         [Tooltip("Optional child GameObject displaying the Command Zone area.")]
         [SerializeField] private GameObject visualRoot;
@@ -21,7 +20,11 @@ namespace Game50033
 
         // Keep destroyed owners marked as initialized so they still reach cleanup.
         public bool IsActive => !ReferenceEquals(_owner, null) && !_ended && isActiveAndEnabled;
-        public Reverberation SustainReverberationPrefab => sustainReverberationPrefab;
+        public bool IsConfigured => tuning != null && enabled && gameObject.activeSelf
+            && sustainReverberationPrefab != null && sustainReverberationPrefab.enabled
+            && sustainReverberationPrefab.gameObject.activeSelf
+            && sustainReverberationPrefab.Effect is SustainEffect sustain && sustain.IsConfigured
+            && GetComponentInChildren<Reverberation>(true) == null;
 
         public bool IsOwnerInside
         {
@@ -34,12 +37,9 @@ namespace Game50033
 
                 var offset = _owner.transform.position - transform.position;
                 offset.y = 0f;
-                return offset.sqrMagnitude <= radius * radius;
+                return offset.sqrMagnitude <= Radius * Radius;
             }
         }
-
-        public float PressureAccumulationMultiplier => IsOwnerInside ? pressureAccumulationMultiplier : 1f;
-        public float PressureDecayMultiplier => IsOwnerInside ? pressureDecayMultiplier : 1f;
 
         private bool OwnerCanPlay()
         {
@@ -59,6 +59,13 @@ namespace Game50033
             }
 
             return _arenaScene.isLoaded && SceneManager.GetActiveScene().handle == _arenaScene.handle;
+        }
+
+        private void OnEnable()
+        {
+            if (tuning != null) return;
+            Debug.LogError("TromboneCommandZone requires Trombone tuning.", this);
+            enabled = false;
         }
 
         private void Awake()
@@ -97,6 +104,12 @@ namespace Game50033
                 return;
             }
 
+            ConsumeZone();
+        }
+
+        public void ConsumeZone()
+        {
+            if (!IsActive) return;
             // Prevent owner removal or scene cleanup from creating Sustain REV.
             var createReverberation = OwnerCanPlay();
             CancelZone();
@@ -137,7 +150,7 @@ namespace Game50033
         private void OnDrawGizmos()
         {
             Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(transform.position, radius);
+            Gizmos.DrawWireSphere(transform.position, Radius);
         }
     }
 }

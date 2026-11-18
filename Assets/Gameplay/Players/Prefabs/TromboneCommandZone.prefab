@@ -45,9 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d278465c77dee98448c5c63e1ab33238, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.TromboneCommandZone
-  radius: 1
-  pressureAccumulationMultiplier: 1.5
-  pressureDecayMultiplier: 0.5
+  tuning: {fileID: 11400000, guid: 72b1b2040c83842bb989743abb679e1c, type: 2}
   sustainReverberationPrefab: {fileID: 2031090188996249898, guid: 148ed94c8328f41bc869507fac6832db, type: 3}
   visualRoot: {fileID: 612000000000000001}
 --- !u!212 &-3698129217985814567
@@ -76,7 +74,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
+  - {fileID: 2100000, guid: e39654694528a45dc8b49632520197a4, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
