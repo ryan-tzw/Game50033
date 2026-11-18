@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: FluteTuning
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.FluteTuning
   primary:
-    minimumDamage: 0.55
-    maximumDamage: 1.25
+    minimumDamage: 6
+    maximumDamage: 15
     speed: 11
     turnRate: 90
     lifetime: 2.5
@@ -24,7 +24,7 @@ MonoBehaviour:
     recovery: 0.14
   secondary:
     cooldown: 0.5
-    damage: 2
+    damage: 20
     resonanceFlowGain: 15
     speed: 26
     range: 14
@@ -36,8 +36,8 @@ MonoBehaviour:
   special:
     cooldown: 2
     chargeDuration: 1.75
-    minimumDamage: 1
-    maximumDamage: 5
+    minimumDamage: 12
+    maximumDamage: 70
     minimumRevStrength: 0.5
     maximumRevStrength: 1.5
     flowCost: 25

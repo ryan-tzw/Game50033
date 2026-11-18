@@ -16,8 +16,8 @@ MonoBehaviour:
   primary:
     cooldown: 0.5
     maximumPressureCooldown: 0.5
-    minimumDamage: 1
-    maximumDamage: 5
+    minimumDamage: 8
+    maximumDamage: 40
     projectile:
       speed: 8
       maximumDistance: 16
@@ -28,8 +28,8 @@ MonoBehaviour:
       radius: 0.1
   special:
     cooldown: 3
-    minimumDamage: 2
-    maximumDamage: 10
+    minimumDamage: 8
+    maximumDamage: 40
     projectile:
       speed: 16
       maximumDistance: 16

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: BurstEffect
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.BurstEffect
   radius: 1
-  damage: 1
+  damage: 125
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
