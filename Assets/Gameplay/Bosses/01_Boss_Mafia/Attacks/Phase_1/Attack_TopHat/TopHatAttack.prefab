@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 8524878749494419043}
   - component: {fileID: 8914055284881759377}
   m_Layer: 0
-  m_Name: MolotovAttack
+  m_Name: TopHatAttack
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -45,18 +45,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.TargetedBossAttack
   windUpTime: 0
-  activeTime: 0.8
+  activeTime: 5
   recoveryTime: 0.2
-  _projectile: {fileID: 3230519977743985606, guid: ba01bf2a15b21734ca3b5bf4e34efce0, type: 3}
+  _projectile: {fileID: 3245715208617110006, guid: feed874b2e9ac3c4aa85a366d6a72118, type: 3}
   _numberOfProjectiles: 1
-  _numberOfTargets: 4
+  _numberOfTargets: 1
   TriggerAttack: 0
   _targetedPlayers: []
-  lingeringObject: {fileID: 5133259734487143826, guid: 54d8d7139a9254e4f814e8917a5699f4, type: 3}
+  lingeringObject: {fileID: 0}
   homing: 0
-  destroyOnArrival: 1
-  bouncy: 0
+  destroyOnArrival: 0
+  bouncy: 1
   blockedByObstacles: 0
-  lingeringEffect: 1
-  projectileSpeed: 7
+  lingeringEffect: 0
+  piercing: 1
+  projectileSpeed: 15
   projectileHomingHeight: 0
+  spreadAngle: 0
+  spreadRadius: 0
+  telegraphPrefab: {fileID: 0}
+  extendToWall: 0
+  maxDistance: 30

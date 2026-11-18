@@ -7,14 +7,14 @@ namespace Game50033
 
     public class TargetedBossAttack : BaseBossAttack
     {
-        [SerializeField] private BaseBossProjectile _projectile;
+        [SerializeField] protected BaseBossProjectile _projectile;
         [SerializeField] private int _numberOfProjectiles;
         [SerializeField] private int _numberOfTargets;
 
         public bool TriggerAttack;
         private List<Player> _players;
 
-        [SerializeField] private List<Player> _targetedPlayers = new List<Player>();
+        [SerializeField] protected List<Player> _targetedPlayers = new List<Player>();
 
         [Header("Projectile Attributes for Projectile-based Targeted Attacks")]
         public GameObject lingeringObject;
@@ -26,7 +26,7 @@ namespace Game50033
         [SerializeField] private float spreadRadius;
         [SerializeField] private BaseTelegraph telegraphPrefab;
         [SerializeField] private bool extendToWall = false;
-        [SerializeField] private float maxDistance = 30f;
+        [SerializeField] protected float maxDistance = 30f;
         [SerializeField] private string bossWindUpAnimationName;
         [SerializeField] private string bossAttackAnimationName;
         private int bossWindUpAnimationId;
@@ -48,7 +48,7 @@ namespace Game50033
             CalculateTargets();
         }
 
-        private void CalculateTargets()
+        protected void CalculateTargets()
         {
             _targetedPlayers.Clear();
             //if (_numberOfTargets == 0) return;
@@ -60,7 +60,7 @@ namespace Game50033
 
             for (int i = 0; i < clampedTargets; i++)
             {
-                Player _targetPlayer = _players[Random.Range(0, _players.Count)];   
+                Player _targetPlayer = _players[Random.Range(0, _players.Count)];
                 _targetedPlayers.Add(_targetPlayer);
                 _players.Remove(_targetPlayer);
             }
@@ -106,7 +106,7 @@ namespace Game50033
             float spreadY;
 
             if (homing || _numberOfProjectiles == 1 || projectileCount == 1) { return currentPosition; }
-            
+
             if (projectileCount % 2 == 0)
             {
                 angle = spreadAngle * (projectileCount / 2) * Mathf.Deg2Rad;
@@ -123,12 +123,12 @@ namespace Game50033
             return currentPosition + new Vector3(spreadX, 0f, spreadY);
         }
 
-        protected void FireAttack(Player player)
+        protected virtual void FireAttack(Player player)
         {
             StartCoroutine(FireAfterWindUp(player));
         }
 
-        private IEnumerator FireAfterWindUp(Player player)
+        protected virtual IEnumerator FireAfterWindUp(Player player)
         {
             Vector3 target = CalculateBulletSpread(RetrievePlayerPosition(player));
             Vector3 from = boss.transform.position;
@@ -181,7 +181,7 @@ namespace Game50033
 
             if (!extendToWall) return target;
 
-            
+
 
             Vector3 direction = target - from;
             direction.y = 0f;

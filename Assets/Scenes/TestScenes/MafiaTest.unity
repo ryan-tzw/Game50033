@@ -8282,6 +8282,71 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 1877b4b9c534434f4a09b9e2741738e1, type: 3}
   m_PrefabInstance: {fileID: 2026769531}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &2041402929
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3785190006842466232, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_Name
+      value: Boss_Minion (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 3785190006842466232, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706348071032104077, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: MovementSpeed
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.05
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -4.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
 --- !u!1001 &2044197711
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8564,10 +8629,11 @@ GameObject:
   - component: {fileID: 2087794619}
   - component: {fileID: 2087794618}
   - component: {fileID: 2087794617}
-  - component: {fileID: 2087794616}
+  - component: {fileID: 2087794621}
   - component: {fileID: 2087794615}
   - component: {fileID: 2087794614}
   - component: {fileID: 2087794613}
+  - component: {fileID: 2087794620}
   m_Layer: 0
   m_Name: Boss_Mafia
   m_TagString: Untagged
@@ -8587,14 +8653,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd2471a47b4f97d469bc3a4d1dd1588e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.BossAttacks
-  p1Attacks:
-  - {fileID: 6827079397414142632, guid: bf317e2614acf8946a9a2c6de4494fd7, type: 3}
-  - {fileID: 6827079397414142632, guid: 39d765b9c8ebdba409d7925c3b341028, type: 3}
-  - {fileID: 6827079397414142632, guid: a7698bb55d5f5a746b9c6460f3feac23, type: 3}
-  p2Attacks: []
-  p3Attacks: []
+  phase1: {fileID: 11400000, guid: a28267631e7fede47b9ab0085afd99ef, type: 2}
+  phase2: {fileID: 11400000, guid: dadbb8d162db00f4ebeed11e968a786d, type: 2}
+  phase3: {fileID: 0}
   _currentAttackIdx: 0
   BossAttackInterval: 3
+  CurrentPhase: 1
 --- !u!114 &2087794614
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8609,7 +8673,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.BossMovement
   BossMovementSpeed: 3
   BossStopDistance: 4
+  canMove: 0
   InRange: 0
+  movingToCenter: 0
 --- !u!114 &2087794615
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8625,22 +8691,6 @@ MonoBehaviour:
   _bossHealthPoints: 25000
   _bossCurrentHealth: -1
   hitFlashDuration: 0.15
---- !u!114 &2087794616
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2087794612}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cb990c2a94a77cf4ebd87f221e8c5fa8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BaseBoss
-  players: []
-  _bossName: Mafia
-  _healthBar: {fileID: 1036099255}
-  _bossText: {fileID: 1432525787}
 --- !u!54 &2087794617
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -8706,6 +8756,35 @@ Transform:
   - {fileID: 1684219871}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2087794620
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2087794612}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b6d5baf7d403db4ca4b3db66350414e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.BossAttackStack
+--- !u!114 &2087794621
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2087794612}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ff0439c96c0f2741b35a52461106011, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.MafiaBoss
+  players: []
+  _bossName: Mafia
+  _healthBar: {fileID: 0}
+  _bossText: {fileID: 0}
+  terrainBossBlockage: {fileID: 573678811361676751, guid: 88c7576ec64cc9d49be87a2a5d3d0edc, type: 3}
 --- !u!1001 &2110035714
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8941,6 +9020,71 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &8981510515089092356
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3785190006842466232, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_Name
+      value: Boss_Minion
+      objectReference: {fileID: 0}
+    - target: {fileID: 3785190006842466232, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706348071032104077, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: MovementSpeed
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -7
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.05
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 4.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8982467153100081366, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: d1d0ce9147e7f994391a6d706740f0ec, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -8953,3 +9097,5 @@ SceneRoots:
   - {fileID: 1545013469}
   - {fileID: 523932575}
   - {fileID: 1156705582}
+  - {fileID: 8981510515089092356}
+  - {fileID: 2041402929}

@@ -1,6 +1,7 @@
 namespace Game50033
 {
     using System.Collections;
+    using System.Data.Common;
     using Unity.VisualScripting;
     using UnityEngine;
     using UnityEngine.AI;
@@ -202,7 +203,9 @@ namespace Game50033
         {
             _animator.Play(HitStateId);
             yield return null;
-            yield return new WaitUntil(() => _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f);
+            if (_animator)
+                try {yield return new WaitUntil(() => _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f);}
+                finally {}
             CheckLingeringEffect();
             Destroy(gameObject);
         }
