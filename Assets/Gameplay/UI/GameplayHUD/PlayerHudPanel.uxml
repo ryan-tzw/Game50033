@@ -41,6 +41,26 @@
         <ui:Label name="ready-name" picking-mode="Ignore" />
     </ui:VisualElement>
     <ui:VisualElement name="gameplay" class="gameplay-body" picking-mode="Ignore">
+        <ui:Label name="inspect-hint" class="ability-inspect-hint" picking-mode="Ignore" />
+        <ui:VisualElement name="ability-inspector" class="ability-inspector" picking-mode="Ignore" style="display: none;">
+            <ui:Label name="inspect-name" class="ability-inspect-name" picking-mode="Ignore" />
+            <ui:Label name="inspect-type" class="ability-inspect-type" picking-mode="Ignore" />
+            <ui:VisualElement class="ability-inspect-stats" picking-mode="Ignore">
+                <ui:VisualElement name="inspect-stat-0" class="ability-inspect-stat" picking-mode="Ignore">
+                    <ui:Label name="inspect-stat-name-0" class="ability-inspect-stat-name" picking-mode="Ignore" />
+                    <ui:Label name="inspect-stat-value-0" class="ability-inspect-stat-value" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement name="inspect-stat-1" class="ability-inspect-stat" picking-mode="Ignore">
+                    <ui:Label name="inspect-stat-name-1" class="ability-inspect-stat-name" picking-mode="Ignore" />
+                    <ui:Label name="inspect-stat-value-1" class="ability-inspect-stat-value" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement name="inspect-stat-2" class="ability-inspect-stat" picking-mode="Ignore">
+                    <ui:Label name="inspect-stat-name-2" class="ability-inspect-stat-name" picking-mode="Ignore" />
+                    <ui:Label name="inspect-stat-value-2" class="ability-inspect-stat-value" picking-mode="Ignore" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:Label name="inspect-description" class="ability-inspect-description" picking-mode="Ignore" />
+        </ui:VisualElement>
         <ui:VisualElement name="abilities" class="ability-row" picking-mode="Ignore">
             <game:HudAbilityIcon name="slot-0" />
             <game:HudAbilityIcon name="slot-1" />

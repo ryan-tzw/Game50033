@@ -29,6 +29,10 @@ MonoBehaviour:
   previewRowHeight: 122
   previewFontSize: 18
   portraitSize: 52
+  inspectGap: 28
+  inspectPadding: 12
+  inspectStatFontSize: 20
+  inspectBackground: {r: 0.04, g: 0.055, b: 0.085, a: 0.98}
   emptyHeart: {r: 0.025, g: 0.025, b: 0.035, a: 1}
   iconBackground: {r: 0.025, g: 0.03, b: 0.045, a: 0.86}
   promptBackground: {r: 0.015, g: 0.018, b: 0.025, a: 0.98}

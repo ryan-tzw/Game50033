@@ -31,6 +31,16 @@ namespace Game50033
         private Color _accent;
         private PanelMode? _mode;
 
+        private readonly VisualElement _inspector;
+        private readonly Label _inspectHint, _inspectName, _inspectType, _inspectDescription;
+        private readonly VisualElement[] _inspectMarkers = new VisualElement[4];
+        private readonly (VisualElement Row, Label Name, Label Value)[] _inspectStats = new (VisualElement, Label, Label)[3];
+        private InputActionAsset _inspectInputAsset;
+        private InputAction _inspectHold, _inspectPrevious, _inspectNext;
+        private bool _inspecting;
+        private int _inspectSlot;
+        private int _renderedInspectSlot = -1;
+
         public Player BoundPlayer => _player;
 
         public PlayerHudPanel(Player player, GameplayHudTuning tuning, VisualTreeAsset template)
@@ -56,6 +66,28 @@ namespace Game50033
             _selectionStatus = this.Q<Label>("selection-status");
             _readyName = this.Q<Label>("ready-name");
             _readyPortrait = this.Q<Image>("ready-portrait");
+            _inspector = this.Q("ability-inspector");
+            _inspectHint = this.Q<Label>("inspect-hint");
+            _inspectName = this.Q<Label>("inspect-name");
+            _inspectType = this.Q<Label>("inspect-type");
+            _inspectDescription = this.Q<Label>("inspect-description");
+            for (var i = 0; i < _inspectStats.Length; i++)
+                _inspectStats[i] = (this.Q("inspect-stat-" + i), this.Q<Label>("inspect-stat-name-" + i),
+                    this.Q<Label>("inspect-stat-value-" + i));
+            for (var i = 0; i < _inspectMarkers.Length; i++)
+            {
+                var slot = i;
+                var marker = new VisualElement { pickingMode = PickingMode.Ignore };
+                marker.AddToClassList("ability-inspect-marker");
+                marker.style.display = DisplayStyle.None;
+                _inspectMarkers[i] = marker;
+                _icons[i].Insert(0, marker);
+                _icons[i].RegisterCallback<PointerEnterEvent>(_ =>
+                {
+                    if (_inspecting && _scheme == "Keyboard&Mouse") _inspectSlot = slot;
+                });
+            }
+
             _hearts.generateVisualContent += PaintHearts;
             generateVisualContent += PaintFrame;
             ApplyTuning();
@@ -71,6 +103,8 @@ namespace Game50033
             _shownCharacter = null;
             _shownHighlight = _shownTaken = _health = -1;
             _mode = null;
+            _inspectSlot = 0;
+            _renderedInspectSlot = -1;
         }
 
         public void ApplyTuning()
@@ -107,6 +141,19 @@ namespace Game50033
                 _previewTypes[i].style.fontSize = _tuning.previewFontSize * 0.85f * unit;
                 _previewDescriptions[i].style.fontSize = _tuning.previewFontSize * unit;
             }
+            var inspectPadding = _tuning.inspectPadding * unit;
+            _inspector.style.paddingLeft = _inspector.style.paddingRight = inspectPadding;
+            _inspector.style.paddingTop = _inspector.style.paddingBottom = inspectPadding;
+            _inspector.style.backgroundColor = _tuning.inspectBackground;
+            _inspectHint.style.fontSize = _inspectType.style.fontSize = _tuning.previewFontSize * 0.85f * unit;
+            _inspectName.style.fontSize = _tuning.previewFontSize * 1.35f * unit;
+            _inspectDescription.style.fontSize = _tuning.previewFontSize * unit;
+            foreach (var stat in _inspectStats)
+            {
+                stat.Name.style.fontSize = _tuning.previewFontSize * unit;
+                stat.Value.style.fontSize = _tuning.inspectStatFontSize * unit;
+            }
+            _renderedInspectSlot = -1;
             _highlightName.style.height = 30f * unit;
             _highlightName.style.fontSize = _tuning.previewFontSize * 1.3f * unit;
             _rosterRow.style.height = _tuning.portraitSize * unit;
@@ -133,6 +180,8 @@ namespace Game50033
             if (_mode != mode)
             {
                 _mode = mode;
+                _renderedInspectSlot = -1;
+                _inspector.style.bottom = (137f + (mode == PanelMode.Ready ? 36f : 0f) + _tuning.inspectGap) * unit;
                 _shownCharacter = null;
                 _selection.style.display = mode == PanelMode.Selecting ? DisplayStyle.Flex : DisplayStyle.None;
                 _gameplay.style.display = mode != PanelMode.Selecting ? DisplayStyle.Flex : DisplayStyle.None;
@@ -147,6 +196,7 @@ namespace Game50033
             if (_scheme != scheme || _accent != accent)
             {
                 _scheme = scheme;
+                _renderedInspectSlot = -1;
                 _accent = accent;
                 _shownCharacter = null;
                 _shownHighlight = -1;
@@ -167,6 +217,8 @@ namespace Game50033
                 MarkDirtyRepaint();
                 _hearts.MarkDirtyRepaint();
             }
+
+            RefreshInspector(mode, scheme);
 
             if (mode == PanelMode.Selecting)
             {
@@ -272,6 +324,78 @@ namespace Game50033
             var movement = _player.Movement;
             _icons[4].SetState(movement != null ? new PlayerAbilityState(movement.DodgeRechargeRemaining,
                 movement.DodgeRechargeTime, movement.DodgeCharges, movement.MaxDodgeCharges) : default);
+        }
+
+        private void RefreshInspector(PanelMode mode, string scheme)
+        {
+            // use the paired action asset again after a player rebinds.
+            var actions = _input != null ? _input.actions : null;
+            if (_inspectInputAsset != actions)
+            {
+                _inspectInputAsset = actions;
+                _inspectHold = actions?.FindAction("Player/InspectAbilities");
+                _inspectPrevious = actions?.FindAction("Player/InspectPrevious");
+                _inspectNext = actions?.FindAction("Player/InspectNext");
+            }
+
+            var keyboard = scheme == "Keyboard&Mouse";
+            var available = mode != PanelMode.Selecting && _player.Character != null && _player.isActiveAndEnabled
+                && _player.HasActiveInput && _inspectHold != null && _inspectHold.enabled;
+            _inspectHint.style.display = available ? DisplayStyle.Flex : DisplayStyle.None;
+            _inspectHint.text = keyboard ? "Hold Tab · Abilities" : "Hold LT · Abilities";
+            var open = available && _inspectHold.IsPressed();
+            if (open != _inspecting || open && _renderedInspectSlot < 0)
+            {
+                _inspecting = open;
+                _inspector.style.display = open ? DisplayStyle.Flex : DisplayStyle.None;
+                _renderedInspectSlot = -1;
+                for (var i = 0; i < _inspectMarkers.Length; i++)
+                {
+                    _icons[i].pickingMode = open && keyboard ? PickingMode.Position : PickingMode.Ignore;
+                    if (!open) _inspectMarkers[i].style.display = DisplayStyle.None;
+                }
+            }
+
+            if (!open) return;
+
+            if (!keyboard)
+            {
+                if (_inspectPrevious?.WasPressedThisFrame() == true) _inspectSlot = (_inspectSlot + 3) % 4;
+                if (_inspectNext?.WasPressedThisFrame() == true) _inspectSlot = (_inspectSlot + 1) % 4;
+            }
+
+            if (_renderedInspectSlot == _inspectSlot) return;
+            _renderedInspectSlot = _inspectSlot;
+            var ability = _slots[_inspectSlot];
+            var character = _player.Character;
+            var preview = character.GetAbilityPreview(ability);
+            var stats = _player.Abilities != null ? _player.Abilities.GetAbilityStats(ability) : default;
+            var accent = Color.Lerp(character.Tint, Color.white, 0.25f);
+
+            _inspectName.text = string.IsNullOrEmpty(preview.name) ? ability.ToString() : preview.name;
+            _inspectName.style.color = accent;
+            _inspectType.text = ability.ToString();
+            _inspectDescription.text = preview.description;
+            _inspector.style.borderTopColor = _inspector.style.borderBottomColor = accent;
+            _inspector.style.borderLeftColor = _inspector.style.borderRightColor = accent;
+
+            for (var i = 0; i < _inspectMarkers.Length; i++)
+            {
+                var marker = _inspectMarkers[i];
+                marker.style.display = i == _inspectSlot ? DisplayStyle.Flex : DisplayStyle.None;
+                marker.style.borderTopColor = marker.style.borderBottomColor = accent;
+                marker.style.borderLeftColor = marker.style.borderRightColor = accent;
+            }
+
+            for (var i = 0; i < _inspectStats.Length; i++)
+            {
+                var stat = _inspectStats[i];
+                var entry = i == 0 ? stats.First : i == 1 ? stats.Second : stats.Third;
+                stat.Row.style.display = string.IsNullOrEmpty(entry.Label) ? DisplayStyle.None : DisplayStyle.Flex;
+                stat.Name.text = entry.Label;
+                stat.Value.text = entry.Value;
+                stat.Value.style.color = accent;
+            }
         }
 
         private void PaintHearts(MeshGenerationContext context)

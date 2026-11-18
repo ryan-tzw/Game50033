@@ -34,3 +34,43 @@
 .ready-header Label { -unity-font-style: bold; }
 
 .highlight-name, .selection-status { margin-top: 0; margin-bottom: 0; }
+
+.ability-inspect-hint {
+    position: absolute;
+    top: -24px;
+    right: 0;
+    color: rgb(224, 227, 235);
+    -unity-text-align: middle-right;
+}
+.ability-inspector {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-width: 2px;
+    border-radius: 8px;
+}
+.ability-inspector Label { margin: 0; padding: 0; white-space: normal; }
+.ability-inspect-name { -unity-font-style: bold; }
+.ability-inspect-type { color: rgb(185, 192, 206); }
+.ability-inspect-stats { margin-top: 8px; margin-bottom: 8px; }
+.ability-inspect-stat {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 8px;
+    margin-bottom: 3px;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.09);
+}
+.ability-inspect-stat-name { flex-shrink: 0; color: rgb(224, 227, 235); margin-right: 8px; }
+.ability-inspect-stat-value { flex-shrink: 1; -unity-font-style: bold; -unity-text-align: middle-right; }
+.ability-inspect-description { color: rgb(235, 237, 242); }
+.ability-inspect-marker {
+    position: absolute;
+    left: -3px;
+    top: -3px;
+    right: -3px;
+    bottom: -3px;
+    border-width: 2px;
+    border-radius: 11px;
+}

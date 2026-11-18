@@ -1,5 +1,6 @@
 namespace Game50033
 {
+    using static PlayerAbilityStats;
     using System;
     using System.Collections.Generic;
     using UnityEngine;
@@ -116,6 +117,28 @@ namespace Game50033
                 return PlayerAttackPhase.None;
             }
         }
+        public override PlayerAbilityStats GetAbilityStats(PlayerAbility ability)
+        {
+            if (tuning == null || !GetAbilityState(ability).Supported) return default;
+            if (ability == PlayerAbility.Primary)
+            {
+                var hits = System.Array.ConvertAll(tuning.combo.hits, hit => Number(hit.damage));
+                return new PlayerAbilityStats(("Damage / hit", string.Join(" / ", hits)),
+                    ("Combo cooldown", Seconds(tuning.combo.comboCooldown)));
+            }
+
+            return ability switch
+            {
+                PlayerAbility.Secondary => new(("Throw damage", Number(tuning.cymbalThrow.damage)),
+                    ("Cooldown", Seconds(tuning.cymbalThrow.cooldown)), ("Recast damage", Number(tuning.cymbalThrow.dashDamage))),
+                PlayerAbility.Special => new(("Damage", Number(tuning.crash.damage)),
+                    ("Recharge / charge", Seconds(tuning.crash.rechargeTime)), ("Charges", tuning.crash.maxCharges.ToString())),
+                PlayerAbility.Defensive => new(("Parry window", Seconds(tuning.parry.duration)),
+                    ("Cooldown", Seconds(tuning.parry.cooldown))),
+                _ => default
+            };
+        }
+
         public override PlayerAbilityState GetAbilityState(PlayerAbility ability)
         {
             if (tuning == null) return default;

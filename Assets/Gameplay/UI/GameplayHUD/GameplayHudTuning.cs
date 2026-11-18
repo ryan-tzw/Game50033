@@ -26,6 +26,11 @@ namespace Game50033
         [Min(90f)] public float previewRowHeight = 122f;
         [Min(12f)] public float previewFontSize = 18f;
         [Min(24f)] public float portraitSize = 52f;
+        [Header("Ability Inspection")]
+        [Min(0f)] public float inspectGap = 28f;
+        [Min(0f)] public float inspectPadding = 12f;
+        [Min(12f)] public float inspectStatFontSize = 20f;
+        public Color inspectBackground = new(0.04f, 0.055f, 0.085f, 0.98f);
         [Header("Appearance")]
         public Color emptyHeart = new(0.025f, 0.025f, 0.035f, 1f);
         public Color iconBackground = new(0.025f, 0.03f, 0.045f, 0.86f);

@@ -1,5 +1,6 @@
 namespace Game50033
 {
+    using static PlayerAbilityStats;
     using UnityEngine;
     using UnityEngine.SceneManagement;
 
@@ -396,6 +397,23 @@ namespace Game50033
             {
                 _visual.Cancel();
             }
+        }
+
+        public override PlayerAbilityStats GetAbilityStats(PlayerAbility ability)
+        {
+            if (tuning == null || !GetAbilityState(ability).Supported) return default;
+            return ability switch
+            {
+                PlayerAbility.Primary => new(("Damage by Flow", Range(tuning.primary.minimumDamage, tuning.primary.maximumDamage)),
+                    ("Cooldown", "None")),
+                PlayerAbility.Secondary => new(("Damage", Number(tuning.secondary.damage)),
+                    ("Cooldown", Seconds(tuning.secondary.cooldown))),
+                PlayerAbility.Special => new(("Charged damage", Range(tuning.special.minimumDamage, tuning.special.maximumDamage)),
+                    ("Cooldown", Seconds(tuning.special.cooldown))),
+                PlayerAbility.Defensive => new(("Invulnerability", Seconds(tuning.defensive.invulnerabilityDuration)),
+                    ("Cooldown", Seconds(tuning.defensive.cooldown))),
+                _ => default
+            };
         }
 
         public override PlayerAbilityState GetAbilityState(PlayerAbility ability) => ability switch

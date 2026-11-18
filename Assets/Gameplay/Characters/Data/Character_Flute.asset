@@ -17,12 +17,12 @@ MonoBehaviour:
   tint: {r: 0.95, g: 0.85, b: 0.55, a: 1}
   playerPrefab: {fileID: 8127240988580949929, guid: 52493c21ef8314aaba0c76990588f7bb, type: 3}
   abilityPreviews:
-  - name: Primary
-    description: Not implemented yet.
+  - name: Homing Note
+    description: Send a curving note after the nearest target. Higher Flow increases damage.
   - name: Rapid Shot
     description: Fire a fast projectile that can resonate lingering energy.
-  - name: Defensive
-    description: Not implemented yet.
+  - name: Evasive Step
+    description: Evade with brief invulnerability. Avoiding a hit grants Flow and a short speed boost.
   - name: Charged Shot
     description: Hold to charge and release a projectile. Its power increases with
       charge.

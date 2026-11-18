@@ -1,5 +1,6 @@
 namespace Game50033
 {
+    using static PlayerAbilityStats;
     using System;
     using System.Collections.Generic;
     using UnityEngine;
@@ -81,6 +82,23 @@ namespace Game50033
         public float SecondaryCooldownRemaining => Mathf.Max(0f, _secondaryReadyAt - Time.time);
         public int ComboStep { get; private set; }
         public float PrimaryCooldownRemaining => Mathf.Max(0f, _readyAt - Time.time);
+
+        public override PlayerAbilityStats GetAbilityStats(PlayerAbility ability)
+        {
+            if (tuning == null || !GetAbilityState(ability).Supported) return default;
+            return ability switch
+            {
+                PlayerAbility.Primary => new(("Damage / swing", Range(tuning.attack.damage, tuning.attack.damage * tuning.attack.sweetSpotMultiplier)),
+                    ("Combo cooldown", Seconds(tuning.attack.comboCooldown)), ("Combo swings", tuning.attack.combo.Length.ToString())),
+                PlayerAbility.Secondary => new(("Wave damage", Number(tuning.secondary.damage)),
+                    ("Cooldown", Seconds(tuning.secondary.cooldown)), ("Empowerment", "×" + Number(tuning.secondary.empowermentMultiplier))),
+                PlayerAbility.Special => new(("Damage", Range(tuning.special.damage, tuning.special.damage * tuning.special.sweetSpotMultiplier)),
+                    ("Cooldown", Seconds(tuning.special.cooldown))),
+                PlayerAbility.Defensive => new(("Damage", Number(tuning.defensive.damage)),
+                    ("Cooldown", Seconds(tuning.defensive.cooldown))),
+                _ => default
+            };
+        }
 
         public override PlayerAbilityState GetAbilityState(PlayerAbility ability)
         {
