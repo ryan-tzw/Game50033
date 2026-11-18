@@ -1,7 +1,5 @@
 namespace Game50033
 {
-    using System.Collections.Generic;
-    using System.Linq;
     using UnityEngine;
     using UnityEngine.EventSystems;
 
@@ -19,7 +17,7 @@ namespace Game50033
         private SpriteRenderer _sr;
 
         private Player _followTarget;
-        private List<Player> _players = new();
+        private BaseBoss _boss;
         public bool canMove;
 
         public bool IsMoving => (_rb.linearVelocity.sqrMagnitude > 0.01f) ? true : false;
@@ -34,7 +32,7 @@ namespace Game50033
 
             _rb = GetComponent<Rigidbody>();
             _sr = GetComponentInChildren<SpriteRenderer>();
-            _players = GetComponent<BaseBoss>().players;
+            _boss = GetComponent<BaseBoss>();
             _initialized = true;
         }
 
@@ -63,20 +61,31 @@ namespace Game50033
 
         protected virtual void TargetPlayer()
         {
-            // _players may leave or be destroyed during a scene transition without a trigger exit.
-            // _players.RemoveAll(player => player == null);
-            if (_players.Count == 0)
+            var targets = _boss.Targets;
+            var targetCount = targets.Count;
+            if (targetCount == 0)
             {
                 _followTarget = null;
-                // _rb.linearVelocity = new Vector3(0f, _rb.linearVelocity.y, 0f);
                 StopMovement();
                 return;
             }
-            // Keep the current target while it remains in detection range.
-            if (_followTarget == null || !_players.Contains(_followTarget))
+
+            // keep following the same player while they remain eligible.
+            var keepTarget = false;
+            if (_followTarget != null)
+            {
+                for (var i = 0; i < targetCount; i++)
+                {
+                    if (targets[i] != _followTarget) continue;
+                    keepTarget = true;
+                    break;
+                }
+            }
+
+            if (!keepTarget)
             {
                 Debug.Log("Adding Player as follow target!");
-                _followTarget = _players[Random.Range(0, _players.Count)];
+                _followTarget = targets[Random.Range(0, targetCount)];
                 StopMovement(false);
             }
             FollowPlayer();

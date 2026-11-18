@@ -2,6 +2,7 @@ namespace Game50033
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using UnityEngine;
     using UnityEngine.InputSystem;
 
@@ -82,9 +83,13 @@ namespace Game50033
         // They can still unready in the ring to pick again. Players without a character pick one now.
         private void AdoptReturningPlayers()
         {
-            foreach (var playerInput in new List<PlayerInput>(PlayerInput.all))
+            var session = FindFirstObjectByType<GameSession>();
+            if (session == null) return;
+
+            foreach (var registered in session.Players.Where(player => player != null).OrderBy(player => player.PlayerIndex))
             {
-                if (!playerInput.TryGetComponent(out PlayerCharacterSelect player) || _players.Contains(player)) continue;
+                if (!registered.TryGetComponent(out PlayerCharacterSelect player) || _players.Contains(player)) continue;
+                var playerInput = player.PlayerInput;
 
                 _players.Add(player);
                 playerInput.ActivateInput();

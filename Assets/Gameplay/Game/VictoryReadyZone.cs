@@ -1,7 +1,6 @@
 namespace Game50033
 {
     using UnityEngine;
-    using UnityEngine.InputSystem;
     using UnityEngine.UI;
 
     /// <summary>
@@ -62,13 +61,15 @@ namespace Game50033
         {
             if (!_active || _done) return;
 
+            var players = gameManager.Players;
             var total = 0;
             var inside = 0;
-            foreach (var playerInput in PlayerInput.all)
+            for (var i = 0; i < players.Count; i++)
             {
-                if (!playerInput.TryGetComponent(out Player _)) continue;
+                var player = players[i];
+                if (player == null) continue;
                 total++;
-                if (Contains(playerInput.transform.position)) inside++;
+                if (Contains(player.transform.position)) inside++;
             }
 
             if (total == 0 || inside < total)

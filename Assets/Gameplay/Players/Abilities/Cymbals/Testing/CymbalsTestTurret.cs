@@ -19,7 +19,10 @@ namespace Game50033
         [Tooltip("Optional material for the shots.")]
         [SerializeField] private Material material;
 
+        private GameSession _session;
         private float _nextShotAt;
+
+        private void Awake() => _session = FindFirstObjectByType<GameSession>();
 
         private void Update()
         {
@@ -49,9 +52,13 @@ namespace Game50033
         {
             Player nearest = null;
             var best = float.PositiveInfinity;
-            foreach (var player in FindObjectsByType<Player>(FindObjectsSortMode.None))
+            if (_session == null) return null;
+            var targets = _session.LivingPlayers;
+            var count = targets.Count;
+            for (var i = 0; i < count; i++)
             {
-                if (!player.isActiveAndEnabled || !player.HasActiveInput || player.Health.IsDowned) continue;
+                var player = targets[i];
+                if (!player.HasActiveInput) continue;
                 var distance = (player.transform.position - transform.position).sqrMagnitude;
                 if (distance >= best) continue;
                 best = distance;

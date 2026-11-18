@@ -27,8 +27,8 @@ namespace Game50033
 
         private GameSession _session;
         private IReadOnlyList<Player> _suppliedTargets;
-        /// <summary>Players the boss may chase and attack, refreshed every frame (see RefreshTargets).</summary>
-        public List<Player> players = new();
+        public IReadOnlyList<Player> Targets => _suppliedTargets
+            ?? (_session != null ? _session.LivingPlayers : System.Array.Empty<Player>());
 
         protected int BossTotalPhases = 3;
         protected int BossCurrentPhase = 1;
@@ -79,7 +79,6 @@ namespace Game50033
             if (_initialized) return;
 
             _session = FindFirstObjectByType<GameSession>();
-            RefreshTargets();
 
             Movement = GetComponent<BossMovement>();
             Health = GetComponent<BossHealth>();
@@ -113,38 +112,17 @@ namespace Game50033
         public void SetTargets(IReadOnlyList<Player> livingPlayers)
         {
             _suppliedTargets = livingPlayers;
-            RefreshTargets();
-        }
-
-        // refill the same list in place: BossMovement holds a reference to it and attacks copy it when they start.
-        // In an encounter the targets are the EncounterManager's living players; in a test scene without one,
-        // they are the session's players who are not downed.
-        private void RefreshTargets()
-        {
-            players.Clear();
-            if (_suppliedTargets != null)
-            {
-                foreach (var player in _suppliedTargets)
-                    if (player != null) players.Add(player);
-                return;
-            }
-
-            if (_session == null) return;
-            foreach (var player in _session.Players)
-                if (player != null && player.isActiveAndEnabled && !player.Health.IsDowned) players.Add(player);
         }
 
         protected virtual void Update()
         {
-            RefreshTargets();
-
             if (_attackAnimator != null)
             {
                 _attackAnimator.SetBool(IsWalkingId, Movement.IsMoving);
             }
 
             Movement.StopMovement(!CanMove);
-            if (CanTryAttacking && (players.Count != 0)) { Attacks.TryAttacking(); }
+            if (CanTryAttacking && Targets.Count != 0) { Attacks.TryAttacking(); }
         }
 
         private void HandleHealthChange(float currentHealth, float maxHealth)
