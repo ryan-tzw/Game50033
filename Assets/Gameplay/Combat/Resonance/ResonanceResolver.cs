@@ -111,16 +111,8 @@ namespace Game50033
                 return false;
             }
 
-            try
-            {
-                activation.Effect.Execute(in activation);
-                Activated?.Invoke(activation);
-            }
-            finally
-            {
-                UnityEngine.Object.Destroy(reverberation.gameObject);
-            }
-
+            activation.Effect.Execute(in activation);
+            Activated?.Invoke(activation);
             return true;
         }
     }

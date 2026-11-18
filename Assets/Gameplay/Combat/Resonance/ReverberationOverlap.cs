@@ -41,8 +41,11 @@ namespace Game50033
         internal static bool OverlapsSweep(Reverberation field, Vector3 start, Vector3 end, float radius, Camera camera)
         {
             GetViewAxes(camera, out var right, out var up);
-            var a = Project(start - field.GroundOrigin, right, up);
-            var b = Project(end - field.GroundOrigin, right, up);
+            // test in the full-size footprint's coordinates so spawning never rebuilds the cached edges.
+            var inverseScale = 1f / field.FootprintScale;
+            var a = Project(start - field.GroundOrigin, right, up) * inverseScale;
+            var b = Project(end - field.GroundOrigin, right, up) * inverseScale;
+            radius *= inverseScale;
             var reach = field.FootprintRadius + radius;
             if (PointSegmentDistanceSquared(Vector2.zero, a, b) > reach * reach) return false;
 
@@ -67,9 +70,10 @@ namespace Game50033
         internal static bool OverlapsTriangle(Reverberation field, Vector3 tip, Vector3 left, Vector3 right, Camera camera)
         {
             GetViewAxes(camera, out var viewRight, out var up);
-            var a = Project(tip - field.GroundOrigin, viewRight, up);
-            var b = Project(left - field.GroundOrigin, viewRight, up);
-            var c = Project(right - field.GroundOrigin, viewRight, up);
+            var inverseScale = 1f / field.FootprintScale;
+            var a = Project(tip - field.GroundOrigin, viewRight, up) * inverseScale;
+            var b = Project(left - field.GroundOrigin, viewRight, up) * inverseScale;
+            var c = Project(right - field.GroundOrigin, viewRight, up) * inverseScale;
             if (!CapsuleOverlapsTriangle(Vector2.zero, Vector2.zero, field.FootprintRadius * field.FootprintRadius, a, b, c))
                 return false;
 

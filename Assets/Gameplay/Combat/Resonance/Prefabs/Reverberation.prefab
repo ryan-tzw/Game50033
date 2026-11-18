@@ -94,6 +94,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b0daf14e3167477b86029176649d6c74, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.Reverberation
-  lifetime: 2
   effect: {fileID: 11400000, guid: 1c8996d5907024dd780e942d92e42c96, type: 2}
   energyFieldPrefab: {fileID: 7547928546953803973, guid: dc91400f0ee4d9910acc833ee3715c4e, type: 3}
