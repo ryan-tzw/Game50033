@@ -15,7 +15,7 @@ MonoBehaviour:
   actionDuration: 0.25
   primary:
     cooldown: 0.5
-    maximumPressureCooldown: 0.5
+    maximumPressureCooldown: 0.3
     minimumDamage: 8
     maximumDamage: 40
     projectile:
@@ -45,9 +45,11 @@ MonoBehaviour:
     pressureDecayMultiplier: 0.5
   pressure:
     maximum: 100
+    stationaryGainPerSecond: 8
     gainPerAttack: 1
-    decayPerSecond: 1
-    consecutiveAttackInterval: 3
+    decayPerSecond: 4
+    minimumMovementSpeed: 0.1
+    teleportDistance: 3
   defensive:
     cooldown: 2
     guardLifespan: 5
@@ -57,5 +59,41 @@ MonoBehaviour:
     offset: {x: 0.3, y: 0.3, z: 0}
     size: {x: 0.5, y: 0.1}
     color: {r: 1, g: 0.75, b: 0.2, a: 1}
+  presentation:
+    weaponMaterial: {fileID: 2100000, guid: d14a0a0cb51dd475c8ab596ce5542c6c, type: 2}
+    effectMaterial: {fileID: 2100000, guid: 360455d3e9ccc4b8e8c6b3fd73f5f922, type: 2}
+    weaponWidth: 0.95
+    idleOffset: {x: 0.2, y: 0.36, z: 0.06}
+    muzzleOffset: {x: 0.125, y: 0.055}
+    poseResponse: 24
+    cueWidth: 0.018
+    gold: {r: 1, g: 0.72, b: 0.18, a: 1}
+    resonatingColor: {r: 0.55, g: 0.95, b: 1, a: 1}
+    primaryRecovery: 0.22
+    primaryRecoil: 0.1
+    primaryKick: 5
+    flashDuration: 0.065
+    flashRadius: 0.075
+    zoneSweepDuration: 0.42
+    zoneWeaponReach: 0.4
+    zoneLineWidth: 0.035
+    zoneOpacity: 0.65
+    zoneHeight: 0.035
+    guardOffset: {x: 0.16, y: 0.37, z: 0.08}
+    guardDownAngle: 68
+    guardRaiseTime: 0.08
+    blockDuration: 0.16
+    blockKick: 0.045
+    guardCueRadius: 0.16
+    specialRecovery: 0.5
+    specialRecoil: 0.22
+    specialKick: 10
+    specialFlashScale: 1.6
+    primaryShotWidth: 0.045
+    specialShotWidth: 0.065
+    primaryShotLength: 0.18
+    specialShotLength: 0.45
+    primaryTrailTime: 0.055
+    specialTrailTime: 0.1
   specialReverberationStrengthMultiplier: 0.5
   hitEffect: {fileID: 11400000, guid: 645a021c6bfb12b42a710932ef781155, type: 2}

@@ -18,6 +18,8 @@ namespace Game50033
         private Scene _arenaScene;
         private bool _ended;
 
+        internal Player PresentationOwner => _owner;
+
         // Keep destroyed owners marked as initialized so they still reach cleanup.
         public bool IsActive => !ReferenceEquals(_owner, null) && !_ended && isActiveAndEnabled;
         public bool IsConfigured => tuning != null && enabled && gameObject.activeSelf

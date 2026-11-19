@@ -17,6 +17,7 @@ namespace Game50033
         public PressureSettings pressure = new();
         public DefensiveSettings defensive = new();
         public PlaceholderSettings placeholder = new();
+        public PresentationSettings presentation = new();
         [Range(0.01f, 1f)] public float specialReverberationStrengthMultiplier = 0.5f;
         [Tooltip("Impact sprite, damage number and sound played where a Trombone projectile hits. Special hits use its big style.")]
         public HitEffect hitEffect;
@@ -27,7 +28,7 @@ namespace Game50033
             [Tooltip("Shot interval at zero Pressure, in seconds. Cast duration also limits firing cadence.")]
             [Min(0.01f)] public float cooldown = 0.5f;
             [Tooltip("Shot interval at maximum Pressure, in seconds. Use a lower value for faster firing; values above Cooldown are capped. Cast duration still applies.")]
-            [Min(0.01f)] public float maximumPressureCooldown = 0.5f;
+            [Min(0.01f)] public float maximumPressureCooldown = 0.3f;
             [Min(0f)] public float minimumDamage = 1f;
             [Min(0f)] public float maximumDamage = 5f;
             public ProjectileSettings projectile = new();
@@ -65,9 +66,14 @@ namespace Game50033
         public sealed class PressureSettings
         {
             [Min(0.01f)] public float maximum = 100f;
+            [Tooltip("Pressure gained per second while planted. Command Zone multiplies this and the shot bonus.")]
+            [Min(0f)] public float stationaryGainPerSecond = 8f;
             [Min(0f)] public float gainPerAttack = 1f;
-            [Min(0f)] public float decayPerSecond = 1f;
-            [Min(0f)] public float consecutiveAttackInterval = 3f;
+            [Tooltip("Pressure lost per second while moving. Command Zone reduces this rate.")]
+            [Min(0f)] public float decayPerSecond = 4f;
+            [Min(0.01f)] public float minimumMovementSpeed = 0.1f;
+            [Tooltip("Larger XZ jumps are treated as teleports and do not gain or drain Pressure.")]
+            [Min(0.1f)] public float teleportDistance = 3f;
         }
 
         [Serializable]
@@ -85,6 +91,58 @@ namespace Game50033
             [Min(0.01f)] public float cooldown = 2f;
             [Min(0.01f)] public float guardLifespan = 5f;
             [Range(0f, 1f)] public float movementSpeedMultiplier = 0.5f;
+        }
+
+        [Serializable]
+        public sealed class PresentationSettings
+        {
+            [Header("Artwork and idle aim")]
+            public Material weaponMaterial;
+            public Material effectMaterial;
+            [Min(0.01f)] public float weaponWidth = 0.95f;
+            public Vector3 idleOffset = new(0.2f, 0.36f, 0.06f);
+            [Tooltip("Bell position relative to the sprite centre at Weapon Width, in world units.")]
+            public Vector2 muzzleOffset = new(0.125f, 0.055f);
+            [Min(0.01f)] public float poseResponse = 24f;
+            [Min(0.001f)] public float cueWidth = 0.018f;
+            public Color gold = new(1f, 0.72f, 0.18f, 1f);
+            public Color resonatingColor = new(0.55f, 0.95f, 1f, 1f);
+
+            [Header("Primary recoil")]
+            [Min(0.01f)] public float primaryRecovery = 0.22f;
+            [Min(0f)] public float primaryRecoil = 0.1f;
+            [Min(0f)] public float primaryKick = 5f;
+            [Min(0.01f)] public float flashDuration = 0.065f;
+            [Min(0.01f)] public float flashRadius = 0.075f;
+
+            [Header("Command Zone sweep")]
+            [Min(0.01f)] public float zoneSweepDuration = 0.42f;
+            [Min(0f)] public float zoneWeaponReach = 0.4f;
+            [Min(0.001f)] public float zoneLineWidth = 0.035f;
+            [Range(0f, 1f)] public float zoneOpacity = 0.65f;
+            [Min(0f)] public float zoneHeight = 0.035f;
+
+            [Header("Guard brace and actual block feedback")]
+            public Vector3 guardOffset = new(0.16f, 0.37f, 0.08f);
+            [Range(0f, 90f)] public float guardDownAngle = 68f;
+            [Min(0.01f)] public float guardRaiseTime = 0.08f;
+            [Min(0.01f)] public float blockDuration = 0.16f;
+            [Min(0f)] public float blockKick = 0.045f;
+            [Min(0.01f)] public float guardCueRadius = 0.16f;
+
+            [Header("Special release (no added gameplay windup)")]
+            [Min(0.01f)] public float specialRecovery = 0.5f;
+            [Min(0f)] public float specialRecoil = 0.22f;
+            [Min(0f)] public float specialKick = 10f;
+            [Min(1f)] public float specialFlashScale = 1.6f;
+
+            [Header("Travelling shot visuals")]
+            [Min(0.001f)] public float primaryShotWidth = 0.045f;
+            [Min(0.001f)] public float specialShotWidth = 0.065f;
+            [Min(0.01f)] public float primaryShotLength = 0.18f;
+            [Min(0.01f)] public float specialShotLength = 0.45f;
+            [Min(0.01f)] public float primaryTrailTime = 0.055f;
+            [Min(0.01f)] public float specialTrailTime = 0.1f;
         }
     }
 }

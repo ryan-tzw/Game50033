@@ -16,16 +16,18 @@ namespace Game50033
         [SerializeField] private TromboneCommandZone commandZonePrefab;
 
         private TromboneCommandZone _commandZone;
+        private TromboneWeaponVisual _weaponVisual;
         private float _primaryReadyAt;
+        private float _primaryCooldownDuration;
         private float _secondaryReadyAt;
         private float _defensiveReadyAt;
         private float _specialReadyAt;
         private float _activeUntil;
         private float _guardUntil;
-        private float _lastAttackAt = float.NegativeInfinity;
         private float _pressure;
         private bool _primaryResonates;
         private Vector3 _previousPosition;
+        private bool _skipMovementSample;
 
         private float ActionTime => Player.Hitstop.ActionTime;
         private Vector3 ProjectilePosition => projectileOrigin != null
@@ -45,6 +47,7 @@ namespace Game50033
         private void OnEnable()
         {
             Player.Initialize();
+            _weaponVisual = GetComponent<TromboneWeaponVisual>();
             if (tuning == null)
             {
                 Debug.LogError("TromboneAbilities requires Trombone tuning.", this);
@@ -54,7 +57,8 @@ namespace Game50033
 
             Player.Health.AbilityHitAvoided += HandleGuardedHit;
             SceneManager.activeSceneChanged += HandleSceneChanged;
-            _previousPosition = transform.position;
+            _primaryCooldownDuration = Mathf.Max(0.01f, tuning.primary.cooldown);
+            ResetMovementTracking();
         }
 
         protected override void OnDisable()
@@ -72,23 +76,50 @@ namespace Game50033
             {
                 Cancel();
                 ClearCommandZone();
-                _previousPosition = transform.position;
                 return;
             }
 
             // Completing the short cast must not cancel an independently active guard.
             if (_activeUntil > 0f && ActionTime >= _activeUntil) EndAction();
             if (_guardUntil > 0f && !IsGuarding) EndGuard();
+        }
 
+        private void LateUpdate()
+        {
+            if (!HasControl)
+            {
+                ResetMovementTracking();
+                return;
+            }
+
+            // Sample actual XZ displacement after movement, using the same approach as Flute Flow.
             var movement = transform.position - _previousPosition;
             movement.y = 0f;
             _previousPosition = transform.position;
-            if (Time.time - _lastAttackAt >= tuning.pressure.consecutiveAttackInterval
-                || movement.sqrMagnitude > 0.000001f)
+            if (_skipMovementSample)
             {
-                var multiplier = IsInCommandZone ? tuning.commandZone.pressureDecayMultiplier : 1f;
-                _pressure = Mathf.Max(0f, _pressure - tuning.pressure.decayPerSecond * multiplier * Time.deltaTime);
+                _skipMovementSample = false;
+                return;
             }
+
+            var settings = tuning.pressure;
+            var deltaTime = Player.Hitstop.ActionDeltaTime;
+            if (Player.Hitstop.IsStopped || deltaTime <= 0f
+                || movement.sqrMagnitude > settings.teleportDistance * settings.teleportDistance) return;
+
+            var moving = Player.Movement.IsDodging
+                || movement.magnitude / deltaTime >= settings.minimumMovementSpeed;
+            var inZone = IsInCommandZone;
+            var rate = moving
+                ? -settings.decayPerSecond * (inZone ? tuning.commandZone.pressureDecayMultiplier : 1f)
+                : settings.stationaryGainPerSecond * (inZone ? tuning.commandZone.pressureAccumulationMultiplier : 1f);
+            _pressure = Mathf.Clamp(_pressure + rate * deltaTime, 0f, settings.maximum);
+        }
+
+        private void ResetMovementTracking()
+        {
+            _previousPosition = transform.position;
+            _skipMovementSample = true;
         }
 
         public override bool TryUsePrimary()
@@ -98,14 +129,17 @@ namespace Game50033
 
             var pressure = PressureNormalized;
             var direction = GetDirection(primaryProjectilePrefab);
+            var resonates = _primaryResonates;
             var projectile = Instantiate(primaryProjectilePrefab, ProjectilePosition, Quaternion.LookRotation(direction));
             var damage = Mathf.Lerp(tuning.primary.minimumDamage, tuning.primary.maximumDamage, pressure);
             projectile.InitializePrimary(Player, direction, damage, _primaryResonates, primaryProjectilePrefab);
             _primaryResonates = false;
             var cooldown = Mathf.Lerp(tuning.primary.cooldown,
                 Mathf.Min(tuning.primary.cooldown, tuning.primary.maximumPressureCooldown), pressure);
-            BeginAction(ref _primaryReadyAt, Mathf.Max(0.01f, cooldown), blockMovement: true, blockDodge: false);
+            _primaryCooldownDuration = Mathf.Max(0.01f, cooldown);
+            BeginAction(ref _primaryReadyAt, _primaryCooldownDuration, blockMovement: true, blockDodge: false);
             AccumulatePressure();
+            if (_weaponVisual != null) _weaponVisual.PlayShot(direction, ProjectilePosition, special: false, resonates: resonates, interval: cooldown);
             return true;
         }
 
@@ -118,6 +152,7 @@ namespace Game50033
             _commandZone = Instantiate(commandZonePrefab, transform.position, Quaternion.identity);
             _commandZone.Initialize(Player);
             BeginAction(ref _secondaryReadyAt, tuning.commandZone.cooldown, blockMovement: false, blockDodge: false);
+            if (_weaponVisual != null) _weaponVisual.PlayZone(Player.AimDirection);
             return true;
         }
 
@@ -128,6 +163,7 @@ namespace Game50033
             _guardUntil = ActionTime + Mathf.Max(0.01f, tuning.defensive.guardLifespan);
             Player.Health.GrantAbilityInvulnerability(tuning.defensive.guardLifespan);
             BeginAction(ref _defensiveReadyAt, tuning.defensive.cooldown, blockMovement: false, blockDodge: true);
+            if (_weaponVisual != null) _weaponVisual.PlayGuard(Player.AimDirection);
             return true;
         }
 
@@ -147,6 +183,7 @@ namespace Game50033
             _commandZone = null;
             BeginAction(ref _specialReadyAt, tuning.special.cooldown, blockMovement: true, blockDodge: true);
             AccumulatePressure();
+            if (_weaponVisual != null) _weaponVisual.PlayShot(direction, ProjectilePosition, special: true, resonates: false, interval: tuning.special.cooldown);
             return true;
         }
 
@@ -168,13 +205,13 @@ namespace Game50033
         {
             var multiplier = IsInCommandZone ? tuning.commandZone.pressureAccumulationMultiplier : 1f;
             _pressure = Mathf.Clamp(_pressure + tuning.pressure.gainPerAttack * multiplier, 0f, tuning.pressure.maximum);
-            _lastAttackAt = Time.time;
         }
 
         private void HandleGuardedHit()
         {
             if (!IsGuarding) return;
             if (IsInCommandZone) _primaryResonates = true;
+            if (_weaponVisual != null) _weaponVisual.PlayGuardImpact(IsInCommandZone);
             EndGuard();
         }
 
@@ -200,6 +237,7 @@ namespace Game50033
 
         public override void Cancel()
         {
+            if (_weaponVisual != null) _weaponVisual.Cancel();
             EndAction();
             EndGuard();
             _primaryResonates = false;
@@ -230,7 +268,7 @@ namespace Game50033
         public override PlayerAbilityState GetAbilityState(PlayerAbility ability) => ability switch
         {
             PlayerAbility.Primary when tuning != null && primaryProjectilePrefab != null && primaryProjectilePrefab.IsConfigured
-                => new PlayerAbilityState(_primaryReadyAt - Time.time, tuning.primary.cooldown),
+                => new PlayerAbilityState(_primaryReadyAt - Time.time, _primaryCooldownDuration),
             PlayerAbility.Secondary when tuning != null && commandZonePrefab != null && commandZonePrefab.IsConfigured
                 => new PlayerAbilityState(_secondaryReadyAt - Time.time, tuning.commandZone.cooldown),
             PlayerAbility.Defensive when tuning != null
@@ -247,14 +285,21 @@ namespace Game50033
             _primaryReadyAt = _secondaryReadyAt = _defensiveReadyAt = _specialReadyAt = 0f;
         }
 
+        public override void ResetForEncounter()
+        {
+            base.ResetForEncounter();
+            ClearCommandZone();
+            _pressure = 0f;
+            ResetMovementTracking();
+        }
+
         private void HandleSceneChanged(Scene previous, Scene current)
         {
             Cancel();
             ClearCommandZone();
             ClearCooldowns();
             _pressure = 0f;
-            _lastAttackAt = float.NegativeInfinity;
-            _previousPosition = transform.position;
+            ResetMovementTracking();
         }
     }
 }
