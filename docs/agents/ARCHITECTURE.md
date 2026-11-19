@@ -140,6 +140,8 @@ Each joined index owns one `PlayerHudPanel`. In Lobby it expands vertically for 
 
 Coordinate edits to CharacterDefinition preview data, LobbyManager, PlayerCharacterSelect, PlayerJoinManager.prefab and Lobby/Game scenes. Gameplay HUD elements only read live state; roster pointer callbacks delegate preview/confirmation to PlayerCharacterSelect, leaving claims and prefab replacement in LobbyManager. Combat timing, cooldown ownership, input bindings and device pairing are unchanged.
 
+`PlayerFacingIndicator` on the shared player prefab presents movement and aim on XZ through the PixelWorldVFX pass, beneath the character sprites. Its material and meshes are shared across frames. The movement triangle retains the last movement direction and dims while stationary. The smaller, brighter aim triangle follows `Player.AimDirection` and moves to an outer radius when `Player.IsManualAiming` reports KB/M Manual or a deflected paired right stick. Its concave base follows the circle around the player. `Assets/Tuning/Players/PlayerFacingIndicatorTuning.asset` owns sizes, radii, opacity and the stationary transition. Downed, inactive and selecting players hide both indicators.
+
 ### Reverberation energy field
 
 `Assets/Examples/ReverberationEnergyField/` contains the presentation prefab shared by gameplay and the standalone visual test. Its component and tuning type use `Game50033.Examples`, and the authored asset is `Assets/Tuning/Experiments/ReverberationEnergyFieldTuning.asset`. `Scenes/TestScenes/ReverberationEnergyFieldTest.unity` has a gameplay-angle camera, static environment references and mutually selectable 1/4/8-instance hierarchy groups. See the feature README for its use, measured CPU/draw-call baseline and limitations.

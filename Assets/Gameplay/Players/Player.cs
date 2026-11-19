@@ -52,6 +52,7 @@ namespace Game50033
         public Color PlayerColor { get; private set; } = Color.white;
         public CharacterDefinition Character { get; private set; }
         public Vector3 AimDirection { get; private set; } = Vector3.forward;
+        public bool IsManualAiming { get; private set; }
         public Behaviour AutoTarget { get; private set; }
         public event Action<Player, Behaviour> AutoTargetChanged;
         public bool HasActiveInput =>
@@ -176,7 +177,8 @@ namespace Game50033
             Behaviour autoTarget = null;
             var aimOrigin = transform.position + Vector3.up * 0.25f;
             AimDirection = Movement.FacingDirection;
-            if (TryGetManualAimDirection(aimOrigin, out var manualDirection))
+            IsManualAiming = TryGetManualAimDirection(aimOrigin, out var manualDirection);
+            if (IsManualAiming)
             {
                 AimDirection = manualDirection;
             }
@@ -302,6 +304,7 @@ namespace Game50033
 
         private void OnDisable()
         {
+            IsManualAiming = false;
             PublishAutoTarget(null);
             _autoFacingTarget = null;
             _autoFacingRefreshAt = 0f;
