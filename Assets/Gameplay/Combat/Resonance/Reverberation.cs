@@ -50,10 +50,13 @@ namespace Game50033
         internal SphereCollider Volume => _volume;
         internal IAttackReplay OriginalAttack { get; private set; }
         internal Vector3 GroundOrigin { get; private set; }
-        internal Vector3 GroundAimPoint => GroundOrigin + _groundAimOffset * FootprintScale;
+        internal Vector3 GroundAimPoint => GroundOrigin + (_spawn.SweepSign != 0f && _spawn.Progress < 1f
+            ? ReverberationOverlap.RevealAimOffset(this) : _groundAimOffset * FootprintScale);
         internal Vector3[] FootprintEdges { get; private set; }
         internal float FootprintRadius { get; private set; }
         internal float FootprintScale => _spawn.GetScale(_spawn.Progress);
+        internal float FootprintReveal => _spawn.SweepSign == 0f ? 1f : _spawn.Progress;
+        internal bool ReverseFootprintReveal => _spawn.SweepSign < 0f && FootprintReveal < 1f;
 
         private void Awake()
         {
@@ -88,7 +91,8 @@ namespace Game50033
             Initialize(creator, strength, footprint, null);
         }
 
-        internal void Initialize(Player creator, float strength, ReverberationFieldShape? footprint, IAttackReplay originalAttack)
+        internal void Initialize(Player creator, float strength, ReverberationFieldShape? footprint, IAttackReplay originalAttack,
+            float revealSweepSign = 0f)
         {
             if (creator == null)
             {
@@ -134,7 +138,8 @@ namespace Game50033
             _expiresAt = startedAt + GameplayLifetime;
             if (energyFieldPrefab != null)
             {
-                _spawn = energyFieldPrefab.GetSpawnAnimation(startedAt);
+                var sweepSign = shape.kind == ReverberationFieldShapeKind.AnnularSector ? revealSweepSign : 0f;
+                _spawn = energyFieldPrefab.GetSpawnAnimation(startedAt, sweepSign);
                 // the footprint is authored in world units even if the legacy trigger has a scaled prefab root.
                 _energyField = Instantiate(energyFieldPrefab, ground, Quaternion.identity);
                 _energyField.transform.SetParent(transform, true);

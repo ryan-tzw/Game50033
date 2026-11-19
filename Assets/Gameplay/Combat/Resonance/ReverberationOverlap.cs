@@ -44,6 +44,14 @@ namespace Game50033
             return OverlapsSweep(field, centre, centre, radius, null);
         }
 
+        internal static Vector3 RevealAimOffset(Reverberation field)
+        {
+            var strip = new FootprintStrip(field);
+            if (strip.SegmentCount == 0) return Vector3.zero;
+            strip.GetEdge(strip.RevealedSegments * 0.5f, out var inner, out var outer);
+            return (inner + outer) * 0.5f;
+        }
+
         internal static bool OverlapsSweep(Reverberation field, Vector3 start, Vector3 end, float radius, Camera camera)
         {
             GetViewAxes(camera, out var right, out var up);
@@ -55,15 +63,18 @@ namespace Game50033
             var reach = field.FootprintRadius + radius;
             if (PointSegmentDistanceSquared(Vector2.zero, a, b) > reach * reach) return false;
 
-            var edges = field.FootprintEdges;
-            if (edges.Length < 4) return false;
-            var inner = Project(edges[0], right, up);
-            var outer = Project(edges[1], right, up);
+            var strip = new FootprintStrip(field);
+            var count = strip.SegmentCount;
+            if (count == 0) return false;
+            strip.GetEdge(0, out var firstInner, out var firstOuter);
+            var inner = Project(firstInner, right, up);
+            var outer = Project(firstOuter, right, up);
             var radiusSquared = radius * radius;
-            for (var i = 2; i < edges.Length; i += 2)
+            for (var i = 1; i <= count; i++)
             {
-                var nextInner = Project(edges[i], right, up);
-                var nextOuter = Project(edges[i + 1], right, up);
+                strip.GetEdge(i, out var edgeInner, out var edgeOuter);
+                var nextInner = Project(edgeInner, right, up);
+                var nextOuter = Project(edgeOuter, right, up);
                 if (CapsuleOverlapsTriangle(a, b, radiusSquared, inner, outer, nextOuter)
                     || (inner != nextInner && CapsuleOverlapsTriangle(a, b, radiusSquared, inner, nextOuter, nextInner)))
                     return true;
@@ -83,26 +94,61 @@ namespace Game50033
             if (!CapsuleOverlapsTriangle(Vector2.zero, Vector2.zero, field.FootprintRadius * field.FootprintRadius, a, b, c))
                 return false;
 
-            var edges = field.FootprintEdges;
-            if (edges.Length < 4) return false;
-            var inner = Project(edges[0], viewRight, up);
-            var outer = Project(edges[1], viewRight, up);
-            for (var i = 2; i < edges.Length; i += 2)
+            var strip = new FootprintStrip(field);
+            var count = strip.SegmentCount;
+            if (count == 0) return false;
+            strip.GetEdge(0, out var firstInner, out var firstOuter);
+            var inner = Project(firstInner, viewRight, up);
+            var outer = Project(firstOuter, viewRight, up);
+            for (var i = 1; i <= count; i++)
             {
-                var nextInner = Project(edges[i], viewRight, up);
-                var nextOuter = Project(edges[i + 1], viewRight, up);
+                strip.GetEdge(i, out var edgeInner, out var edgeOuter);
+                var nextInner = Project(edgeInner, viewRight, up);
+                var nextOuter = Project(edgeOuter, viewRight, up);
                 // check whether the tip is inside the strip or an edge touches the attack triangle.
                 if (InsideTriangle(a, inner, outer, nextOuter)
                     || (inner != nextInner && InsideTriangle(a, inner, nextOuter, nextInner))
                     || CapsuleOverlapsTriangle(inner, outer, 0f, a, b, c)
                     || CapsuleOverlapsTriangle(outer, nextOuter, 0f, a, b, c)
                     || CapsuleOverlapsTriangle(inner, nextInner, 0f, a, b, c)
-                    || (i == edges.Length - 2 && CapsuleOverlapsTriangle(nextInner, nextOuter, 0f, a, b, c)))
+                    || (i == count && CapsuleOverlapsTriangle(nextInner, nextOuter, 0f, a, b, c)))
                     return true;
                 inner = nextInner;
                 outer = nextOuter;
             }
             return false;
+        }
+
+        private readonly struct FootprintStrip
+        {
+            private readonly Vector3[] _edges;
+            private readonly int _first;
+            private readonly int _step;
+            public readonly float RevealedSegments;
+            public int SegmentCount => Mathf.CeilToInt(RevealedSegments);
+
+            public FootprintStrip(Reverberation field)
+            {
+                _edges = field.FootprintEdges;
+                var reverse = field.ReverseFootprintReveal;
+                _first = reverse ? _edges.Length - 2 : 0;
+                _step = reverse ? -2 : 2;
+                RevealedSegments = Mathf.Max(0, _edges.Length / 2 - 1) * field.FootprintReveal;
+            }
+
+            public void GetEdge(float index, out Vector3 inner, out Vector3 outer)
+            {
+                // clip the leading segment against the reveal without rebuilding the cached footprint.
+                index = Mathf.Min(index, RevealedSegments);
+                var segment = Mathf.FloorToInt(index);
+                var offset = _first + _step * segment;
+                inner = _edges[offset];
+                outer = _edges[offset + 1];
+                var fraction = index - segment;
+                if (fraction <= 0f) return;
+                inner = Vector3.LerpUnclamped(inner, _edges[offset + _step], fraction);
+                outer = Vector3.LerpUnclamped(outer, _edges[offset + _step + 1], fraction);
+            }
         }
 
         private static void GetViewAxes(Camera camera, out Vector3 right, out Vector3 up)

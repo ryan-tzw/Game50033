@@ -291,7 +291,7 @@ namespace Game50033
                         sweepAngle = _swing.angle,
                         stretchAxis = new Vector2(_swingStretchAxis.x, _swingStretchAxis.z),
                         stretchFactor = _swingDepthStretch
-                    });
+                    }, originalAttack: null, revealSweepSign: _swingSign);
                 }
 
                 // snapshot the registry because a hit callback can disable or destroy another hurtbox.

@@ -37,6 +37,7 @@ namespace Game50033.Examples
         private float _fadeOutStartOpacity;
         private Vector3 _layerOpacities;
         private Vector4 _fullSizeGeometry;
+        private Vector4 _fullShapeFrame;
 
         private static readonly int ColorId = Shader.PropertyToID("_EnergyColor");
         private static readonly int DensityId = Shader.PropertyToID("_Density");
@@ -74,9 +75,9 @@ namespace Game50033.Examples
             _appliedRevision = -1;
         }
 
-        internal ReverberationFieldSpawn GetSpawnAnimation(float startedAt)
+        internal ReverberationFieldSpawn GetSpawnAnimation(float startedAt, float sweepSign)
         {
-            return tuning != null ? new ReverberationFieldSpawn(startedAt, tuning.spawnDuration, tuning.spawnStartScale) : default;
+            return tuning != null ? new ReverberationFieldSpawn(startedAt, tuning.spawnDuration, tuning.spawnStartScale, sweepSign) : default;
         }
 
         internal float GameplayLifetime => tuning != null
@@ -86,7 +87,7 @@ namespace Game50033.Examples
         {
             _fadeOutStartedAt = Time.time;
             _fadeOutSpawnProgress = _spawn.Progress;
-            _fadeOutStartOpacity = _fadeOutSpawnProgress * GetExpiryOpacity(_fadeOutStartedAt);
+            _fadeOutStartOpacity = _spawn.GetOpacity(_fadeOutSpawnProgress) * GetExpiryOpacity(_fadeOutStartedAt);
             _fadeOutDuration = tuning != null ? Mathf.Max(0f, tuning.fadeOutDuration) : 0f;
             return _fadeOutDuration;
         }
@@ -126,7 +127,7 @@ namespace Game50033.Examples
             var spawnProgress = fadingOut ? _fadeOutSpawnProgress : _spawn.Progress;
             var opacity = fadingOut
                 ? Mathf.SmoothStep(_fadeOutStartOpacity, 0f, (Time.time - _fadeOutStartedAt) / _fadeOutDuration)
-                : spawnProgress * GetExpiryOpacity(Time.time);
+                : _spawn.GetOpacity(spawnProgress) * GetExpiryOpacity(Time.time);
             if (_appliedTuning == tuning && _appliedRevision == tuning.Revision
                 && _appliedRootMatrix == rootMatrix && _appliedViewDirection == viewDirection)
             {
@@ -188,7 +189,7 @@ namespace Game50033.Examples
                 toGround.m21 = -viewInRoot.z / viewInRoot.y;
             }
             _properties.SetMatrix(RootInverseId, toGround * rootInverse);
-            _properties.SetVector(ShapeFrameId, new Vector4(shape.origin.x, shape.origin.y, direction.x, direction.y));
+            _fullShapeFrame = new Vector4(shape.origin.x, shape.origin.y, direction.x, direction.y);
             _fullSizeGeometry = new Vector4(Mathf.Clamp(shape.innerRadius, 0f, radius), radius,
                 Mathf.Clamp(shape.sweepAngle, 0f, 360f) * Mathf.Deg2Rad * 0.5f, 0f);
             _properties.SetVector(ShapeStretchId, new Vector4(stretchAxis.x, stretchAxis.y, stretch, 1f / stretch));
@@ -240,10 +241,22 @@ namespace Game50033.Examples
             _appliedSpawnProgress = spawnProgress;
             _appliedOpacity = opacity;
             var scale = _spawn.GetScale(spawnProgress);
-            // animate shader radii and opacity while the sheets keep their full-size bounds.
+            // update the mask while the sheets keep their full-size bounds.
             var geometry = _fullSizeGeometry;
+            var frame = _fullShapeFrame;
             geometry.x *= scale;
             geometry.y *= scale;
+            if (_spawn.SweepSign != 0f && spawnProgress < 1f)
+            {
+                // keep the first edge fixed as the sector opens in the swing direction.
+                var yaw = -_spawn.SweepSign * geometry.z * (1f - spawnProgress);
+                var direction = new Vector2(frame.z, frame.w);
+                direction = direction * Mathf.Cos(yaw) + new Vector2(direction.y, -direction.x) * Mathf.Sin(yaw);
+                frame.z = direction.x;
+                frame.w = direction.y;
+                geometry.z *= spawnProgress;
+            }
+            _properties.SetVector(ShapeFrameId, frame);
             _properties.SetVector(ShapeGeometryId, geometry);
             _properties.SetFloat(OpacityId, _layerOpacities.x * opacity);
             _properties.SetFloat(BackgroundOpacityId, _layerOpacities.y * opacity);

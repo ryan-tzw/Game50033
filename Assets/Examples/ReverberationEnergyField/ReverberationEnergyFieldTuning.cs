@@ -23,7 +23,7 @@ namespace Game50033.Examples
         [Min(0f)] public float fadeOutDuration = 0.15f;
 
         [Header("Gameplay spawn")]
-        [Tooltip("Seconds to grow and fade in. Zero spawns at full size and opacity.")]
+        [Tooltip("Seconds for the spawn animation, including fields that reveal along a swing. Zero shows the full field immediately.")]
         [Min(0f)] public float spawnDuration = 0.15f;
         [Tooltip("Starting fraction of the full visual and Resonance footprint.")]
         [Range(0.01f, 1f)] public float spawnStartScale = 0.8f;
@@ -75,17 +75,31 @@ namespace Game50033.Examples
         private readonly float _startedAt;
         private readonly float _duration;
         private readonly float _startScale;
+        public readonly float SweepSign;
 
-        public ReverberationFieldSpawn(float startedAt, float duration, float startScale)
+        public ReverberationFieldSpawn(float startedAt, float duration, float startScale, float sweepSign)
         {
             _startedAt = startedAt;
             _duration = Mathf.Max(0f, duration);
             _startScale = Mathf.Clamp(startScale, 0.01f, 1f);
+            SweepSign = sweepSign == 0f ? 0f : Mathf.Sign(sweepSign);
         }
 
-        public float Progress => _duration > 0f
-            ? Mathf.SmoothStep(0f, 1f, (Time.time - _startedAt) / _duration) : 1f;
+        public float Progress
+        {
+            get
+            {
+                if (_duration <= 0f) return 1f;
+                var progress = Mathf.Clamp01((Time.time - _startedAt) / _duration);
+                if (SweepSign == 0f) return Mathf.SmoothStep(0f, 1f, progress);
 
-        public float GetScale(float progress) => Mathf.Lerp(_startScale, 1f, progress);
+                var remaining = 1f - progress;
+                return 1f - remaining * remaining * remaining;
+            }
+        }
+
+        public float GetScale(float progress) => SweepSign == 0f ? Mathf.Lerp(_startScale, 1f, progress) : 1f;
+
+        public float GetOpacity(float progress) => SweepSign == 0f ? progress : 1f;
     }
 }
