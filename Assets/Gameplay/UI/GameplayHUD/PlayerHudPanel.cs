@@ -214,7 +214,7 @@ namespace Game50033
                         : i == 0 ? "X" : i == 1 ? "Y" : i == 2 ? "A" : i == 3 ? "B" : "RT";
                     var svg = keyboard ? i == 0 ? _tuning.leftMouse : i == 1 ? _tuning.rightMouse : i == 4 ? _tuning.space : null : null;
                     var artwork = i == 4 ? _tuning.dodgeIcon : chosen != null ? chosen.GetAbilityPreview(_slots[i]).icon : null;
-                    _icons[i].SetAppearance(accent, artwork, i == 4, text, svg, !keyboard && i < 4);
+                    _icons[i].SetAppearance(accent, artwork, chosen != null ? chosen.AbilityPalette : null, i == 4, text, svg, !keyboard && i < 4);
                 }
                 _shownRoster = null;
                 MarkDirtyRepaint();
@@ -303,7 +303,7 @@ namespace Game50033
                             : i == 0 ? "X" : i == 1 ? "Y" : i == 2 ? "A" : "B";
                         var image = keyboard ? i == 0 ? _tuning.leftMouse : i == 1 ? _tuning.rightMouse : null : null;
                         var preview = character != null ? character.GetAbilityPreview(ability) : default;
-                        _previews[i].SetAppearance(previewAccent, preview.icon, false, prompt, image, !keyboard);
+                        _previews[i].SetAppearance(previewAccent, preview.icon, character != null ? character.AbilityPalette : null, false, prompt, image, !keyboard);
                         _previewTitles[i].style.color = titleColor;
                         _previewTitles[i].text = string.IsNullOrWhiteSpace(preview.name) ? ability.ToString() : preview.name;
                         _previewDescriptions[i].text = string.IsNullOrWhiteSpace(preview.description) ? "Details coming soon." : preview.description;

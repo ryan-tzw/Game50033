@@ -1,7 +1,6 @@
 namespace Game50033
 {
     using UnityEngine;
-    using UnityEngine.Serialization;
     using UnityEngine.UIElements;
 
     [CreateAssetMenu(menuName = "Crescendo/UI/Gameplay HUD")]
@@ -15,11 +14,8 @@ namespace Game50033
         [Min(0f)] public float playerGap = 40f;
         [Min(0f)] public float bottomMargin = 3f;
         [Header("Borders")]
-        [FormerlySerializedAs("borderWidth")]
-        [Min(0f)] public float abilityBorderWidth = 3f;
         [Min(0f)] public float healthBorderWidth = 3f;
         [Min(0f)] public float promptBorderWidth = 1.5f;
-        [Min(0f)] public float cornerRadius = 10f;
         [Header("Health strip")]
         [Tooltip("Zero fits the health strip to the ability and dodge row.")]
         [Min(0f)] public float healthBarWidth;
@@ -49,12 +45,10 @@ namespace Game50033
         public Color inspectBackground = new(0.04f, 0.055f, 0.085f, 0.98f);
         [Header("Appearance")]
         public Color emptyHeart = new(0.025f, 0.025f, 0.035f, 1f);
-        public Color iconBackground = new(41f / 255f, 45f / 255f, 56f / 255f, 1f);
         public Color promptBackground = new(0.015f, 0.018f, 0.025f, 0.98f);
         [Range(0f, 1f)] public float cooldownOpacity = 0.78f;
         [Header("Ability artwork")]
         public Texture2D dodgeIcon;
-        [Min(0f)] public float artworkPadding = 4f;
         [Header("Input prompt artwork")]
         public VectorImage leftMouse;
         public VectorImage rightMouse;

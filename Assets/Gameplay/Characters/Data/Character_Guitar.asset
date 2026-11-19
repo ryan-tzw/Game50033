@@ -16,18 +16,19 @@ MonoBehaviour:
   sprite: {fileID: 5395042229362328217, guid: f4aa2dc303f9da7669b91fe830b83084, type: 3}
   tint: {r: 0.35, g: 0.8, b: 0.85, a: 1}
   playerPrefab: {fileID: 9019545368423628371, guid: 37531a99c5eee3496ac27af004e69c68, type: 3}
+  abilityPalette: {fileID: 2100000, guid: eb4e025a01024e9bd85b155619199fdb, type: 2}
   abilityPreviews:
   - name: Sweeping Combo
-    icon: {fileID: 2800000, guid: 90c8d77d65d07a29ea5950669a0874af, type: 3}
+    icon: {fileID: 2800000, guid: 1979757c5e338ecb495226513b9840dd, type: 3}
     description: A three-hit sweeping combo. The outer edge rewards precise spacing.
   - name: Strum
-    icon: {fileID: 2800000, guid: d1060dec4b4aab090bc53be60c7c0ea9, type: 3}
+    icon: {fileID: 2800000, guid: d966496a1be1e1b538cd65f5bcf86e6a, type: 3}
     description: Send out a ranged wave and empower your next Primary or Special.
   - name: Backstep Sweep
-    icon: {fileID: 2800000, guid: fd8270f5b31e05d5db99b5c5b1e08b2b, type: 3}
+    icon: {fileID: 2800000, guid: bb477d6f6e843816e8257b31bc8586a8, type: 3}
     description: Backstep and sweep with brief invulnerability. Keeps your Primary
       combo.
   - name: Overhead Smash
-    icon: {fileID: 2800000, guid: fb4b197e8d253440985229a90fc90b08, type: 3}
+    icon: {fileID: 2800000, guid: 405b343ab4cd3080c8ba851eb38f2537, type: 3}
     description: A committed overhead strike. Position the target near the centre
       for bonus damage.

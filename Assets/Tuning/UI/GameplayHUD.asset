@@ -18,10 +18,8 @@ MonoBehaviour:
   panelPadding: 12
   playerGap: 40
   bottomMargin: 3
-  abilityBorderWidth: 2
   healthBorderWidth: 2.5
   promptBorderWidth: 1
-  cornerRadius: 10
   healthBarWidth: 0
   healthBarHeight: 14.4
   heartWidth: 18.9
@@ -44,11 +42,9 @@ MonoBehaviour:
   inspectStatFontSize: 17.4
   inspectBackground: {r: 0.05629228, g: 0.07355821, b: 0.103773594, a: 0.9529412}
   emptyHeart: {r: 0.025, g: 0.025, b: 0.035, a: 1}
-  iconBackground: {r: 0.16078432, g: 0.1764706, b: 0.21960784, a: 1}
   promptBackground: {r: 0.015, g: 0.018, b: 0.025, a: 0.98}
   cooldownOpacity: 0.78
-  dodgeIcon: {fileID: 2800000, guid: c264161cbee260b608862e12d56e667e, type: 3}
-  artworkPadding: 4
+  dodgeIcon: {fileID: 2800000, guid: b3dc3155ffd8308559ca542cbe390fc7, type: 3}
   leftMouse: {fileID: 7388822144124034973, guid: baaf4f7a55dd7aef5b367f4914595045, type: 3}
   rightMouse: {fileID: 7388822144124034973, guid: 8cc14245c6e29a4978f1e6bb67a39b3c, type: 3}
   space: {fileID: 7388822144124034973, guid: 986ab031931f3864fa3e5254cf63589e, type: 3}

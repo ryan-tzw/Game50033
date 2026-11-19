@@ -61,14 +61,10 @@ namespace Game50033
             var unit = _size / 72f;
             style.width = style.height = _size;
             style.alignSelf = Align.FlexEnd;
-            var radius = dodge ? _size * 0.5f : tuning.cornerRadius;
+            // the artwork supplies its own frame; only the cooldown overlay needs rounded clipping.
+            var radius = dodge ? _size * 0.5f : 0f;
             _face.style.borderTopLeftRadius = _face.style.borderTopRightRadius = radius;
             _face.style.borderBottomLeftRadius = _face.style.borderBottomRightRadius = radius;
-            _face.style.borderTopWidth = _face.style.borderBottomWidth = tuning.abilityBorderWidth;
-            _face.style.borderLeftWidth = _face.style.borderRightWidth = tuning.abilityBorderWidth;
-            _face.style.backgroundColor = tuning.iconBackground;
-            _symbol.style.left = _symbol.style.right = tuning.artworkPadding;
-            _symbol.style.top = _symbol.style.bottom = tuning.artworkPadding;
             _countdown.style.fontSize = Mathf.Max(18f, tuning.countdownFontSize * unit);
             _charges.style.fontSize = Mathf.Max(16f, 21f * unit);
             _promptText.style.fontSize = tuning.promptFontSize;
@@ -83,13 +79,11 @@ namespace Game50033
             _prompt.style.borderLeftWidth = _prompt.style.borderRightWidth = tuning.promptBorderWidth;
         }
 
-        public void SetAppearance(Color accent, Texture2D artwork, bool dodge, string prompt, VectorImage image, bool circularPrompt)
+        public void SetAppearance(Color accent, Texture2D artwork, Material palette, bool dodge, string prompt, VectorImage image, bool circularPrompt)
         {
             _symbol.image = artwork;
-            _symbol.tintColor = dodge ? Color.white : Color.Lerp(accent, Color.white, 0.3f);
-            var border = Color.black;
-            _face.style.borderTopColor = _face.style.borderBottomColor = border;
-            _face.style.borderLeftColor = _face.style.borderRightColor = border;
+            _symbol.tintColor = Color.white;
+            _symbol.style.unityMaterial = new StyleMaterialDefinition(dodge ? null : palette);
             _prompt.style.borderTopColor = _prompt.style.borderBottomColor = Color.Lerp(accent, Color.white, 0.75f);
             _prompt.style.borderLeftColor = _prompt.style.borderRightColor = Color.Lerp(accent, Color.white, 0.75f);
             var height = _tuning.promptHeight;

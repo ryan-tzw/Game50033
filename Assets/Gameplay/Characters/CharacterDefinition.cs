@@ -20,6 +20,9 @@ namespace Game50033
         [Tooltip("Optional playable prefab spawned when this character is confirmed in the Lobby.")]
         [SerializeField] private Player playerPrefab;
 
+        [SerializeField] private Material abilityPalette;
+        public Material AbilityPalette => abilityPalette;
+
         [Serializable]
         public struct AbilityPreview
         {

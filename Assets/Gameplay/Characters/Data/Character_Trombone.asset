@@ -16,20 +16,21 @@ MonoBehaviour:
   sprite: {fileID: 5395042229362328217, guid: f4aa2dc303f9da7669b91fe830b83084, type: 3}
   tint: {r: 0.7, g: 0.5, b: 0.9, a: 1}
   playerPrefab: {fileID: 3512020265901229930, guid: 9809b69c4a4e4bcdaa097d8a01654d0e, type: 3}
+  abilityPalette: {fileID: 2100000, guid: 8ff852fdfb036e1399e9ec0795382e3a, type: 2}
   abilityPreviews:
   - name: Pressure Shot
-    icon: {fileID: 2800000, guid: d4a3016633ddc9fb1923b63c71581f12, type: 3}
+    icon: {fileID: 2800000, guid: e1b57a190a94582fa83f578b8faf5972, type: 3}
     description: Fire a straight shot. Higher Pressure increases damage and can shorten
       the cooldown.
   - name: Command Zone
-    icon: {fileID: 2800000, guid: 5574b44dd6cb02d3fa4da53d1cc004f9, type: 3}
+    icon: {fileID: 2800000, guid: fba214c8edab1545dbaffa34aca856bc, type: 3}
     description: Place a zone that helps maintain Pressure. Leaving it creates a
       Sustain reverberation.
   - name: Guard
-    icon: {fileID: 2800000, guid: 37b7d9ec0685a23e8ba9399fa5b20de2, type: 3}
+    icon: {fileID: 2800000, guid: 19c76c18bc91f8b14ae39430d1987332, type: 3}
     description: Block one hit. In the Command Zone, a successful block primes the
       next Primary to resonate.
   - name: Pressure Blast
-    icon: {fileID: 2800000, guid: 514feeae20ea524f2a3609ffc7733cbf, type: 3}
+    icon: {fileID: 2800000, guid: bc554fe41819aa79b9deaeba6711e3c4, type: 3}
     description: Fire a powerful shot that leaves a Reverberation. Higher Pressure
       increases damage.
