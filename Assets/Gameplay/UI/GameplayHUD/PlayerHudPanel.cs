@@ -192,7 +192,8 @@ namespace Game50033
                 MarkDirtyRepaint();
             }
             var scheme = _input != null ? _input.currentControlScheme : string.Empty;
-            var accent = _player.PlayerColor;
+            var chosen = _player.Character;
+            var accent = mode != PanelMode.Selecting && chosen != null ? chosen.Tint : _player.PlayerColor;
             if (_scheme != scheme || _accent != accent)
             {
                 _scheme = scheme;
@@ -309,7 +310,6 @@ namespace Game50033
                 return;
             }
 
-            var chosen = _player.Character;
             if (_shownCharacter != chosen)
             {
                 _shownCharacter = chosen;

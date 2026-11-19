@@ -405,7 +405,7 @@ MonoBehaviour:
     windupScale: 0.9
     swingScale: 1.05
     reverberationPrefab: {fileID: 5716307444085479119, guid: 0abd370e5a5b27dc89d942205272d4f2, type: 3}
-    reverberationScale: 1.25
+    reverberationScale: 1.3
     flashFrequency: 5
     flashOpacity: 0.3
     flashDutyCycle: 0.5
