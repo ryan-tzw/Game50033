@@ -29,7 +29,11 @@ namespace Game50033
         /// <summary>Every accepted hit, with the health it actually took (less than hit.Damage on the killing blow).</summary>
         public event Action<HitInfo, float> Damaged;
 
-        internal void Initialize()
+        private int _bossNextPhase;
+        private int _bossTotalPhases;
+        private int _bossCurrentPhase;
+
+        internal void Initialize(int BossTotalPhases)
         {
             if (_initialized) return;
 
@@ -40,6 +44,10 @@ namespace Game50033
 
             _hitProperties = new MaterialPropertyBlock();
             _sr = GetComponentInChildren<SpriteRenderer>();
+
+            _bossTotalPhases = BossTotalPhases;
+            _bossNextPhase = GetComponent<BaseBoss>().BossNextPhase;
+            _bossCurrentPhase = GetComponent<BaseBoss>().Phase;
             _initialized = true;
         }
 
@@ -64,9 +72,10 @@ namespace Game50033
 
             HealthChanged?.Invoke(CurrentHealth, MaxHealth);
             Damaged?.Invoke(hit, before - _bossCurrentHealth);
-            if (_bossCurrentHealth <= MaxHealth / 2)
+
+            if (_bossCurrentHealth <= (MaxHealth / _bossTotalPhases * _bossNextPhase) && _bossNextPhase != _bossCurrentPhase)
             {
-                ChangePhase?.Invoke(2);
+                ChangePhase?.Invoke(_bossNextPhase);
             }
 
 

@@ -21,7 +21,6 @@ namespace Game50033
         [SerializeField] private AttackSet phase3;
 
         public bool IsAttacking { get; private set; }
-        [SerializeField] private int _currentAttackIdx;
         public event Action StartedAttack;
 
         // [SerializeField] private float attackDuration = 1f;
@@ -35,7 +34,6 @@ namespace Game50033
         internal void Initialize()
         {
             if (_initialized) return;
-            _currentAttackIdx = 0;
             _boss = GetComponent<BaseBoss>();
             _stack = GetComponent<BossAttackStack>();
             StartedAttack += () => { IsAttacking = true; };
@@ -50,20 +48,6 @@ namespace Game50033
 
         public void TryAttacking()
         {
-            //if (bossAttackIntervalTimer <= 0f)
-            //{
-            //    StartedAttack?.Invoke();
-            //    GameObject currentAttack = Instantiate(p1Attacks[_currentAttackIdx], transform.position, Quaternion.identity);
-            //    var attack = currentAttack.GetComponent<BaseBossAttack>();
-            //    attack.Setup(_boss);
-            //    attack.Attack();
-            //    _currentAttackIdx++;
-            //    if (_currentAttackIdx >= p1Attacks.Count) _currentAttackIdx = 0;
-            //    bossAttackIntervalTimer = BossAttackInterval;
-            //    float recovery = attack.windUpTime + attack.recoveryTime;
-            //    Invoke(nameof(EndAttack), recovery);
-            //    Destroy(currentAttack, recovery);
-            //}
             if (IsAttacking || bossAttackIntervalTimer > 0f) return;
             GameObject nextAttack = _stack.GetNext();
 
@@ -72,7 +56,7 @@ namespace Game50033
             StartedAttack?.Invoke();
             GameObject currentAttack = Instantiate(nextAttack, transform.position, Quaternion.identity);
             var attack = currentAttack.GetComponent<BaseBossAttack>();
-            if(attack is TargetedBossAttack targeted)
+            if (attack is TargetedBossAttack targeted)
             {
                 targeted.SetProjectileSpeedMultiplier(projectileSpeedMultiplier);
             }
@@ -87,7 +71,7 @@ namespace Game50033
         protected void EndAttack()
         {
             IsAttacking = false;
-            if (_boss.Movement.movingToCenter) 
+            if (_boss.Movement.movingToCenter)
             {
                 _boss.Movement.movingToCenter = false;
                 _boss.Movement.StopMovement(false);
@@ -108,7 +92,7 @@ namespace Game50033
 
         public void SetProjectileSpeed(float value)
         {
-            projectileSpeedMultiplier = value; 
+            projectileSpeedMultiplier = value;
         }
 
         private List<AttackEntry> GetPhaseAttacks()

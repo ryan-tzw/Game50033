@@ -30,9 +30,9 @@ namespace Game50033
         public IReadOnlyList<Player> Targets => _suppliedTargets
             ?? (_session != null ? _session.LivingPlayers : System.Array.Empty<Player>());
 
-        protected int BossTotalPhases = 3;
-        protected int BossCurrentPhase = 1;
+        public int BossTotalPhases;
         protected float BossTargetClearTime = 120f;
+        public int BossNextPhase = 2;
 
         protected SpriteRenderer _sr;
         protected Rigidbody _rb;
@@ -67,6 +67,8 @@ namespace Game50033
             _bossText = GameObject.Find("BossText").GetComponent<Text>();
             _healthBar = GameObject.Find("BossHealthBar").GetComponent<Slider>();
             HandleHealthChange(Health.CurrentHealth, Health.MaxHealth);
+
+            if (BossNextPhase != 2) BossNextPhase = 2;
         }
 
         public void PlayAnimationTrigger(int triggerId)
@@ -84,7 +86,7 @@ namespace Game50033
             Health = GetComponent<BossHealth>();
             Attacks = GetComponent<BossAttacks>();
             Movement.Initialize();
-            Health.Initialize();
+            Health.Initialize(BossTotalPhases);
             Attacks.Initialize();
             Health.HealthChanged += HandleHealthChange;
             Health.Dead += Die;
@@ -141,11 +143,16 @@ namespace Game50033
 
         // BossHealth asks for the phase on every hit past its threshold; the boss's own handling is unchanged,
         // and the encounter hears PhaseChanged only when the phase actually changes.
+        // Should only be called once per phase
         private void HandleHealthPhase(int phaseNumber)
         {
-            var previous = Phase;
-            HandlePhaseChange(phaseNumber);
-            if (Phase != previous) PhaseChanged?.Invoke(Phase);
+            if (Phase != BossNextPhase)
+            {
+                Debug.Log($"{_bossName}: Transitioning from Phase {Phase} to Phase {BossNextPhase}.");
+                HandlePhaseChange(phaseNumber);
+                BossNextPhase = Mathf.Clamp(Phase + 1, 2, BossTotalPhases);
+                PhaseChanged?.Invoke(Phase);
+            }
         }
 
         protected virtual void HandlePhaseChange(int phaseNumber)

@@ -5645,7 +5645,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 120
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -5895,7 +5895,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 96
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -6878,7 +6878,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 1e-45, y: 6e-45, z: 0, w: 0}
+  m_BoundingSphereOverride: {x: 4.5915e-41, y: 0, z: 0, w: -4.7442757e-24}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ForceVisible: 0
@@ -9642,7 +9642,6 @@ MonoBehaviour:
   phase1: {fileID: 11400000, guid: a28267631e7fede47b9ab0085afd99ef, type: 2}
   phase2: {fileID: 11400000, guid: dadbb8d162db00f4ebeed11e968a786d, type: 2}
   phase3: {fileID: 0}
-  _currentAttackIdx: 0
   BossAttackInterval: 3
   CurrentPhase: 1
 --- !u!114 &2087794614
@@ -9745,7 +9744,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2ff0439c96c0f2741b35a52461106011, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.MafiaBoss
-  players: []
+  BossTotalPhases: 2
+  BossNextPhase: 2
   _bossName: Mafia
   _healthBar: {fileID: 0}
   _bossText: {fileID: 0}
