@@ -37,6 +37,7 @@ namespace Game50033
         public Vector3 MoveDirection { get; private set; }
         public Vector3 FacingDirection { get; private set; } = Vector3.forward;
         public bool IsDodging { get; private set; }
+        public float DodgeProgress => Mathf.Clamp01(_dodgeElapsed / Mathf.Max(0.01f, dodgeTuning.dodgeDuration));
         public bool IsDisplacing { get; private set; }
         public bool IsInvulnerable => IsDodging && isActiveAndEnabled && _controller != null && _controller.enabled;
         public bool CanDodge => isActiveAndEnabled && _controller != null && _controller.enabled
