@@ -48,6 +48,7 @@ namespace Game50033
         private float _specialWindup, _specialActive, _specialRecovery, _specialImpactFraction;
         private float _specialDistance, _specialRadius, _specialSweetSpotRadius, _specialHeight;
         private float _defensiveReadyAt;
+        private Reverberation _pendingDefensiveReverberation;
         private bool _strumReleased;
         private float _strumWindup;
         private float _strumActive;
@@ -262,16 +263,40 @@ namespace Game50033
                 _impactResolved = true;
                 var hitstopDuration = 0f;
                 _impactOrigin = origin;
+                var camera = Camera.main;
                 Player.Session?.Debug.RecordAttack(new DebugAttackSnapshot(origin, _direction, innerRadius, _swingReach,
                     _swing.angle, _swingStretchAxis, _swingDepthStretch, IsDefending ? -1f : _swingSweetSpotRadius));
                 if (vfx != null)
                     vfx.BeginSwing(origin, _direction, startAngle, -startAngle, innerRadius, _swingReach,
                         _swingSweetSpotRadius, _swing.active, _swingStretchAxis, _swingDepthStretch);
+                if (IsDefending && _pendingDefensiveReverberation != null)
+                {
+                    // ground the field along the view ray to keep the elevated smear centred over it.
+                    var fieldOrigin = origin;
+                    if (camera != null && camera.orthographic)
+                    {
+                        var view = camera.transform.forward;
+                        if (Mathf.Abs(view.y) > 0.0001f) fieldOrigin -= view * (origin.y / view.y);
+                    }
+                    fieldOrigin.y = 0f;
+                    var field = Instantiate(_pendingDefensiveReverberation, fieldOrigin, Quaternion.identity);
+                    _pendingDefensiveReverberation = null;
+                    var fieldScale = Mathf.Max(0.01f, defensive.reverberationScale);
+                    field.Initialize(Player, 1f, new ReverberationFieldShape
+                    {
+                        kind = ReverberationFieldShapeKind.AnnularSector,
+                        direction = new Vector2(_direction.x, _direction.z),
+                        innerRadius = innerRadius * fieldScale,
+                        outerRadius = _swingReach * fieldScale,
+                        sweepAngle = _swing.angle,
+                        stretchAxis = new Vector2(_swingStretchAxis.x, _swingStretchAxis.z),
+                        stretchFactor = _swingDepthStretch
+                    });
+                }
 
                 // snapshot the registry because a hit callback can disable or destroy another hurtbox.
                 _hurtboxBuffer.Clear();
                 foreach (var hurtbox in CombatHurtbox.Active) _hurtboxBuffer.Add(hurtbox);
-                var camera = Camera.main;
                 foreach (var hurtbox in _hurtboxBuffer)
                 {
                     if (hurtbox == null || !hurtbox.isActiveAndEnabled
@@ -592,21 +617,7 @@ namespace Game50033
             BlocksAbilities = true;
             Player.Health.GrantAbilityInvulnerability(_swing.windup + _swing.active);
             if (vfx != null) vfx.SetDefensiveFlash(true);
-            if (defensive.encoreReverberation != null)
-            {
-                var field = Instantiate(defensive.encoreReverberation,
-                    transform.position + Vector3.up * defensive.attackHeight, Quaternion.identity);
-                field.Initialize(Player, 1f, new ReverberationFieldShape
-                {
-                    kind = ReverberationFieldShapeKind.AnnularSector,
-                    direction = new Vector2(_direction.x, _direction.z),
-                    innerRadius = defensive.innerRadius,
-                    outerRadius = _swingReach,
-                    sweepAngle = _swing.angle,
-                    stretchAxis = new Vector2(_swingStretchAxis.x, _swingStretchAxis.z),
-                    stretchFactor = _swingDepthStretch
-                });
-            }
+            _pendingDefensiveReverberation = defensive.reverberationPrefab;
             return true;
         }
         public override bool TryUseSpecial()
@@ -649,6 +660,7 @@ namespace Game50033
         public override void Cancel()
         {
             _action = GuitarAction.None;
+            _pendingDefensiveReverberation = null;
             if (Player.Health != null) Player.Health.ClearAbilityInvulnerability();
             HasEmpoweredAttack = false;
             _damageMultiplier = 1f;

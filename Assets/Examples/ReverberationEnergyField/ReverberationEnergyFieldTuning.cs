@@ -17,7 +17,9 @@ namespace Game50033.Examples
         [Header("Gameplay lifetime")]
         [Tooltip("Seconds a field can be resonated, measured from spawn.")]
         [Min(0.01f)] public float gameplayLifetime = DefaultGameplayLifetime;
-        [Tooltip("Seconds to fade after expiry or consumption.")]
+        [Tooltip("Final seconds of the lifetime spent fading while the field is still available.")]
+        [Min(0f)] public float expiryFadeDuration = 1f;
+        [Tooltip("Seconds to fade after the field is consumed.")]
         [Min(0f)] public float fadeOutDuration = 0.15f;
 
         [Header("Gameplay spawn")]

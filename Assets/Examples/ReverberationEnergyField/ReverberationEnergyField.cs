@@ -29,9 +29,12 @@ namespace Game50033.Examples
         private ReverberationFieldSpawn _spawn;
         private float _appliedSpawnProgress;
         private float _appliedOpacity;
+        private float _expiresAt;
+        private float _expiryFadeDuration;
         private float _fadeOutDuration;
         private float _fadeOutStartedAt;
         private float _fadeOutSpawnProgress;
+        private float _fadeOutStartOpacity;
         private Vector3 _layerOpacities;
         private Vector4 _fullSizeGeometry;
 
@@ -46,6 +49,7 @@ namespace Game50033.Examples
         private static readonly int FalloffId = Shader.PropertyToID("_EdgeFalloff");
         private static readonly int EdgeStrengthId = Shader.PropertyToID("_EdgeDistortionStrength");
         private static readonly int EdgeSpeedId = Shader.PropertyToID("_EdgeDistortionSpeed");
+        private static readonly int InwardEdgeDistortionId = Shader.PropertyToID("_InwardEdgeDistortion");
         private static readonly int BackgroundColorId = Shader.PropertyToID("_BackgroundColor");
         private static readonly int BackgroundOpacityId = Shader.PropertyToID("_BackgroundLayerOpacity");
         private static readonly int BackgroundVariationId = Shader.PropertyToID("_BackgroundVariation");
@@ -78,23 +82,31 @@ namespace Game50033.Examples
         internal float GameplayLifetime => tuning != null
             ? Mathf.Max(0.01f, tuning.gameplayLifetime) : ReverberationEnergyFieldTuning.DefaultGameplayLifetime;
 
-        internal float BeginFadeOut()
+        internal float BeginConsumptionFadeOut()
         {
             _fadeOutStartedAt = Time.time;
             _fadeOutSpawnProgress = _spawn.Progress;
+            _fadeOutStartOpacity = _fadeOutSpawnProgress * GetExpiryOpacity(_fadeOutStartedAt);
             _fadeOutDuration = tuning != null ? Mathf.Max(0f, tuning.fadeOutDuration) : 0f;
             return _fadeOutDuration;
         }
 
         internal void ConfigureGameplayAppearance(Color energyColor, Color backgroundColor, Camera footprintCamera,
-            ReverberationFieldSpawn spawn)
+            ReverberationFieldSpawn spawn, float expiresAt)
         {
             _energyColor = energyColor;
             _backgroundColor = backgroundColor;
             _footprintCamera = footprintCamera;
             _keepBoundaryInsideFootprint = true;
             _spawn = spawn;
+            _expiresAt = expiresAt;
+            _expiryFadeDuration = tuning != null ? Mathf.Clamp(tuning.expiryFadeDuration, 0f, GameplayLifetime) : 0f;
             _appliedRevision = -1;
+        }
+
+        private float GetExpiryOpacity(float now)
+        {
+            return _expiryFadeDuration > 0f ? Mathf.SmoothStep(0f, 1f, (_expiresAt - now) / _expiryFadeDuration) : 1f;
         }
 
         private void OnValidate()
@@ -109,12 +121,12 @@ namespace Game50033.Examples
             var rootMatrix = shape.kind == ReverberationFieldShapeKind.LegacyEllipse ? Matrix4x4.identity : transform.localToWorldMatrix;
             var viewDirection = _footprintCamera != null && _footprintCamera.orthographic
                 ? _footprintCamera.transform.forward : Vector3.zero;
-            // an early consumption fades from the size and opacity the field has reached.
+            // consumption continues from the current size and opacity, including during the expiry fade.
             var fadingOut = _fadeOutDuration > 0f;
             var spawnProgress = fadingOut ? _fadeOutSpawnProgress : _spawn.Progress;
             var opacity = fadingOut
-                ? spawnProgress * Mathf.SmoothStep(1f, 0f, (Time.time - _fadeOutStartedAt) / _fadeOutDuration)
-                : spawnProgress;
+                ? Mathf.SmoothStep(_fadeOutStartOpacity, 0f, (Time.time - _fadeOutStartedAt) / _fadeOutDuration)
+                : spawnProgress * GetExpiryOpacity(Time.time);
             if (_appliedTuning == tuning && _appliedRevision == tuning.Revision
                 && _appliedRootMatrix == rootMatrix && _appliedViewDirection == viewDirection)
             {
@@ -151,9 +163,10 @@ namespace Game50033.Examples
             _properties.SetColor(BackgroundColorId, _backgroundColor ?? tuning.backgroundColor);
             _properties.SetFloat(BackgroundVariationId, Mathf.Clamp01(tuning.backgroundVariation));
             _properties.SetFloat(MidgroundWidthId, Mathf.Clamp(tuning.midgroundWidth, 0.01f, 1f));
-            var edgeStrength = _keepBoundaryInsideFootprint ? 0f : Mathf.Clamp01(tuning.edgeDistortionStrength);
+            var edgeStrength = Mathf.Clamp01(tuning.edgeDistortionStrength);
             _properties.SetFloat(EdgeStrengthId, edgeStrength);
             _properties.SetFloat(EdgeSpeedId, Mathf.Max(0f, tuning.edgeDistortionSpeed));
+            _properties.SetFloat(InwardEdgeDistortionId, _keepBoundaryInsideFootprint ? 1f : 0f);
             _properties.SetFloat(FalloffId, Mathf.Clamp(tuning.edgeFalloff, 0.05f, 0.95f));
 
             // ==================================================
@@ -182,7 +195,7 @@ namespace Game50033.Examples
 
             // bound the complete stretched circle conservatively, including maximum outward boundary motion.
             // these bounds also contain reflex sectors and full rings without a separate mesh for each shape.
-            var paddedRadius = radius * (1.05f + edgeStrength);
+            var paddedRadius = radius * (1.05f + (_keepBoundaryInsideFootprint ? 0f : edgeStrength));
             var stretchSquared = stretch * stretch - 1f;
             var extentX = paddedRadius * Mathf.Sqrt(1f + stretchSquared * stretchAxis.x * stretchAxis.x);
             var extentZ = paddedRadius * Mathf.Sqrt(1f + stretchSquared * stretchAxis.y * stretchAxis.y);

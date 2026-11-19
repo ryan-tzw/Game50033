@@ -13,6 +13,7 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
         _EdgeFalloff("Edge Falloff", Range(0, 1)) = 0.55
         _EdgeDistortionStrength("Edge Distortion Strength", Range(0, 0.35)) = 0
         _EdgeDistortionSpeed("Edge Distortion Speed", Float) = 0.3
+        [HideInInspector] _InwardEdgeDistortion("Inward Edge Distortion", Float) = 0
         _BackgroundColor("Background Color", Color) = (0.12, 0.035, 0.22, 1)
         _BackgroundLayerOpacity("Background Layer Opacity", Range(0, 1)) = 0
         _BackgroundVariation("Background Variation", Range(0, 1)) = 0.5
@@ -34,7 +35,7 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
                 half4 _EnergyColor, _BackgroundColor;
                 float _BackgroundLayerOpacity, _BackgroundVariation, _MidgroundLayerOpacity, _MidgroundWidth;
                 float _Density, _LayerOpacity, _Emission, _BrightnessBands;
-                float _EdgeDistortionStrength, _EdgeDistortionSpeed;
+                float _EdgeDistortionStrength, _EdgeDistortionSpeed, _InwardEdgeDistortion;
                 float _FieldShapeKind;
                 float4 _ShapeOriginDirection, _ShapeGeometry, _ShapeStretch;
                 float4x4 _FieldWorldToLocal;
@@ -119,10 +120,11 @@ Shader "Game50033/Experiments/Reverberation Energy Field"
                         // shared root-local noise affects curved, angular and inner boundaries alike.
                         float edgeTime = _Time.y * _EdgeDistortionSpeed;
                         float edgeNoise = Noise(local / radius * 1.6 + float2(5.2, 9.7) + edgeTime * float2(0.37, -0.29));
-                        distance += (edgeNoise * 2 - 1) * _EdgeDistortionStrength * radius;
+                        // positive distance moves the visual inside the original footprint.
+                        float distortion = _InwardEdgeDistortion > 0.5 ? edgeNoise : edgeNoise * 2 - 1;
+                        distance += distortion * _EdgeDistortionStrength * radius;
                     }
-                    // softness is an inward band; the zero-distance contour remains the supplied geometry.
-                    // padded sheets contain all possible outward motion, so no ellipse or quad-edge mask is applied.
+                    // soften the warped contour from the inside; padded sheets cover outward test-scene motion.
                     return 1 - smoothstep(-_EdgeFalloff * radius, 0, distance);
                 }
                 // fade through the interior before reaching a quad edge, without drawing a hollow rim.

@@ -131,6 +131,7 @@ namespace Game50033
             _groundAimOffset = aimOffset;
 
             var startedAt = Time.time;
+            _expiresAt = startedAt + GameplayLifetime;
             if (energyFieldPrefab != null)
             {
                 _spawn = energyFieldPrefab.GetSpawnAnimation(startedAt);
@@ -139,12 +140,12 @@ namespace Game50033
                 _energyField.transform.SetParent(transform, true);
                 _energyField.SetShape(shape);
                 var color = creator.PlayerColor;
-                _energyField.ConfigureGameplayAppearance(color, Color.Lerp(Color.black, color, 0.35f), Camera.main, _spawn);
+                _energyField.ConfigureGameplayAppearance(color, Color.Lerp(Color.black, color, 0.35f),
+                    Camera.main, _spawn, _expiresAt);
             }
             Creator = creator;
             OriginalAttack = originalAttack;
             Strength = strength;
-            _expiresAt = startedAt + GameplayLifetime;
             if (IsAvailable) _active.Add(this);
             SetVisualActive(IsAvailable);
         }
@@ -185,7 +186,7 @@ namespace Game50033
             _retired = true;
             _volume.enabled = false;
             _active.Remove(this);
-            var fadeDuration = _energyField != null ? _energyField.BeginFadeOut() : 0f;
+            var fadeDuration = _consumed && _energyField != null ? _energyField.BeginConsumptionFadeOut() : 0f;
             if (fadeDuration <= 0f) SetVisualActive(false);
             Destroy(gameObject, fadeDuration);
         }
