@@ -12,29 +12,39 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31998f57bdb9eca4d8c8702976f7d7f5, type: 3}
   m_Name: GameplayHUD
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.GameplayHudTuning
-  iconSize: 72
+  iconSize: 53.9
+  dodgeIconSize: 41.9
   iconGap: 6
   panelPadding: 12
   playerGap: 40
-  bottomMargin: 20
-  borderWidth: 2
+  bottomMargin: 3
+  abilityBorderWidth: 2
+  healthBorderWidth: 2.5
+  promptBorderWidth: 1
   cornerRadius: 10
+  healthBarWidth: 0
+  healthBarHeight: 14.4
+  heartWidth: 18.9
+  heartHeight: 15.9
+  heartNotchDepth: 1.37
+  heartBottomTaper: 0.161
   font: {fileID: 12800000, guid: a0979a15571bafcfb9fc1285a80642b6, type: 3}
   countdownFontSize: 30
   promptFontSize: 16
   promptFont: {fileID: 12800000, guid: 25cc98fe52380b1c2af64cc8de941ce7, type: 3}
   promptHeight: 24
-  promptPadding: 4
+  promptPadding: 2.5
   previewIconInset: 12
   previewRowHeight: 122
-  previewFontSize: 18
-  portraitSize: 52
-  inspectGap: 28
+  previewFontSize: 14.2
+  portraitSize: 53.3
+  toggleAbilityInspection: 1
+  inspectGap: 21
   inspectPadding: 12
-  inspectStatFontSize: 20
-  inspectBackground: {r: 0.04, g: 0.055, b: 0.085, a: 0.98}
+  inspectStatFontSize: 17.4
+  inspectBackground: {r: 0.05629228, g: 0.07355821, b: 0.103773594, a: 0.9529412}
   emptyHeart: {r: 0.025, g: 0.025, b: 0.035, a: 1}
-  iconBackground: {r: 0.025, g: 0.03, b: 0.045, a: 0.86}
+  iconBackground: {r: 0.16078432, g: 0.1764706, b: 0.21960784, a: 1}
   promptBackground: {r: 0.015, g: 0.018, b: 0.025, a: 0.98}
   cooldownOpacity: 0.78
   leftMouse: {fileID: 7388822144124034973, guid: baaf4f7a55dd7aef5b367f4914595045, type: 3}

@@ -18,12 +18,14 @@ namespace Game50033
         private GameplayHudTuning _tuning;
         private Color _accent;
         private int _glyph;
+        private float _size;
         private float _fraction = -1;
         private float _wipeOpacity;
         private int _timer = -1;
         private int _chargeCount = -1;
         private int _maxCharges = -1;
         private bool _supported = true;
+        private bool _spacePrompt;
 
         public HudAbilityIcon()
         {
@@ -37,6 +39,20 @@ namespace Game50033
             _countdown = new Label { pickingMode = PickingMode.Ignore }; _countdown.AddToClassList("hud-countdown"); _face.Add(_countdown);
             _charges = new Label { pickingMode = PickingMode.Ignore }; _charges.AddToClassList("hud-charges"); _face.Add(_charges);
             _prompt = new VisualElement { pickingMode = PickingMode.Ignore }; _prompt.AddToClassList("hud-prompt"); Add(_prompt);
+            _prompt.generateVisualContent += context =>
+            {
+                if (!_spacePrompt) return;
+                var rect = _prompt.contentRect;
+                var painter = context.painter2D;
+                painter.strokeColor = Color.white;
+                painter.lineWidth = 1.5f;
+                painter.BeginPath();
+                painter.MoveTo(new Vector2(rect.x + rect.width * 0.22f, rect.y + rect.height * 0.35f));
+                painter.LineTo(new Vector2(rect.x + rect.width * 0.22f, rect.y + rect.height * 0.65f));
+                painter.LineTo(new Vector2(rect.x + rect.width * 0.78f, rect.y + rect.height * 0.65f));
+                painter.LineTo(new Vector2(rect.x + rect.width * 0.78f, rect.y + rect.height * 0.35f));
+                painter.Stroke();
+            };
             _promptText = new Label { pickingMode = PickingMode.Ignore }; _prompt.Add(_promptText);
             _promptImage = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.ScaleToFit }; _prompt.Add(_promptImage);
         }
@@ -44,48 +60,51 @@ namespace Game50033
         public void Configure(GameplayHudTuning tuning, bool dodge)
         {
             _tuning = tuning;
-            var unit = tuning.iconSize / 72f;
-            style.width = style.height = tuning.iconSize;
-            var radius = dodge ? tuning.iconSize * 0.5f : tuning.cornerRadius;
+            _size = dodge ? tuning.dodgeIconSize : tuning.iconSize;
+            var unit = _size / 72f;
+            style.width = style.height = _size;
+            style.alignSelf = Align.FlexEnd;
+            var radius = dodge ? _size * 0.5f : tuning.cornerRadius;
             _face.style.borderTopLeftRadius = _face.style.borderTopRightRadius = radius;
             _face.style.borderBottomLeftRadius = _face.style.borderBottomRightRadius = radius;
-            _face.style.borderTopWidth = _face.style.borderBottomWidth = tuning.borderWidth;
-            _face.style.borderLeftWidth = _face.style.borderRightWidth = tuning.borderWidth;
+            _face.style.borderTopWidth = _face.style.borderBottomWidth = tuning.abilityBorderWidth;
+            _face.style.borderLeftWidth = _face.style.borderRightWidth = tuning.abilityBorderWidth;
             _face.style.backgroundColor = tuning.iconBackground;
-            _countdown.style.fontSize = tuning.countdownFontSize * unit;
-            _charges.style.fontSize = 21f * unit;
-            _promptText.style.fontSize = tuning.promptFontSize * unit;
+            _countdown.style.fontSize = Mathf.Max(18f, tuning.countdownFontSize * unit);
+            _charges.style.fontSize = Mathf.Max(16f, 21f * unit);
+            _promptText.style.fontSize = tuning.promptFontSize;
             _promptText.style.unityFontDefinition = FontDefinition.FromFont(tuning.promptFont != null ? tuning.promptFont : tuning.font);
             _promptText.style.unityFontStyleAndWeight = FontStyle.Normal;
-            _prompt.style.bottom = -tuning.promptHeight * 0.5f * unit;
+            _prompt.style.bottom = -tuning.promptHeight * 0.5f;
             _promptImage.style.position = Position.Absolute;
-            _promptImage.style.left = _promptImage.style.right = tuning.promptPadding * unit;
-            _promptImage.style.top = _promptImage.style.bottom = tuning.promptPadding * unit;
+            _promptImage.style.left = _promptImage.style.right = tuning.promptPadding;
+            _promptImage.style.top = _promptImage.style.bottom = tuning.promptPadding;
             _prompt.style.backgroundColor = tuning.promptBackground;
-            _prompt.style.borderTopWidth = _prompt.style.borderBottomWidth = 1.5f;
-            _prompt.style.borderLeftWidth = _prompt.style.borderRightWidth = 1.5f;
+            _prompt.style.borderTopWidth = _prompt.style.borderBottomWidth = tuning.promptBorderWidth;
+            _prompt.style.borderLeftWidth = _prompt.style.borderRightWidth = tuning.promptBorderWidth;
         }
 
         public void SetAppearance(Color accent, int glyph, string prompt, VectorImage image, bool circularPrompt)
         {
             _accent = accent; _glyph = glyph;
-            var border = Color.Lerp(accent, Color.white, 0.25f);
+            var border = Color.black;
             _face.style.borderTopColor = _face.style.borderBottomColor = border;
             _face.style.borderLeftColor = _face.style.borderRightColor = border;
             _prompt.style.borderTopColor = _prompt.style.borderBottomColor = Color.Lerp(accent, Color.white, 0.75f);
             _prompt.style.borderLeftColor = _prompt.style.borderRightColor = Color.Lerp(accent, Color.white, 0.75f);
-            var unit = _tuning.iconSize / 72f;
-            var height = _tuning.promptHeight * unit;
-            var width = image != null && glyph == 4 ? height * 1.5f : height;
+            var height = _tuning.promptHeight;
+            var width = height;
             _prompt.style.width = width; _prompt.style.height = height;
-            _prompt.style.left = (_tuning.iconSize - width) * 0.5f;
-            var radius = circularPrompt ? height * 0.5f : 5f * unit;
+            _prompt.style.left = (_size - width) * 0.5f;
+            var radius = circularPrompt ? height * 0.5f : 5f;
             _prompt.style.borderTopLeftRadius = _prompt.style.borderTopRightRadius = radius;
             _prompt.style.borderBottomLeftRadius = _prompt.style.borderBottomRightRadius = radius;
             _promptText.text = prompt;
-            _promptText.style.display = image == null ? DisplayStyle.Flex : DisplayStyle.None;
+            _spacePrompt = glyph == 4 && image != null;
+            _promptText.style.display = image == null && !_spacePrompt ? DisplayStyle.Flex : DisplayStyle.None;
             _promptImage.vectorImage = image;
-            _promptImage.style.display = image != null ? DisplayStyle.Flex : DisplayStyle.None;
+            _promptImage.style.display = image != null && !_spacePrompt ? DisplayStyle.Flex : DisplayStyle.None;
+            _prompt.MarkDirtyRepaint();
             _symbol.MarkDirtyRepaint();
         }
 

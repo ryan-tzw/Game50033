@@ -19,9 +19,8 @@ namespace Game50033
         private readonly Label[] _previewTypes = new Label[4];
         private readonly Label[] _previewDescriptions = new Label[4];
         private readonly PlayerAbility[] _slots = new PlayerAbility[4];
-        private readonly VisualElement _hearts, _selection, _gameplay, _readyHeader, _rosterRow;
-        private readonly Label _highlightName, _selectionStatus, _readyName;
-        private readonly Image _readyPortrait;
+        private readonly VisualElement _hearts, _selection, _gameplay, _rosterRow;
+        private readonly Label _highlightName, _selectionStatus;
         private VisualElement[] _portraits = System.Array.Empty<VisualElement>();
         private CharacterRoster _shownRoster;
         private CharacterDefinition _shownCharacter;
@@ -60,12 +59,9 @@ namespace Game50033
             _hearts = this.Q("hearts");
             _selection = this.Q("selection");
             _gameplay = this.Q("gameplay");
-            _readyHeader = this.Q("ready-header");
             _rosterRow = this.Q("roster");
             _highlightName = this.Q<Label>("highlight-name");
             _selectionStatus = this.Q<Label>("selection-status");
-            _readyName = this.Q<Label>("ready-name");
-            _readyPortrait = this.Q<Image>("ready-portrait");
             _inspector = this.Q("ability-inspector");
             _inspectHint = this.Q<Label>("inspect-hint");
             _inspectName = this.Q<Label>("inspect-name");
@@ -89,7 +85,6 @@ namespace Game50033
             }
 
             _hearts.generateVisualContent += PaintHearts;
-            generateVisualContent += PaintFrame;
             ApplyTuning();
             BindPlayer(player);
         }
@@ -103,6 +98,13 @@ namespace Game50033
             _shownCharacter = null;
             _shownHighlight = _shownTaken = _health = -1;
             _mode = null;
+            _inspecting = false;
+            _inspector.style.display = DisplayStyle.None;
+            for (var i = 0; i < _inspectMarkers.Length; i++)
+            {
+                _icons[i].pickingMode = PickingMode.Ignore;
+                _inspectMarkers[i].style.display = DisplayStyle.None;
+            }
             _inspectSlot = 0;
             _renderedInspectSlot = -1;
         }
@@ -111,18 +113,21 @@ namespace Game50033
         {
             // theme text elements can override the inherited font definition, so apply the authored font to each label.
             this.Query<TextElement>().ForEach(text => text.style.unityFontDefinition = FontDefinition.FromFont(_tuning.font));
-            var unit = _tuning.iconSize / 72f;
-            var width = _tuning.iconSize * 5 + _tuning.iconGap * 4;
+            var width = Mathf.Max(_tuning.iconSize * 4 + _tuning.dodgeIconSize + _tuning.iconGap * 4, _tuning.healthBarWidth);
+            var heartRowHeight = Mathf.Max(_tuning.heartHeight + _tuning.healthBorderWidth * 2f, _tuning.healthBarHeight) + 2f;
+            var abilityRowHeight = Mathf.Max(_tuning.iconSize, _tuning.dodgeIconSize);
+            var heartGap = _tuning.promptHeight * 0.5f + 8f;
             style.width = width + _tuning.panelPadding * 2;
             style.paddingLeft = style.paddingRight = _tuning.panelPadding;
-            style.paddingTop = 10f * unit;
+            style.paddingTop = 10f;
             style.marginLeft = style.marginRight = _tuning.playerGap * 0.5f;
             _gameplay.style.left = _gameplay.style.right = _tuning.panelPadding;
-            _gameplay.style.bottom = 10f * unit;
-            _gameplay.style.height = 137f * unit;
-            this.Q("abilities").style.height = 92f * unit;
-            _hearts.style.height = 36f * unit;
-            _hearts.style.marginTop = 9f * unit;
+            _gameplay.style.bottom = 0f;
+            _gameplay.style.height = abilityRowHeight + heartGap + heartRowHeight;
+            this.Q("abilities").style.height = abilityRowHeight;
+            this.Q("abilities").style.justifyContent = Justify.Center;
+            _hearts.style.height = heartRowHeight;
+            _hearts.style.marginTop = heartGap;
             for (var i = 0; i < 5; i++)
             {
                 _icons[i].Configure(_tuning, i == 4);
@@ -133,37 +138,32 @@ namespace Game50033
                 _previews[i].Configure(_tuning, false);
                 _previews[i].SetState(new PlayerAbilityState(0, 1));
                 var row = this.Q("preview-row-" + i);
-                row.style.paddingLeft = _tuning.previewIconInset * unit;
-                row.style.height = _tuning.previewRowHeight * unit;
-                row.style.marginBottom = _tuning.iconGap * unit;
-                _previewTitles[i].style.fontSize = _tuning.previewFontSize * 1.2f * unit;
+                row.style.paddingLeft = _tuning.previewIconInset;
+                row.style.height = _tuning.previewRowHeight;
+                row.style.marginBottom = _tuning.iconGap;
+                _previewTitles[i].style.fontSize = _tuning.previewFontSize * 1.2f;
                 _previewTypes[i].text = PreviewSlots[i].ToString();
-                _previewTypes[i].style.fontSize = _tuning.previewFontSize * 0.85f * unit;
-                _previewDescriptions[i].style.fontSize = _tuning.previewFontSize * unit;
+                _previewTypes[i].style.fontSize = _tuning.previewFontSize * 0.85f;
+                _previewDescriptions[i].style.fontSize = _tuning.previewFontSize;
             }
-            var inspectPadding = _tuning.inspectPadding * unit;
+            var inspectPadding = _tuning.inspectPadding;
             _inspector.style.paddingLeft = _inspector.style.paddingRight = inspectPadding;
             _inspector.style.paddingTop = _inspector.style.paddingBottom = inspectPadding;
             _inspector.style.backgroundColor = _tuning.inspectBackground;
-            _inspectHint.style.fontSize = _inspectType.style.fontSize = _tuning.previewFontSize * 0.85f * unit;
-            _inspectName.style.fontSize = _tuning.previewFontSize * 1.35f * unit;
-            _inspectDescription.style.fontSize = _tuning.previewFontSize * unit;
+            _inspectHint.style.fontSize = _inspectType.style.fontSize = _tuning.previewFontSize * 0.85f;
+            _inspectName.style.fontSize = _tuning.previewFontSize * 1.35f;
+            _inspectDescription.style.fontSize = _tuning.previewFontSize;
             foreach (var stat in _inspectStats)
             {
-                stat.Name.style.fontSize = _tuning.previewFontSize * unit;
-                stat.Value.style.fontSize = _tuning.inspectStatFontSize * unit;
+                stat.Name.style.fontSize = _tuning.previewFontSize;
+                stat.Value.style.fontSize = _tuning.inspectStatFontSize;
             }
             _renderedInspectSlot = -1;
-            _highlightName.style.height = 30f * unit;
-            _highlightName.style.fontSize = _tuning.previewFontSize * 1.3f * unit;
-            _rosterRow.style.height = _tuning.portraitSize * unit;
-            _selectionStatus.style.height = 22f * unit;
-            _selectionStatus.style.fontSize = _tuning.previewFontSize * 0.85f * unit;
-            _readyHeader.style.top = 7f * unit;
-            _readyHeader.style.left = _readyHeader.style.right = 0;
-            _readyHeader.style.height = 30f * unit;
-            _readyPortrait.style.width = _readyPortrait.style.height = 28f * unit;
-            _readyName.style.fontSize = _tuning.previewFontSize * 1.2f * unit;
+            _highlightName.style.height = 30f;
+            _highlightName.style.fontSize = _tuning.previewFontSize * 1.3f;
+            _rosterRow.style.height = _tuning.portraitSize;
+            _selectionStatus.style.height = 22f;
+            _selectionStatus.style.fontSize = _tuning.previewFontSize * 0.85f;
             _shownRoster = null;
             _scheme = null;
             _mode = null;
@@ -176,19 +176,17 @@ namespace Game50033
             if (_player == null) return;
             var mode = lobby == null ? PanelMode.Gameplay
                 : _selector != null && _selector.State == PlayerCharacterSelect.SelectState.Selecting ? PanelMode.Selecting : PanelMode.Ready;
-            var unit = _tuning.iconSize / 72f;
             if (_mode != mode)
             {
                 _mode = mode;
                 _renderedInspectSlot = -1;
-                _inspector.style.bottom = (137f + (mode == PanelMode.Ready ? 36f : 0f) + _tuning.inspectGap) * unit;
+                _inspector.style.bottom = _gameplay.style.height.value.value + _tuning.inspectGap;
                 _shownCharacter = null;
                 _selection.style.display = mode == PanelMode.Selecting ? DisplayStyle.Flex : DisplayStyle.None;
                 _gameplay.style.display = mode != PanelMode.Selecting ? DisplayStyle.Flex : DisplayStyle.None;
-                _readyHeader.style.display = mode == PanelMode.Ready ? DisplayStyle.Flex : DisplayStyle.None;
                 style.height = mode == PanelMode.Selecting
-                    ? (4 * (_tuning.previewRowHeight + _tuning.iconGap) + _tuning.portraitSize + 72f) * unit
-                    : (mode == PanelMode.Ready ? 196f : 158f) * unit;
+                    ? (4 * (_tuning.previewRowHeight + _tuning.iconGap) + _tuning.portraitSize + 72f)
+                    : _gameplay.style.height.value.value + 18f;
                 MarkDirtyRepaint();
             }
             var scheme = _input != null ? _input.currentControlScheme : string.Empty;
@@ -213,7 +211,6 @@ namespace Game50033
                     var svg = keyboard ? i == 0 ? _tuning.leftMouse : i == 1 ? _tuning.rightMouse : i == 4 ? _tuning.space : null : null;
                     _icons[i].SetAppearance(accent, i == 4 ? 4 : (int)_slots[i], text, svg, !keyboard && i < 4);
                 }
-                _readyName.style.color = Color.Lerp(accent, Color.white, 0.3f);
                 _shownRoster = null;
                 MarkDirtyRepaint();
                 _hearts.MarkDirtyRepaint();
@@ -250,8 +247,8 @@ namespace Game50033
                             evt.StopPropagation();
                         });
                         frame.AddToClassList("roster-portrait");
-                        frame.style.width = frame.style.height = _tuning.portraitSize * unit;
-                        frame.style.marginLeft = frame.style.marginRight = 3f * unit;
+                        frame.style.width = frame.style.height = _tuning.portraitSize;
+                        frame.style.marginLeft = frame.style.marginRight = 3f;
                         var portrait = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.ScaleToFit };
                         if (roster[i] != null) { portrait.sprite = roster[i].Sprite; portrait.tintColor = roster[i].Tint; }
                         frame.Add(portrait);
@@ -313,9 +310,6 @@ namespace Game50033
             if (_shownCharacter != chosen)
             {
                 _shownCharacter = chosen;
-                _readyName.text = chosen != null ? chosen.DisplayName : "Ready";
-                _readyPortrait.sprite = chosen != null ? chosen.Sprite : null;
-                _readyPortrait.tintColor = chosen != null ? chosen.Tint : Color.white;
             }
             var health = _player.Health != null ? _player.Health.CurrentHealth : 0;
             if (_health != health) { _health = health; _hearts.MarkDirtyRepaint(); }
@@ -342,8 +336,11 @@ namespace Game50033
             var available = mode != PanelMode.Selecting && _player.Character != null && _player.isActiveAndEnabled
                 && _player.HasActiveInput && _inspectHold != null && _inspectHold.enabled;
             _inspectHint.style.display = available ? DisplayStyle.Flex : DisplayStyle.None;
-            _inspectHint.text = keyboard ? "Hold Tab · Abilities" : "Hold LT · Abilities";
-            var open = available && _inspectHold.IsPressed();
+            var gesture = _tuning.toggleAbilityInspection ? "Press" : "Hold";
+            _inspectHint.text = keyboard ? gesture + " Tab · Abilities" : gesture + " LT · Abilities";
+            var open = available && (_tuning.toggleAbilityInspection
+                ? _inspecting ^ _inspectHold.WasPressedThisFrame()
+                : _inspectHold.IsPressed());
             if (open != _inspecting || open && _renderedInspectSlot < 0)
             {
                 _inspecting = open;
@@ -401,59 +398,64 @@ namespace Game50033
         private void PaintHearts(MeshGenerationContext context)
         {
             var painter = context.painter2D;
-            var step = _tuning.iconSize + _tuning.iconGap;
-            var heartWidth = _tuning.iconSize / 72f * 0.8f;
-            var unit = _tuning.iconSize / 72f;
+            var rowWidth = _hearts.contentRect.width;
+            var width = _tuning.healthBarWidth > 0 ? _tuning.healthBarWidth
+                : _tuning.iconSize * 4f + _tuning.dodgeIconSize + _tuning.iconGap * 4f;
+            var start = (rowWidth - width) * 0.5f;
+            var barHeight = _tuning.healthBarHeight;
+            var y = _hearts.contentRect.height * 0.5f;
+            var barY = y - barHeight * 0.5f;
+            var border = _tuning.healthBorderWidth;
+            var sectionWidth = width / 5f;
+
+            // one continuous backing joins the five HP sections, with black dividers between them.
+            painter.fillColor = Color.black;
+            RoundedRect(start, barY, width, barHeight, 3f);
             for (var i = 0; i < 5; i++)
             {
-                var x = _tuning.iconSize * 0.5f + step * i;
                 var filled = i < _health;
-                painter.strokeColor = filled ? _accent : Color.Lerp(_tuning.emptyHeart, _accent, 0.25f);
-                painter.lineWidth = 4 * unit;
-                painter.BeginPath(); painter.MoveTo(new Vector2(x - 30 * unit, 19 * unit)); painter.LineTo(new Vector2(x + 30 * unit, 19 * unit)); painter.Stroke();
                 painter.fillColor = filled ? _accent : _tuning.emptyHeart;
-                painter.strokeColor = Color.Lerp(_accent, Color.white, filled ? 0.25f : 0.05f);
-                painter.lineWidth = _tuning.borderWidth * 0.65f;
-                painter.BeginPath(); painter.MoveTo(new Vector2(x, 10 * unit));
-                painter.BezierCurveTo(new Vector2(x - 11 * heartWidth, -3 * unit), new Vector2(x - 24 * heartWidth, 8 * unit), new Vector2(x - 16 * heartWidth, 19 * unit));
-                painter.BezierCurveTo(new Vector2(x - 11 * heartWidth, 25 * unit), new Vector2(x, 32 * unit), new Vector2(x, 32 * unit));
-                painter.BezierCurveTo(new Vector2(x, 32 * unit), new Vector2(x + 11 * heartWidth, 25 * unit), new Vector2(x + 16 * heartWidth, 19 * unit));
-                painter.BezierCurveTo(new Vector2(x + 24 * heartWidth, 8 * unit), new Vector2(x + 11 * heartWidth, -3 * unit), new Vector2(x, 10 * unit));
+                var left = start + i * sectionWidth + border;
+                var right = start + (i + 1) * sectionWidth - border;
+                RoundedRect(left, barY + border, right - left, Mathf.Max(1f, barHeight - border * 2f), 2f);
+            }
+
+            for (var i = 0; i < 5; i++)
+            {
+                var x = start + sectionWidth * (i + 0.5f);
+                var w = _tuning.heartWidth;
+                var h = _tuning.heartHeight;
+                var notch = Mathf.Min(_tuning.heartNotchDepth, h * 0.5f);
+                var taper = _tuning.heartBottomTaper;
+                painter.fillColor = i < _health ? _accent : _tuning.emptyHeart;
+                painter.strokeColor = Color.black;
+                painter.lineWidth = border;
+                painter.lineJoin = LineJoin.Round;
+                painter.BeginPath(); painter.MoveTo(new Vector2(x, y - h * 0.5f + notch));
+                painter.BezierCurveTo(new Vector2(x - w * 0.15f, y - h * 0.65f), new Vector2(x - w * 0.5f, y - h * 0.65f), new Vector2(x - w * 0.5f, y - h * 0.15f));
+                painter.BezierCurveTo(new Vector2(x - w * 0.5f, y + h * 0.08f), new Vector2(x - w * taper, y + h * 0.25f), new Vector2(x - w * 0.04f, y + h * 0.47f));
+                painter.QuadraticCurveTo(new Vector2(x, y + h * 0.52f), new Vector2(x + w * 0.04f, y + h * 0.47f));
+                painter.BezierCurveTo(new Vector2(x + w * taper, y + h * 0.25f), new Vector2(x + w * 0.5f, y + h * 0.08f), new Vector2(x + w * 0.5f, y - h * 0.15f));
+                painter.BezierCurveTo(new Vector2(x + w * 0.5f, y - h * 0.65f), new Vector2(x + w * 0.15f, y - h * 0.65f), new Vector2(x, y - h * 0.5f + notch));
                 painter.ClosePath(); painter.Fill(); painter.Stroke();
+            }
+
+            void RoundedRect(float x, float y, float w, float h, float radius)
+            {
+                radius = Mathf.Min(radius, h * 0.5f);
+                painter.BeginPath();
+                painter.MoveTo(new Vector2(x + radius, y));
+                painter.LineTo(new Vector2(x + w - radius, y));
+                painter.QuadraticCurveTo(new Vector2(x + w, y), new Vector2(x + w, y + radius));
+                painter.LineTo(new Vector2(x + w, y + h - radius));
+                painter.QuadraticCurveTo(new Vector2(x + w, y + h), new Vector2(x + w - radius, y + h));
+                painter.LineTo(new Vector2(x + radius, y + h));
+                painter.QuadraticCurveTo(new Vector2(x, y + h), new Vector2(x, y + h - radius));
+                painter.LineTo(new Vector2(x, y + radius));
+                painter.QuadraticCurveTo(new Vector2(x, y), new Vector2(x + radius, y));
+                painter.ClosePath(); painter.Fill();
             }
         }
 
-        private void PaintFrame(MeshGenerationContext context)
-        {
-            var w = contentRect.width + _tuning.panelPadding * 2;
-            var unit = _tuning.iconSize / 72f;
-            var height = layout.height - 4f * unit;
-            var mesh = context.Allocate(4, 6);
-            var top = new Color32(3, 5, 9, 0);
-            var bottom = new Color32(3, 5, 9, 225);
-            mesh.SetNextVertex(new Vertex { position = new Vector3(0, 0, Vertex.nearZ), tint = top });
-            mesh.SetNextVertex(new Vertex { position = new Vector3(w, 0, Vertex.nearZ), tint = top });
-            mesh.SetNextVertex(new Vertex { position = new Vector3(0, height, Vertex.nearZ), tint = bottom });
-            mesh.SetNextVertex(new Vertex { position = new Vector3(w, height, Vertex.nearZ), tint = bottom });
-            mesh.SetNextIndex(0); mesh.SetNextIndex(1); mesh.SetNextIndex(2);
-            mesh.SetNextIndex(2); mesh.SetNextIndex(1); mesh.SetNextIndex(3);
-            var painter = context.painter2D;
-            for (var i = 4; i >= 0; i--)
-            {
-                var color = _accent; color.a = i == 0 ? 0.65f : 0.035f;
-                painter.strokeColor = color; painter.lineWidth = i == 0 ? 1.5f : i * 3;
-                painter.BeginPath(); painter.MoveTo(new Vector2(0, height - 3f * unit)); painter.LineTo(new Vector2(w, height - 3f * unit)); painter.Stroke();
-            }
-            // small accent diamonds echo the reference dividers without enclosing the whole card.
-            for (var side = 0; side < 2; side++)
-            {
-                var x = side == 0 ? -12f * unit : w + 12f * unit;
-                painter.strokeColor = new Color(_accent.r, _accent.g, _accent.b, 0.45f); painter.lineWidth = 1;
-                painter.BeginPath(); painter.MoveTo(new Vector2(x, height - 132f * unit)); painter.LineTo(new Vector2(x, height - 12f * unit)); painter.Stroke();
-                painter.fillColor = _accent;
-                painter.BeginPath(); painter.MoveTo(new Vector2(x, height - 55f * unit)); painter.LineTo(new Vector2(x + 4 * unit, height - 46f * unit));
-                painter.LineTo(new Vector2(x, height - 37f * unit)); painter.LineTo(new Vector2(x - 4 * unit, height - 46f * unit)); painter.ClosePath(); painter.Fill();
-            }
-        }
     }
 }

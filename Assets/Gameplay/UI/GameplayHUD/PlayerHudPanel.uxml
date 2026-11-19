@@ -36,10 +36,6 @@
         <ui:VisualElement name="roster" class="character-roster" picking-mode="Ignore" />
         <ui:Label name="selection-status" class="selection-status" picking-mode="Ignore" />
     </ui:VisualElement>
-    <ui:VisualElement name="ready-header" class="ready-header" picking-mode="Ignore">
-        <ui:Image name="ready-portrait" picking-mode="Ignore" />
-        <ui:Label name="ready-name" picking-mode="Ignore" />
-    </ui:VisualElement>
     <ui:VisualElement name="gameplay" class="gameplay-body" picking-mode="Ignore">
         <ui:Label name="inspect-hint" class="ability-inspect-hint" picking-mode="Ignore" />
         <ui:VisualElement name="ability-inspector" class="ability-inspector" picking-mode="Ignore" style="display: none;">
