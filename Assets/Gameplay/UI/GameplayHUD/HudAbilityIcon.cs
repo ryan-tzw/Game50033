@@ -9,6 +9,7 @@ namespace Game50033
     {
         private readonly VisualElement _face;
         private readonly Image _symbol;
+        private readonly Image _border;
         private readonly VisualElement _wipe;
         private readonly Label _countdown;
         private readonly Label _charges;
@@ -31,6 +32,7 @@ namespace Game50033
             AddToClassList("hud-ability");
             _face = new VisualElement { pickingMode = PickingMode.Ignore }; _face.AddToClassList("hud-face"); Add(_face);
             _symbol = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.ScaleToFit }; _symbol.AddToClassList("hud-symbol"); _face.Add(_symbol);
+            _border = new Image { name = "shared-border", pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.ScaleToFit }; _border.AddToClassList("hud-symbol"); _face.Add(_border);
             _wipe = new VisualElement { pickingMode = PickingMode.Ignore }; _wipe.AddToClassList("hud-wipe"); _face.Add(_wipe);
             _wipe.generateVisualContent += PaintWipe;
             _countdown = new Label { pickingMode = PickingMode.Ignore }; _countdown.AddToClassList("hud-countdown"); _face.Add(_countdown);
@@ -59,6 +61,8 @@ namespace Game50033
             _tuning = tuning;
             _size = dodge ? tuning.dodgeIconSize : tuning.iconSize;
             var unit = _size / 72f;
+            _border.image = tuning.sharedAbilityBorder;
+            _border.style.display = dodge ? DisplayStyle.None : DisplayStyle.Flex;
             style.width = style.height = _size;
             style.alignSelf = Align.FlexEnd;
             // the artwork supplies its own frame; only the cooldown overlay needs rounded clipping.
@@ -83,7 +87,7 @@ namespace Game50033
         {
             _symbol.image = artwork;
             _symbol.tintColor = Color.white;
-            _symbol.style.unityMaterial = new StyleMaterialDefinition(dodge ? null : palette);
+            _symbol.style.unityMaterial = _border.style.unityMaterial = new StyleMaterialDefinition(dodge ? null : palette);
             _prompt.style.borderTopColor = _prompt.style.borderBottomColor = Color.Lerp(accent, Color.white, 0.75f);
             _prompt.style.borderLeftColor = _prompt.style.borderRightColor = Color.Lerp(accent, Color.white, 0.75f);
             var height = _tuning.promptHeight;
@@ -113,7 +117,7 @@ namespace Game50033
             if (_supported != state.Supported)
             {
                 _supported = state.Supported;
-                _symbol.style.opacity = _supported ? 1f : 0.2f;
+                _symbol.style.opacity = _border.style.opacity = _supported ? 1f : 0.2f;
             }
             var timer = state.Supported && state.Remaining > 0.05f
                 ? state.Remaining >= 1 ? Mathf.CeilToInt(state.Remaining) * 10 : Mathf.CeilToInt(state.Remaining * 10) : 0;

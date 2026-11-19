@@ -49,6 +49,7 @@ namespace Game50033
         [Range(0f, 1f)] public float cooldownOpacity = 0.78f;
         [Header("Ability artwork")]
         public Texture2D dodgeIcon;
+        public Texture2D sharedAbilityBorder;
         [Header("Input prompt artwork")]
         public VectorImage leftMouse;
         public VectorImage rightMouse;

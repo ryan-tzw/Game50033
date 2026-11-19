@@ -45,6 +45,7 @@ MonoBehaviour:
   promptBackground: {r: 0.015, g: 0.018, b: 0.025, a: 0.98}
   cooldownOpacity: 0.78
   dodgeIcon: {fileID: 2800000, guid: b3dc3155ffd8308559ca542cbe390fc7, type: 3}
+  sharedAbilityBorder: {fileID: 2800000, guid: ac51ecb24c3c5fc5aa797f6eeb46411d, type: 3}
   leftMouse: {fileID: 7388822144124034973, guid: baaf4f7a55dd7aef5b367f4914595045, type: 3}
   rightMouse: {fileID: 7388822144124034973, guid: 8cc14245c6e29a4978f1e6bb67a39b3c, type: 3}
   space: {fileID: 7388822144124034973, guid: 986ab031931f3864fa3e5254cf63589e, type: 3}
