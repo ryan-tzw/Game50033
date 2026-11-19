@@ -2,6 +2,7 @@ namespace Game50033
 {
     using System.Collections;
     using System.ComponentModel;
+    using Unity.Pipeline.Scripting;
     using UnityEngine;
     using UnityEngine.UIElements;
 
@@ -12,16 +13,16 @@ namespace Game50033
         public int numberOfPoints;
         public float radius;
         public bool rotating;
-        private bool _rotating;
+        protected bool _rotating;
         public float rotationSpeed;
         private float _rotateAmount;
 
         protected float _elapsed;
 
-        private Color _nullColor = new Color(0,0,0,0);
+        private Color _nullColor = new Color(0, 0, 0, 0);
         protected Color _matColor;
         protected Color _matColorTranslucent;
-        private bool _blinking;
+        protected bool _blinking;
         private Quaternion _randomStartRotation;
 
         public override void Setup(BaseBoss owner)
@@ -34,14 +35,14 @@ namespace Game50033
             _blinking = false;
             _matColor = _nullColor;
             _matColorTranslucent = _nullColor;
-            _randomStartRotation = Quaternion.Euler(0f, 60*Random.Range(0,6), 0f);
-            transform.position = new Vector3(0f,0f,0f);
+            _randomStartRotation = Quaternion.Euler(0f, 60 * Random.Range(0, 6), 0f);
+            transform.position = new Vector3(0f, 0f, 0f);
         }
 
         protected virtual void Update()
         {
             _elapsed += Time.deltaTime;
-            if (_blinking) 
+            if (_blinking)
             {
                 foreach (MeshRenderer child in GetComponentsInChildren<MeshRenderer>())
                 {
@@ -89,7 +90,7 @@ namespace Game50033
 
         IEnumerator BlinkWarning(MeshRenderer child)
         {
-            for (int i=0; i<3; i++)
+            for (int i = 0; i < 3; i++)
             {
                 yield return new WaitForSeconds(0.15f);
                 child.material.color = _matColorTranslucent;

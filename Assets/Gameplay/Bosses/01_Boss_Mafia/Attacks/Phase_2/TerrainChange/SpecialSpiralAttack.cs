@@ -42,10 +42,10 @@ namespace Game50033
             lineRendererObject.transform.position += new Vector3(0f, 0.01f, 0f);
             lineRendererObject.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
             Destroy(_lr);
-            
+
             _meshCollider.convex = true;
             _meshCollider.isTrigger = true;
-            
+
             _matColor = material.color;
             _matColorTranslucent = material.color;
             _matColorTranslucent.a = 0.5f;
@@ -53,7 +53,7 @@ namespace Game50033
 
         void OnTriggerEnter(Collider other)
         {
-            if (rotating && other.TryGetComponent(out Player player)
+            if (_rotating && !_blinking && other.TryGetComponent(out Player player)
                 && player.Health.TryTakeDamage(1, transform.position - player.transform.position))
                 Debug.Log("Player damaged");
         }
