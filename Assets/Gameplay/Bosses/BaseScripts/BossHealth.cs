@@ -73,7 +73,7 @@ namespace Game50033
             HealthChanged?.Invoke(CurrentHealth, MaxHealth);
             Damaged?.Invoke(hit, before - _bossCurrentHealth);
 
-            if (_bossCurrentHealth <= (MaxHealth / _bossTotalPhases * _bossNextPhase) && _bossNextPhase != _bossCurrentPhase)
+            if (_bossCurrentHealth <= (MaxHealth / _bossTotalPhases * _bossCurrentPhase) && _bossNextPhase != _bossCurrentPhase)
             {
                 ChangePhase?.Invoke(_bossNextPhase);
             }
