@@ -18,6 +18,7 @@ namespace Game50033
         public DefensiveSettings defensive = new();
         public PlaceholderSettings placeholder = new();
         public PresentationSettings presentation = new();
+        public PressureVisualSettings pressureVisuals = new();
         [Range(0.01f, 1f)] public float specialReverberationStrengthMultiplier = 0.5f;
         [Tooltip("Impact sprite, damage number and sound played where a Trombone projectile hits. Special hits use its big style.")]
         public HitEffect hitEffect;
@@ -91,6 +92,33 @@ namespace Game50033
             [Min(0.01f)] public float cooldown = 2f;
             [Min(0.01f)] public float guardLifespan = 5f;
             [Range(0f, 1f)] public float movementSpeedMultiplier = 0.5f;
+        }
+
+        [Serializable]
+        public sealed class PressureVisualSettings
+        {
+            [Header("Pressure ring")]
+            [Min(0.01f)] public float radius = 0.55f;
+            [Min(0f)] public float height = 0.055f;
+            [Min(0.001f)] public float trackWidth = 0.018f;
+            [Min(0.001f)] public float fillWidth = 0.03f;
+            [Min(0.01f)] public float response = 24f;
+            public Color trackColor = new(0.4f, 0.32f, 0.2f, 0.3f);
+            public Color losingColor = new(1f, 0.5f, 0.3f, 1f);
+            public Color fullColor = new(1f, 0.88f, 0.45f, 1f);
+            [Range(0f, 1f)] public float fullColorThreshold = 0.7f;
+
+            [Header("Rising music notes")]
+            public Sprite noteSprite;
+            [Min(0f)] public float lowNoteRate = 1.2f;
+            [Min(0f)] public float highNoteRate = 5f;
+            [Min(0.01f)] public float noteLifetime = 1.2f;
+            [Min(0.01f)] public float noteSize = 0.18f;
+            [Min(0f)] public float spawnRadius = 0.25f;
+            [Min(0f)] public float noteHeight = 0.15f;
+            [Min(0f)] public float riseDistance = 0.5f;
+            [Min(0f)] public float driftDistance = 0.12f;
+            [Min(0.01f)] public float emissionResponse = 6f;
         }
 
         [Serializable]

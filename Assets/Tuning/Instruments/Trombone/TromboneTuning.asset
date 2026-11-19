@@ -95,5 +95,25 @@ MonoBehaviour:
     specialShotLength: 0.45
     primaryTrailTime: 0.055
     specialTrailTime: 0.1
+  pressureVisuals:
+    radius: 0.55
+    height: 0.055
+    trackWidth: 0.018
+    fillWidth: 0.03
+    response: 24
+    trackColor: {r: 0.4, g: 0.32, b: 0.2, a: 0.3}
+    losingColor: {r: 1, g: 0.5, b: 0.3, a: 1}
+    fullColor: {r: 1, g: 0.88, b: 0.45, a: 1}
+    fullColorThreshold: 0.7
+    noteSprite: {fileID: 21300000, guid: 85c2f04c4ed0458ca2a78c761227a72f, type: 3}
+    lowNoteRate: 1.2
+    highNoteRate: 5
+    noteLifetime: 1.2
+    noteSize: 0.18
+    spawnRadius: 0.25
+    noteHeight: 0.15
+    riseDistance: 0.5
+    driftDistance: 0.12
+    emissionResponse: 6
   specialReverberationStrengthMultiplier: 0.5
   hitEffect: {fileID: 11400000, guid: 645a021c6bfb12b42a710932ef781155, type: 2}
