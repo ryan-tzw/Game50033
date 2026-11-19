@@ -24,10 +24,11 @@ namespace Game50033
         public struct AbilityPreview
         {
             public string name;
+            public Texture2D icon;
             [TextArea(2, 5)] public string description;
         }
 
-        [Tooltip("Primary, Secondary, Defensive, Special. Presentation text only; does not define gameplay values.")]
+        [Tooltip("Primary, Secondary, Defensive, Special. Presentation only; does not define gameplay values.")]
         [SerializeField] private AbilityPreview[] abilityPreviews = new AbilityPreview[4];
 
         public int PreviewRevision { get; private set; }

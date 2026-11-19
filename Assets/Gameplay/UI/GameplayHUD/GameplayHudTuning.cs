@@ -52,6 +52,9 @@ namespace Game50033
         public Color iconBackground = new(41f / 255f, 45f / 255f, 56f / 255f, 1f);
         public Color promptBackground = new(0.015f, 0.018f, 0.025f, 0.98f);
         [Range(0f, 1f)] public float cooldownOpacity = 0.78f;
+        [Header("Ability artwork")]
+        public Texture2D dodgeIcon;
+        [Min(0f)] public float artworkPadding = 4f;
         [Header("Input prompt artwork")]
         public VectorImage leftMouse;
         public VectorImage rightMouse;

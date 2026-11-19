@@ -136,9 +136,12 @@ namespace Game50033
             for (var i = 0; i < 4; i++)
             {
                 _previews[i].Configure(_tuning, false);
+                _previews[i].style.alignSelf = Align.FlexStart;
                 _previews[i].SetState(new PlayerAbilityState(0, 1));
                 var row = this.Q("preview-row-" + i);
                 row.style.paddingLeft = _tuning.previewIconInset;
+                row.style.paddingTop = _tuning.previewIconInset;
+                row.style.alignItems = Align.FlexStart;
                 row.style.height = _tuning.previewRowHeight;
                 row.style.marginBottom = _tuning.iconGap;
                 _previewTitles[i].style.fontSize = _tuning.previewFontSize * 1.2f;
@@ -192,7 +195,8 @@ namespace Game50033
             var scheme = _input != null ? _input.currentControlScheme : string.Empty;
             var chosen = _player.Character;
             var accent = mode != PanelMode.Selecting && chosen != null ? chosen.Tint : _player.PlayerColor;
-            if (_scheme != scheme || _accent != accent)
+            if (_scheme != scheme || _accent != accent || mode != PanelMode.Selecting
+                && (_shownCharacter != chosen || chosen != null && _shownPreviewRevision != chosen.PreviewRevision))
             {
                 _scheme = scheme;
                 _renderedInspectSlot = -1;
@@ -209,7 +213,8 @@ namespace Game50033
                     var text = keyboard ? i == 2 ? "Q" : i == 3 ? "E" : string.Empty
                         : i == 0 ? "X" : i == 1 ? "Y" : i == 2 ? "A" : i == 3 ? "B" : "RT";
                     var svg = keyboard ? i == 0 ? _tuning.leftMouse : i == 1 ? _tuning.rightMouse : i == 4 ? _tuning.space : null : null;
-                    _icons[i].SetAppearance(accent, i == 4 ? 4 : (int)_slots[i], text, svg, !keyboard && i < 4);
+                    var artwork = i == 4 ? _tuning.dodgeIcon : chosen != null ? chosen.GetAbilityPreview(_slots[i]).icon : null;
+                    _icons[i].SetAppearance(accent, artwork, i == 4, text, svg, !keyboard && i < 4);
                 }
                 _shownRoster = null;
                 MarkDirtyRepaint();
@@ -297,9 +302,9 @@ namespace Game50033
                         var prompt = keyboard ? i == 2 ? "E" : i == 3 ? "Q" : string.Empty
                             : i == 0 ? "X" : i == 1 ? "Y" : i == 2 ? "A" : "B";
                         var image = keyboard ? i == 0 ? _tuning.leftMouse : i == 1 ? _tuning.rightMouse : null : null;
-                        _previews[i].SetAppearance(previewAccent, (int)ability, prompt, image, !keyboard);
-                        _previewTitles[i].style.color = titleColor;
                         var preview = character != null ? character.GetAbilityPreview(ability) : default;
+                        _previews[i].SetAppearance(previewAccent, preview.icon, false, prompt, image, !keyboard);
+                        _previewTitles[i].style.color = titleColor;
                         _previewTitles[i].text = string.IsNullOrWhiteSpace(preview.name) ? ability.ToString() : preview.name;
                         _previewDescriptions[i].text = string.IsNullOrWhiteSpace(preview.description) ? "Details coming soon." : preview.description;
                     }
@@ -310,6 +315,7 @@ namespace Game50033
             if (_shownCharacter != chosen)
             {
                 _shownCharacter = chosen;
+                _shownPreviewRevision = chosen != null ? chosen.PreviewRevision : -1;
             }
             var health = _player.Health != null ? _player.Health.CurrentHealth : 0;
             if (_health != health) { _health = health; _hearts.MarkDirtyRepaint(); }

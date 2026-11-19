@@ -18,12 +18,16 @@ MonoBehaviour:
   playerPrefab: {fileID: 8404843420213471496, guid: e524efb39ba21944eb75ec627cd5e6ac, type: 3}
   abilityPreviews:
   - name: Cymbal Combo
+    icon: {fileID: 2800000, guid: e0d5d5e54aec4b3529d31c9af05e1650, type: 3}
     description: An advancing melee combo with alternating cymbal strikes.
   - name: Cymbal Throw
+    icon: {fileID: 2800000, guid: 08d7061b6e444544398cdd4ead00e9ee, type: 3}
     description: Throw a cymbal that returns. Recast near its apex to dash after
       it.
   - name: Frontal Parry
+    icon: {fileID: 2800000, guid: 55cfeb5f060a990e08d7d417aea63ccc, type: 3}
     description: Parry projectiles in front of you. A successful block restores a
       Crash charge.
   - name: Crash
+    icon: {fileID: 2800000, guid: 3918fb11d14944926b6cabc24e1e303b, type: 3}
     description: Spend a charge to strike a triangular area with a shockwave.
