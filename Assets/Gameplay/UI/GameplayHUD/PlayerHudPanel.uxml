@@ -64,6 +64,6 @@
             <game:HudAbilityIcon name="slot-3" />
             <game:HudAbilityIcon name="slot-4" />
         </ui:VisualElement>
-        <ui:VisualElement name="hearts" class="heart-row" picking-mode="Ignore" />
+        <game:HudHealthBar name="hearts" class="heart-row" picking-mode="Ignore" />
     </ui:VisualElement>
 </ui:UXML>

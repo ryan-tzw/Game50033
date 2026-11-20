@@ -22,10 +22,90 @@ MonoBehaviour:
   promptBorderWidth: 1
   healthBarWidth: 0
   healthBarHeight: 14.4
-  heartWidth: 18.9
-  heartHeight: 15.9
-  heartNotchDepth: 1.37
-  heartBottomTaper: 0.161
+  heartWidth: 17.6
+  heartHeight: 16.6
+  heartOutlineWidth: 2.5
+  heartOutlineColor: {r: 0, g: 0, b: 0, a: 1}
+  heartNotchDepth: 1.96
+  heartBottomTaper: 0.242
+  healthMeterDuration: 0.4
+  healthMeterEase:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 3
+      outSlope: 3
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  healthDamageFadeDuration: 0.4
+  healthDamageFadeEase:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  missingHeartColor: {r: 0, g: 0, b: 0, a: 1}
+  healthShakeDuration: 0.2
+  healthShakeAmplitude: 3
+  healthShakeFrequency: 24
+  healthShakeDecay:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: -1
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: -1
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   font: {fileID: 12800000, guid: a0979a15571bafcfb9fc1285a80642b6, type: 3}
   headingFont: {fileID: 12800000, guid: 8595d790f2174ddecb28951ed3e33103, type: 3}
   countdownFontSize: 30

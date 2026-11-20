@@ -19,14 +19,14 @@ namespace Game50033
         private readonly Label[] _previewTypes = new Label[4];
         private readonly Label[] _previewDescriptions = new Label[4];
         private readonly PlayerAbility[] _slots = new PlayerAbility[4];
-        private readonly VisualElement _hearts, _selection, _gameplay, _rosterRow;
+        private readonly VisualElement _selection, _gameplay, _rosterRow;
+        private readonly HudHealthBar _hearts;
         private readonly Label _highlightName, _selectionStatus;
         private VisualElement[] _portraits = System.Array.Empty<VisualElement>();
         private CharacterRoster _shownRoster;
         private CharacterDefinition _shownCharacter;
         private int _shownHighlight = -1, _shownTaken = -1, _shownPreviewRevision = -1;
         private string _scheme;
-        private int _health = -1;
         private Color _accent;
         private PanelMode? _mode;
 
@@ -56,7 +56,7 @@ namespace Game50033
                 _previewTypes[i] = this.Q<Label>("preview-type-" + i);
                 _previewDescriptions[i] = this.Q<Label>("preview-description-" + i);
             }
-            _hearts = this.Q("hearts");
+            _hearts = this.Q<HudHealthBar>("hearts");
             _selection = this.Q("selection");
             _gameplay = this.Q("gameplay");
             _rosterRow = this.Q("roster");
@@ -84,7 +84,6 @@ namespace Game50033
                 });
             }
 
-            _hearts.generateVisualContent += PaintHearts;
             ApplyTuning();
             BindPlayer(player);
         }
@@ -96,7 +95,7 @@ namespace Game50033
             _selector = player.GetComponent<PlayerCharacterSelect>();
             _scheme = null;
             _shownCharacter = null;
-            _shownHighlight = _shownTaken = _health = -1;
+            _shownHighlight = _shownTaken = -1;
             _mode = null;
             _inspecting = false;
             _inspector.style.display = DisplayStyle.None;
@@ -116,7 +115,7 @@ namespace Game50033
             var headingFont = FontDefinition.FromFont(_tuning.headingFont != null ? _tuning.headingFont : _tuning.font);
             var labelFont = FontDefinition.FromFont(_tuning.promptFont != null ? _tuning.promptFont : _tuning.font);
             var width = Mathf.Max(_tuning.iconSize * 4 + _tuning.dodgeIconSize + _tuning.iconGap * 4, _tuning.healthBarWidth);
-            var heartRowHeight = Mathf.Max(_tuning.heartHeight + _tuning.healthBorderWidth * 2f, _tuning.healthBarHeight) + 2f;
+            var heartRowHeight = Mathf.Max(_tuning.heartHeight + _tuning.heartOutlineWidth * 2f, _tuning.healthBarHeight) + 2f;
             var abilityRowHeight = Mathf.Max(_tuning.iconSize, _tuning.dodgeIconSize);
             var heartGap = _tuning.promptHeight * 0.5f + 8f;
             style.width = width + _tuning.panelPadding * 2;
@@ -181,7 +180,7 @@ namespace Game50033
             _scheme = null;
             _mode = null;
             MarkDirtyRepaint();
-            _hearts.MarkDirtyRepaint();
+            _hearts.Configure(_tuning);
         }
 
         public void Refresh(LobbyManager lobby = null)
@@ -205,6 +204,7 @@ namespace Game50033
             var scheme = _input != null ? _input.currentControlScheme : string.Empty;
             var chosen = _player.Character;
             var accent = mode != PanelMode.Selecting && chosen != null ? chosen.Tint : _player.PlayerColor;
+            _hearts.Refresh(_player.Health, accent);
             if (_scheme != scheme || _accent != accent || mode != PanelMode.Selecting
                 && (_shownCharacter != chosen || chosen != null && _shownPreviewRevision != chosen.PreviewRevision))
             {
@@ -327,8 +327,6 @@ namespace Game50033
                 _shownCharacter = chosen;
                 _shownPreviewRevision = chosen != null ? chosen.PreviewRevision : -1;
             }
-            var health = _player.Health != null ? _player.Health.CurrentHealth : 0;
-            if (_health != health) { _health = health; _hearts.MarkDirtyRepaint(); }
             for (var i = 0; i < 4; i++)
                 _icons[i].SetState(_player.Abilities != null ? _player.Abilities.GetAbilityState(_slots[i]) : default);
             var movement = _player.Movement;
@@ -408,68 +406,6 @@ namespace Game50033
                 stat.Name.text = entry.Label;
                 stat.Value.text = entry.Value;
                 stat.Value.style.color = accent;
-            }
-        }
-
-        private void PaintHearts(MeshGenerationContext context)
-        {
-            var painter = context.painter2D;
-            var rowWidth = _hearts.contentRect.width;
-            var width = _tuning.healthBarWidth > 0 ? _tuning.healthBarWidth
-                : _tuning.iconSize * 4f + _tuning.dodgeIconSize + _tuning.iconGap * 4f;
-            var start = (rowWidth - width) * 0.5f;
-            var barHeight = _tuning.healthBarHeight;
-            var y = _hearts.contentRect.height * 0.5f;
-            var barY = y - barHeight * 0.5f;
-            var border = _tuning.healthBorderWidth;
-            var sectionWidth = width / 5f;
-
-            // one continuous backing joins the five HP sections, with black dividers between them.
-            painter.fillColor = Color.black;
-            RoundedRect(start, barY, width, barHeight, 3f);
-            for (var i = 0; i < 5; i++)
-            {
-                var filled = i < _health;
-                painter.fillColor = filled ? _accent : _tuning.emptyHeart;
-                var left = start + i * sectionWidth + border;
-                var right = start + (i + 1) * sectionWidth - border;
-                RoundedRect(left, barY + border, right - left, Mathf.Max(1f, barHeight - border * 2f), 2f);
-            }
-
-            for (var i = 0; i < 5; i++)
-            {
-                var x = start + sectionWidth * (i + 0.5f);
-                var w = _tuning.heartWidth;
-                var h = _tuning.heartHeight;
-                var notch = Mathf.Min(_tuning.heartNotchDepth, h * 0.5f);
-                var taper = _tuning.heartBottomTaper;
-                painter.fillColor = i < _health ? _accent : _tuning.emptyHeart;
-                painter.strokeColor = Color.black;
-                painter.lineWidth = border;
-                painter.lineJoin = LineJoin.Round;
-                painter.BeginPath(); painter.MoveTo(new Vector2(x, y - h * 0.5f + notch));
-                painter.BezierCurveTo(new Vector2(x - w * 0.15f, y - h * 0.65f), new Vector2(x - w * 0.5f, y - h * 0.65f), new Vector2(x - w * 0.5f, y - h * 0.15f));
-                painter.BezierCurveTo(new Vector2(x - w * 0.5f, y + h * 0.08f), new Vector2(x - w * taper, y + h * 0.25f), new Vector2(x - w * 0.04f, y + h * 0.47f));
-                painter.QuadraticCurveTo(new Vector2(x, y + h * 0.52f), new Vector2(x + w * 0.04f, y + h * 0.47f));
-                painter.BezierCurveTo(new Vector2(x + w * taper, y + h * 0.25f), new Vector2(x + w * 0.5f, y + h * 0.08f), new Vector2(x + w * 0.5f, y - h * 0.15f));
-                painter.BezierCurveTo(new Vector2(x + w * 0.5f, y - h * 0.65f), new Vector2(x + w * 0.15f, y - h * 0.65f), new Vector2(x, y - h * 0.5f + notch));
-                painter.ClosePath(); painter.Fill(); painter.Stroke();
-            }
-
-            void RoundedRect(float x, float y, float w, float h, float radius)
-            {
-                radius = Mathf.Min(radius, h * 0.5f);
-                painter.BeginPath();
-                painter.MoveTo(new Vector2(x + radius, y));
-                painter.LineTo(new Vector2(x + w - radius, y));
-                painter.QuadraticCurveTo(new Vector2(x + w, y), new Vector2(x + w, y + radius));
-                painter.LineTo(new Vector2(x + w, y + h - radius));
-                painter.QuadraticCurveTo(new Vector2(x + w, y + h), new Vector2(x + w - radius, y + h));
-                painter.LineTo(new Vector2(x + radius, y + h));
-                painter.QuadraticCurveTo(new Vector2(x, y + h), new Vector2(x, y + h - radius));
-                painter.LineTo(new Vector2(x, y + radius));
-                painter.QuadraticCurveTo(new Vector2(x, y), new Vector2(x + radius, y));
-                painter.ClosePath(); painter.Fill();
             }
         }
 

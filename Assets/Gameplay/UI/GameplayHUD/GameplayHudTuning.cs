@@ -1,6 +1,7 @@
 namespace Game50033
 {
     using UnityEngine;
+    using UnityEngine.Serialization;
     using UnityEngine.UIElements;
 
     [CreateAssetMenu(menuName = "Crescendo/UI/Gameplay HUD")]
@@ -22,9 +23,23 @@ namespace Game50033
         [Min(6f)] public float healthBarHeight = 16f;
         [Min(8f)] public float heartWidth = 18f;
         [Min(8f)] public float heartHeight = 20f;
+        [Header("Heart shape")]
+        [Min(0f)] public float heartOutlineWidth = 2.5f;
+        public Color heartOutlineColor = Color.black;
         [Min(0f)] public float heartNotchDepth = 3f;
-        [Tooltip("Lower values taper the bottom sooner; higher values keep the lower sides fuller.")]
-        [Range(0f, 0.5f)] public float heartBottomTaper = 0.3f;
+        [Range(0.05f, 0.4f)] public float heartBottomTaper = 0.18f;
+        [Header("Health animation")]
+        [Min(0f)] public float healthMeterDuration = 0.4f;
+        public AnimationCurve healthMeterEase = new(new Keyframe(0f, 0f, 3f, 3f), new Keyframe(1f, 1f, 0f, 0f));
+        [Min(0f)] public float healthDamageFadeDuration = 0.4f;
+        public AnimationCurve healthDamageFadeEase = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+        [FormerlySerializedAs("brokenHeartHighlight")]
+        [FormerlySerializedAs("brokenHeartColor")]
+        public Color missingHeartColor = Color.black;
+        [Min(0f)] public float healthShakeDuration = 0.2f;
+        [Min(0f)] public float healthShakeAmplitude = 3f;
+        [Min(0f)] public float healthShakeFrequency = 24f;
+        public AnimationCurve healthShakeDecay = AnimationCurve.Linear(0f, 1f, 1f, 0f);
         [Header("Typography")]
         public Font font;
         public Font headingFont;
