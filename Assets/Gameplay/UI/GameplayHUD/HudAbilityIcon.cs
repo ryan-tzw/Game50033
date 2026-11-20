@@ -72,7 +72,9 @@ namespace Game50033
             _countdown.style.fontSize = Mathf.Max(18f, tuning.countdownFontSize * unit);
             _charges.style.fontSize = Mathf.Max(16f, 21f * unit);
             _promptText.style.fontSize = tuning.promptFontSize;
-            _promptText.style.unityFontDefinition = FontDefinition.FromFont(tuning.promptFont != null ? tuning.promptFont : tuning.font);
+            var labelFont = FontDefinition.FromFont(tuning.promptFont != null ? tuning.promptFont : tuning.font);
+            _promptText.style.unityFontDefinition = _countdown.style.unityFontDefinition = _charges.style.unityFontDefinition = labelFont;
+            _countdown.style.unityFontStyleAndWeight = _charges.style.unityFontStyleAndWeight = FontStyle.Normal;
             _promptText.style.unityFontStyleAndWeight = FontStyle.Normal;
             _prompt.style.bottom = -tuning.promptHeight * 0.5f;
             _promptImage.style.position = Position.Absolute;

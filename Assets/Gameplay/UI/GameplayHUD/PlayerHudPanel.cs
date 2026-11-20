@@ -113,6 +113,8 @@ namespace Game50033
         {
             // theme text elements can override the inherited font definition, so apply the authored font to each label.
             this.Query<TextElement>().ForEach(text => text.style.unityFontDefinition = FontDefinition.FromFont(_tuning.font));
+            var headingFont = FontDefinition.FromFont(_tuning.headingFont != null ? _tuning.headingFont : _tuning.font);
+            var labelFont = FontDefinition.FromFont(_tuning.promptFont != null ? _tuning.promptFont : _tuning.font);
             var width = Mathf.Max(_tuning.iconSize * 4 + _tuning.dodgeIconSize + _tuning.iconGap * 4, _tuning.healthBarWidth);
             var heartRowHeight = Mathf.Max(_tuning.heartHeight + _tuning.healthBorderWidth * 2f, _tuning.healthBarHeight) + 2f;
             var abilityRowHeight = Mathf.Max(_tuning.iconSize, _tuning.dodgeIconSize);
@@ -144,6 +146,9 @@ namespace Game50033
                 row.style.alignItems = Align.FlexStart;
                 row.style.height = _tuning.previewRowHeight;
                 row.style.marginBottom = _tuning.iconGap;
+                _previewTitles[i].style.unityFontDefinition = headingFont;
+                _previewTitles[i].style.unityFontStyleAndWeight = FontStyle.Normal;
+                _previewTypes[i].style.unityFontDefinition = labelFont;
                 _previewTitles[i].style.fontSize = _tuning.previewFontSize * 1.2f;
                 _previewTypes[i].text = PreviewSlots[i].ToString();
                 _previewTypes[i].style.fontSize = _tuning.previewFontSize * 0.85f;
@@ -154,6 +159,9 @@ namespace Game50033
             _inspector.style.paddingTop = _inspector.style.paddingBottom = inspectPadding;
             _inspector.style.backgroundColor = _tuning.inspectBackground;
             _inspectHint.style.fontSize = _inspectType.style.fontSize = _tuning.previewFontSize * 0.85f;
+            _inspectName.style.unityFontDefinition = headingFont;
+            _inspectName.style.unityFontStyleAndWeight = FontStyle.Normal;
+            _inspectType.style.unityFontDefinition = labelFont;
             _inspectName.style.fontSize = _tuning.previewFontSize * 1.35f;
             _inspectDescription.style.fontSize = _tuning.previewFontSize;
             foreach (var stat in _inspectStats)
@@ -162,6 +170,8 @@ namespace Game50033
                 stat.Value.style.fontSize = _tuning.inspectStatFontSize;
             }
             _renderedInspectSlot = -1;
+            _highlightName.style.unityFontDefinition = headingFont;
+            _highlightName.style.unityFontStyleAndWeight = FontStyle.Normal;
             _highlightName.style.height = 30f;
             _highlightName.style.fontSize = _tuning.previewFontSize * 1.3f;
             _rosterRow.style.height = _tuning.portraitSize;

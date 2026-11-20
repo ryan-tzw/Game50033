@@ -27,8 +27,10 @@ namespace Game50033
         [Range(0f, 0.5f)] public float heartBottomTaper = 0.3f;
         [Header("Typography")]
         public Font font;
+        public Font headingFont;
         public float countdownFontSize = 30f;
         public float promptFontSize = 16f;
+        [Tooltip("Used for input prompts, ability types, cooldowns and charge counts.")]
         public Font promptFont;
         [Min(16f)] public float promptHeight = 24f;
         [Min(0f)] public float promptPadding = 4f;

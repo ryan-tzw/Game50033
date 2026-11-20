@@ -27,9 +27,10 @@ MonoBehaviour:
   heartNotchDepth: 1.37
   heartBottomTaper: 0.161
   font: {fileID: 12800000, guid: a0979a15571bafcfb9fc1285a80642b6, type: 3}
+  headingFont: {fileID: 12800000, guid: 8595d790f2174ddecb28951ed3e33103, type: 3}
   countdownFontSize: 30
   promptFontSize: 16
-  promptFont: {fileID: 12800000, guid: 25cc98fe52380b1c2af64cc8de941ce7, type: 3}
+  promptFont: {fileID: 12800000, guid: 1804fbf3c348c60868f5f76f113b30cc, type: 3}
   promptHeight: 24
   promptPadding: 2.5
   previewIconInset: 12
