@@ -18,12 +18,12 @@ namespace Game50033
             _sr.flipX = _boss.Movement.FlipX;
         }
 
-        protected override void DestroyProjectile()
+        public override void DestroyProjectile()
         {
             base.DestroyProjectile();
             _sr.enabled = false;
             _boss.SetVisibility(true);
-            
+
         }
         protected override void HideBoss()
         {

@@ -61,7 +61,7 @@ namespace Game50033
             _target = target + new Vector3(0f, 0.15f, 0f);
 
             float dropHeight = _targetedBossAttack.projectileHomingHeight;
-            if(dropHeight > 0f)
+            if (dropHeight > 0f)
             {
                 _start = _target + Vector3.up * dropHeight;
             }
@@ -181,7 +181,7 @@ namespace Game50033
 
         protected virtual void HideBoss() { } //Mainly for Charge
 
-        protected virtual void DestroyProjectile()
+        public virtual void DestroyProjectile()
         {
             if (_destroying) return;
             _destroying = true;
@@ -208,8 +208,8 @@ namespace Game50033
             _animator.Play(HitStateId);
             yield return null;
             if (_animator)
-                try {yield return new WaitUntil(() => _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f);}
-                finally {}
+                try { yield return new WaitUntil(() => _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f); }
+                finally { }
             CheckLingeringEffect();
             Destroy(gameObject);
         }

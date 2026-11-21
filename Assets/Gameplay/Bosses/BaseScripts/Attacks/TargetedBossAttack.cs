@@ -29,16 +29,16 @@ namespace Game50033
         [SerializeField] protected float maxDistance = 30f;
         [SerializeField] private string bossWindUpAnimationName;
         [SerializeField] private string bossAttackAnimationName;
-        private int bossWindUpAnimationId;
-        private int bossAttackAnimationId;
+        protected int bossWindUpAnimationId;
+        protected int bossAttackAnimationId;
 
         private int projectileCount;
 
         protected override void Awake()
         {
             base.Awake();
-            if(bossWindUpAnimationName != null) bossWindUpAnimationId = Animator.StringToHash(bossWindUpAnimationName);
-            if(bossAttackAnimationName != null) bossAttackAnimationId = Animator.StringToHash(bossAttackAnimationName);
+            if (bossWindUpAnimationName != null) bossWindUpAnimationId = Animator.StringToHash(bossWindUpAnimationName);
+            if (bossAttackAnimationName != null) bossAttackAnimationId = Animator.StringToHash(bossAttackAnimationName);
 
         }
 
@@ -177,7 +177,7 @@ namespace Game50033
 
             if (telegraph != null) Destroy(telegraph.gameObject);
 
-            if(bossAttackAnimationId != 0) boss.PlayAnimationTrigger(bossAttackAnimationId);
+            if (bossAttackAnimationId != 0) boss.PlayAnimationTrigger(bossAttackAnimationId);
             var projectile = Instantiate(_projectile, transform.position, Quaternion.identity);
             projectile.InitializeProjectile(player, boss, end, this);
         }
