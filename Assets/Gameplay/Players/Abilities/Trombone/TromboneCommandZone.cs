@@ -136,6 +136,7 @@ namespace Game50033
 
         private void OnDisable()
         {
+            GetComponent<AudioSource>()?.Stop();
             _ended = true;
             SetVisualActive(false);
         }

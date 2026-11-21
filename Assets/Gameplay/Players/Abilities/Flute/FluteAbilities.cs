@@ -18,6 +18,16 @@ namespace Game50033
         [SerializeField] private FluteProjectile chargedProjectilePrefab;
         [SerializeField] private Reverberation specialReverberationPrefab;
 
+        [Header("Audio")]
+        [SerializeField] private AudioSource sfxSource;
+        [SerializeField] private AudioClip primarySound;
+        [SerializeField] private AudioClip secondarySound;
+        [SerializeField] private AudioClip defensiveSound;
+        [SerializeField] private AudioClip specialSound;
+        [Tooltip("Plays when charging but stops when the charge is released or cancelled")]
+        [SerializeField] private AudioSource chargeSource;
+        [SerializeField] private AudioClip chargeSound;
+
         private FluteWeaponVisual _visual;
         private float _secondaryReadyAt;
         private float _specialReadyAt;
@@ -190,6 +200,11 @@ namespace Game50033
             }
         }
 
+        private void PlaySound(AudioClip clip)
+        {
+            if (sfxSource != null && sfxSource.isActiveAndEnabled && clip != null) sfxSource.PlayOneShot(clip);
+        }
+
         public override bool TryUsePrimary()
         {
             if (!CanStartAbility
@@ -215,6 +230,7 @@ namespace Game50033
             var damage = Mathf.Lerp(tuning.primary.minimumDamage, tuning.primary.maximumDamage, flow.Normalized);
             projectile.InitializePrimary(Player, direction, target, damage);
             BeginAction(Action.Primary, direction, tuning.primary.activeTime, tuning.primary.recovery);
+            PlaySound(primarySound);
             return true;
         }
 
@@ -246,6 +262,7 @@ namespace Game50033
                 secondaryProjectilePrefab);
             _secondaryReadyAt = IgnoreCooldowns ? 0f : Time.time + tuning.secondary.cooldown;
             BeginAction(Action.Secondary, direction, tuning.secondary.activeTime, tuning.secondary.recovery);
+            PlaySound(secondarySound);
             return true;
         }
 
@@ -260,6 +277,11 @@ namespace Game50033
             _chargeElapsed = 0f;
             _specialRequiresRelease = true;
             BeginAction(Action.Charge, Player.AimDirection, tuning.special.chargeDuration, 0f);
+            if (chargeSource != null && chargeSource.isActiveAndEnabled && chargeSound != null)
+            {
+                chargeSource.clip = chargeSound;
+                chargeSource.Play();
+            }
             return true;
         }
 
@@ -282,7 +304,7 @@ namespace Game50033
                 chargedProjectilePrefab.CollisionMask, chargedProjectilePrefab.HitVolume);
             var projectile = Spawn(chargedProjectilePrefab, position, direction);
 
-            // Spend Flow only after release, cancelled charges never spend or create REV.
+            // Spend Flow only after release, cancelled charges shouldn't spend or create REV.
             var canResonate = charge >= 1f && flow.TryConsume(settings.flowCost);
             projectile.InitializeCharged(Player, direction,
                 Mathf.Lerp(settings.minimumDamage, settings.maximumDamage, charge), canResonate,
@@ -291,6 +313,8 @@ namespace Game50033
             projectile.SetChargePresentation(charge);
             _specialReadyAt = IgnoreCooldowns ? 0f : Time.time + settings.cooldown;
             BeginAction(Action.Release, direction, settings.activeTime, settings.recovery);
+            if (chargeSource != null) chargeSource.Stop();
+            PlaySound(specialSound);
             if (_visual != null)
             {
                 _visual.PlayRelease(charge, canResonate);
@@ -324,6 +348,8 @@ namespace Game50033
             _evasionRewarded = false;
             _defensiveReadyAt = IgnoreCooldowns ? 0f : Time.time + tuning.defensive.cooldown;
             BeginAction(Action.Evasive, direction, tuning.defensive.invulnerabilityDuration, tuning.defensive.recovery);
+            if (chargeSource != null) chargeSource.Stop();
+            PlaySound(defensiveSound);
             Player.Health.GrantAbilityInvulnerability(tuning.defensive.invulnerabilityDuration);
             return true;
         }
@@ -335,7 +361,7 @@ namespace Game50033
                 return;
             }
 
-            // Reward only a real damage attempt rejected during this Evasive State.
+            // Reward a real damage attempt rejected during this Evasive State.
             _evasionRewarded = true;
             flow.Gain(tuning.defensive.successFlowGain);
             _speedRewardUntil = Player.Hitstop.ActionTime + tuning.defensive.successSpeedDuration;
@@ -376,6 +402,7 @@ namespace Game50033
 
         private void EndAction()
         {
+            if (chargeSource != null) chargeSource.Stop();
             if (IsEvasive)
             {
                 Player.Health.ClearAbilityInvulnerability();

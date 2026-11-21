@@ -138,14 +138,18 @@ namespace Game50033
             var count = _lobby.Roster.Count;
             if (count == 0) return;
 
+            var previous = _highlightIndex;
             _highlightIndex = (_highlightIndex + direction + count) % count;
+            if (_highlightIndex != previous) _lobby.GetComponent<LobbyAudio>()?.PlayBrowse();
         }
 
         internal void PreviewCharacter(int rosterIndex)
         {
             if (State != SelectState.Selecting || _lobby == null || !_playerInput.inputIsActive
                 || rosterIndex < 0 || rosterIndex >= _lobby.Roster.Count) return;
+            if (_highlightIndex == rosterIndex) return;
             _highlightIndex = rosterIndex;
+            _lobby.GetComponent<LobbyAudio>()?.PlayBrowse();
         }
 
         internal void TryConfirm()
@@ -153,7 +157,11 @@ namespace Game50033
             if (State != SelectState.Selecting || _lobby == null || !_playerInput.inputIsActive || _lobby.Roster.Count == 0) return;
 
             var character = _lobby.Roster[_highlightIndex];
-            if (!_lobby.TryClaim(character, this)) return; // someone else already has it
+            if (!_lobby.TryClaim(character, this))
+            {
+                _lobby.GetComponent<LobbyAudio>()?.PlayInvalid();
+                return; // someone else already has it
+            }
 
             var lobby = _lobby;
             if (character.PlayerPrefab != null)
@@ -161,7 +169,9 @@ namespace Game50033
                 if (!lobby.TrySpawnSelectedCharacter(this, character))
                 {
                     lobby.Release(this);
+                    lobby.GetComponent<LobbyAudio>()?.PlayInvalid();
                 }
+                else lobby.GetComponent<LobbyAudio>()?.PlayConfirm();
 
                 return;
             }
@@ -169,6 +179,7 @@ namespace Game50033
             // the character controller is disabled while selecting, so the move is not blocked.
             transform.position = lobby.GetSpawnPosition(PlayerIndex, transform.position);
             CompleteSelection(lobby, character);
+            lobby.GetComponent<LobbyAudio>()?.PlayConfirm();
         }
 
         internal void CompleteSelection(LobbyManager lobby, CharacterDefinition character)
@@ -195,6 +206,7 @@ namespace Game50033
             lobby.Release(this);
             Character = null;
             BeginSelection(lobby, previous);
+            lobby.GetComponent<LobbyAudio>()?.PlayBack();
         }
 
         internal void DetachFromLobby()

@@ -51,7 +51,7 @@ MonoBehaviour:
       riseDistance: 0.5
       lifetime: 0.8
   sound:
-    output: {fileID: 0}
+    output: {fileID: -8908325673530910376, guid: dfc3a2e62399643f4b6d7dd7f61dcb49, type: 2}
     normal:
       clips: []
       volume: 0.8

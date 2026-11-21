@@ -20,6 +20,13 @@ namespace Game50033
         [Tooltip("Child with a convex trigger MeshCollider; reshaped into the Crash triangle and enabled only for the impact query.")]
         [SerializeField] private ResonatingAttack crashVolume;
 
+        [Header("Audio")]
+        [SerializeField] private AudioSource sfxSource;
+        [SerializeField] private AudioClip primarySound;
+        [SerializeField] private AudioClip secondarySound;
+        [SerializeField] private AudioClip defensiveSound;
+        [SerializeField] private AudioClip specialSound;
+
         private readonly HashSet<IHittable> _hitThisStrike = new();
         private Collider[] _hitBuffer = new Collider[32];
         private CymbalsTuning.Hit _hit;
@@ -198,6 +205,11 @@ namespace Game50033
             _crashVolumeReady = true;
         }
 
+        private void PlaySound(AudioClip clip)
+        {
+            if (sfxSource != null && sfxSource.isActiveAndEnabled && clip != null) sfxSource.PlayOneShot(clip);
+        }
+
         public override bool TryUsePrimary()
         {
             if (!isActiveAndEnabled) return false;
@@ -336,6 +348,7 @@ namespace Game50033
 
         private void ResolveImpact()
         {
+            PlaySound(primarySound);
             var combo = tuning.combo;
             // the hitting point follows the player through the lunge, so read the position now.
             var point = combo.GetHitPoint(transform.position, _direction);
@@ -476,6 +489,7 @@ namespace Game50033
 
                 // release: the cymbal flies on its own and the player is free again.
                 CurrentThrow = ThrowState.Outbound;
+                PlaySound(secondarySound);
                 _throwPhaseStartedAt = Time.time;
                 _throwOrigin = transform.position;
                 _hitThisPass.Clear();
@@ -611,6 +625,7 @@ namespace Game50033
                 || Time.time < _parryReadyAt) return false;
 
             IsParrying = true;
+            PlaySound(defensiveSound);
             _parryStartedAt = Time.time;
             _parryRewarded = false;
             _parryDirection = Player.GetAttackDirection();
@@ -784,6 +799,7 @@ namespace Game50033
 
         private void ResolveCrash()
         {
+            PlaySound(specialSound);
             var settings = tuning.crash;
             var combo = tuning.combo;
 

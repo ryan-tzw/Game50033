@@ -15,6 +15,13 @@ namespace Game50033
         [SerializeField] private Reverberation specialReverberationPrefab;
         [SerializeField] private TromboneCommandZone commandZonePrefab;
 
+        [Header("Audio")]
+        [SerializeField] private AudioSource sfxSource;
+        [SerializeField] private AudioClip primarySound;
+        [SerializeField] private AudioClip secondarySound;
+        [SerializeField] private AudioClip defensiveSound;
+        [SerializeField] private AudioClip specialSound;
+
         private TromboneCommandZone _commandZone;
         private TromboneWeaponVisual _weaponVisual;
         private float _primaryReadyAt;
@@ -122,6 +129,11 @@ namespace Game50033
             _skipMovementSample = true;
         }
 
+        private void PlaySound(AudioClip clip)
+        {
+            if (sfxSource != null && sfxSource.isActiveAndEnabled && clip != null) sfxSource.PlayOneShot(clip);
+        }
+
         public override bool TryUsePrimary()
         {
             if (!CanActivate || primaryProjectilePrefab == null || !primaryProjectilePrefab.IsConfigured
@@ -132,11 +144,16 @@ namespace Game50033
             var resonates = _primaryResonates;
             var projectile = Instantiate(primaryProjectilePrefab, ProjectilePosition, Quaternion.LookRotation(direction));
             var damage = Mathf.Lerp(tuning.primary.minimumDamage, tuning.primary.maximumDamage, pressure);
+
             projectile.InitializePrimary(Player, direction, damage, _primaryResonates, primaryProjectilePrefab);
+            PlaySound(primarySound);
+
             _primaryResonates = false;
+
             var cooldown = Mathf.Lerp(tuning.primary.cooldown,
                 Mathf.Min(tuning.primary.cooldown, tuning.primary.maximumPressureCooldown), pressure);
             _primaryCooldownDuration = Mathf.Max(0.01f, cooldown);
+
             BeginAction(ref _primaryReadyAt, _primaryCooldownDuration, blockMovement: true, blockDodge: false);
             AccumulatePressure();
             if (_weaponVisual != null) _weaponVisual.PlayShot(direction, ProjectilePosition, special: false, resonates: resonates, interval: cooldown);
@@ -151,6 +168,8 @@ namespace Game50033
 
             _commandZone = Instantiate(commandZonePrefab, transform.position, Quaternion.identity);
             _commandZone.Initialize(Player);
+
+            PlaySound(secondarySound);
             BeginAction(ref _secondaryReadyAt, tuning.commandZone.cooldown, blockMovement: false, blockDodge: false);
             if (_weaponVisual != null) _weaponVisual.PlayZone(Player.AimDirection);
             return true;
@@ -161,6 +180,7 @@ namespace Game50033
             if (!CanActivate || IsGuarding || !CooldownReady(_defensiveReadyAt)) return false;
 
             _guardUntil = ActionTime + Mathf.Max(0.01f, tuning.defensive.guardLifespan);
+            PlaySound(defensiveSound);
             Player.Health.GrantAbilityInvulnerability(tuning.defensive.guardLifespan);
             BeginAction(ref _defensiveReadyAt, tuning.defensive.cooldown, blockMovement: false, blockDodge: true);
             if (_weaponVisual != null) _weaponVisual.PlayGuard(Player.AimDirection);
@@ -177,12 +197,18 @@ namespace Game50033
             var direction = GetDirection(specialProjectilePrefab);
             var projectile = Instantiate(specialProjectilePrefab, ProjectilePosition, Quaternion.LookRotation(direction));
             var damage = Mathf.Lerp(tuning.special.minimumDamage, tuning.special.maximumDamage, PressureNormalized);
+
             projectile.InitializeSpecial(Player, direction, damage, specialReverberationPrefab,
                 Mathf.Max(0.01f, damage * tuning.specialReverberationStrengthMultiplier), specialProjectilePrefab);
+
+            PlaySound(specialSound);
+
             if (_commandZone != null) _commandZone.ConsumeZone();
             _commandZone = null;
+
             BeginAction(ref _specialReadyAt, tuning.special.cooldown, blockMovement: true, blockDodge: true);
             AccumulatePressure();
+
             if (_weaponVisual != null) _weaponVisual.PlayShot(direction, ProjectilePosition, special: true, resonates: false, interval: tuning.special.cooldown);
             return true;
         }
