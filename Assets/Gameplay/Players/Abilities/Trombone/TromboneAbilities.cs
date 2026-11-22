@@ -146,12 +146,13 @@ namespace Game50033
         public override bool TryUseSecondary()
         {
             if (!CanActivate || !CooldownReady(_secondaryReadyAt)
-                || (_commandZone != null && _commandZone.IsActive)
+                || _commandZone != null
                 || commandZonePrefab == null || !commandZonePrefab.IsConfigured) return false;
 
             _commandZone = Instantiate(commandZonePrefab, transform.position, Quaternion.identity);
+            _commandZone.Ended += HandleCommandZoneEnded;
             _commandZone.Initialize(Player);
-            BeginAction(ref _secondaryReadyAt, tuning.commandZone.cooldown, blockMovement: false, blockDodge: false);
+            BeginAction(blockMovement: false, blockDodge: false);
             if (_weaponVisual != null) _weaponVisual.PlayZone(Player.AimDirection);
             return true;
         }
@@ -180,7 +181,6 @@ namespace Game50033
             projectile.InitializeSpecial(Player, direction, damage, specialReverberationPrefab,
                 Mathf.Max(0.01f, damage * tuning.specialReverberationStrengthMultiplier), specialProjectilePrefab);
             if (_commandZone != null) _commandZone.ConsumeZone();
-            _commandZone = null;
             BeginAction(ref _specialReadyAt, tuning.special.cooldown, blockMovement: true, blockDodge: true);
             AccumulatePressure();
             if (_weaponVisual != null) _weaponVisual.PlayShot(direction, ProjectilePosition, special: true, resonates: false, interval: tuning.special.cooldown);
@@ -195,6 +195,11 @@ namespace Game50033
         private void BeginAction(ref float readyAt, float cooldown, bool blockMovement, bool blockDodge)
         {
             readyAt = IgnoreCooldowns ? 0f : Time.time + cooldown;
+            BeginAction(blockMovement, blockDodge);
+        }
+
+        private void BeginAction(bool blockMovement, bool blockDodge)
+        {
             _activeUntil = ActionTime + Mathf.Max(0.01f, tuning.actionDuration);
             BlocksMovement = blockMovement;
             BlocksDodge = blockDodge;
@@ -232,7 +237,13 @@ namespace Game50033
         private void ClearCommandZone()
         {
             if (_commandZone != null) _commandZone.CancelZone();
+        }
+
+        private void HandleCommandZoneEnded(TromboneCommandZone zone)
+        {
+            zone.Ended -= HandleCommandZoneEnded;
             _commandZone = null;
+            _secondaryReadyAt = IgnoreCooldowns ? 0f : Time.time + tuning.commandZone.cooldown;
         }
 
         public override void Cancel()
@@ -293,8 +304,8 @@ namespace Game50033
 
         public override void ResetForEncounter()
         {
-            base.ResetForEncounter();
             ClearCommandZone();
+            base.ResetForEncounter();
             _pressure = 0f;
             ResetMovementTracking();
         }

@@ -236,8 +236,8 @@ MonoBehaviour:
     waveWidth: 0.08
     waveColor: {r: 1, g: 0.95, b: 0.75, a: 0.9}
   parry:
-    duration: 2
-    cooldown: 7
+    duration: 0.2
+    cooldown: 10
     raiseTime: 0.08
     coneAngle: 120
     range: 1

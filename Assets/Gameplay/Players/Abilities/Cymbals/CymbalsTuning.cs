@@ -222,9 +222,9 @@ namespace Game50033
         {
             [Header("Timing")]
             [Tooltip("How long the parry can block frontal damage. A dash ends it early.")]
-            [Min(0.05f)] public float duration = 2f;
+            [Min(0.05f)] public float duration = 0.2f;
             [Tooltip("Cooldown, counted from when the parry ends (time out or dash cancel).")]
-            [Min(0f)] public float cooldown = 7f;
+            [Min(0f)] public float cooldown = 10f;
             [Tooltip("Time for both cymbals to come together in front.")]
             [Min(0.01f)] public float raiseTime = 0.08f;
 
