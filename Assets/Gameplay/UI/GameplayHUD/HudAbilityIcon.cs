@@ -9,7 +9,7 @@ namespace Game50033
     {
         private readonly VisualElement _face;
         private readonly Image _symbol;
-        private readonly Image _background;
+        private readonly VisualElement _background;
         private readonly Image _border;
         private readonly VisualElement _wipe;
         private readonly Label _countdown;
@@ -18,6 +18,7 @@ namespace Game50033
         private readonly Label _promptText;
         private readonly Image _promptImage;
         private GameplayHudTuning _tuning;
+        private Color _backgroundAccent;
         private float _size;
         private float _fraction = -1;
         private float _wipeOpacity;
@@ -32,7 +33,10 @@ namespace Game50033
             pickingMode = PickingMode.Ignore;
             AddToClassList("hud-ability");
             _face = new VisualElement { pickingMode = PickingMode.Ignore }; _face.AddToClassList("hud-face"); Add(_face);
-            _background = new Image { name = "ability-background", pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.ScaleToFit }; _background.AddToClassList("hud-symbol"); _face.Add(_background);
+            _background = new VisualElement { name = "ability-background", pickingMode = PickingMode.Ignore };
+            _background.AddToClassList("hud-symbol");
+            _face.Add(_background);
+            _background.generateVisualContent += PaintBackground;
             _symbol = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.ScaleToFit }; _symbol.AddToClassList("hud-symbol"); _face.Add(_symbol);
             _border = new Image { name = "shared-border", pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.ScaleToFit }; _border.AddToClassList("hud-symbol"); _face.Add(_border);
             _wipe = new VisualElement { pickingMode = PickingMode.Ignore }; _wipe.AddToClassList("hud-wipe"); _face.Add(_wipe);
@@ -94,24 +98,22 @@ namespace Game50033
             _prompt.style.borderLeftWidth = _prompt.style.borderRightWidth = tuning.promptBorderWidth;
         }
 
-        public void SetAppearance(Color accent, Texture2D artwork, Material palette, bool dodge, string prompt, VectorImage image, bool circularPrompt, Texture2D background = null)
+        public void SetAppearance(Color accent, Texture2D artwork, Material palette, bool dodge, string prompt, VectorImage image, bool circularPrompt)
         {
-            _background.image = background;
+            _backgroundAccent = accent;
+            _background.MarkDirtyRepaint();
             _symbol.image = artwork;
             _symbol.tintColor = dodge ? _tuning.dodgeTint : Color.white;
             _symbol.style.unityMaterial = new StyleMaterialDefinition(dodge ? null : palette);
             if (!dodge && palette != null)
             {
-                var backgroundMaterial = MaterialDefinition.FromMaterial(palette);
-                backgroundMaterial.SetFloat("_PaletteLayer", 1f);
                 var borderMaterial = MaterialDefinition.FromMaterial(palette);
                 borderMaterial.SetFloat("_PaletteLayer", 2f);
-                _background.style.unityMaterial = new StyleMaterialDefinition(backgroundMaterial);
                 _border.style.unityMaterial = new StyleMaterialDefinition(borderMaterial);
             }
             else
             {
-                _background.style.unityMaterial = _border.style.unityMaterial = new StyleMaterialDefinition((Material)null);
+                _border.style.unityMaterial = new StyleMaterialDefinition((Material)null);
             }
             _prompt.style.borderTopColor = _prompt.style.borderBottomColor = Color.Lerp(accent, Color.white, 0.75f);
             _prompt.style.borderLeftColor = _prompt.style.borderRightColor = Color.Lerp(accent, Color.white, 0.75f);
@@ -158,6 +160,26 @@ namespace Game50033
                 _charges.text = state.MaxCharges > 1 ? state.Charges.ToString() : string.Empty;
                 _charges.style.color = state.Charges == 0 ? new Color(0.4f, 0.4f, 0.45f) : Color.white;
             }
+        }
+
+        private void PaintBackground(MeshGenerationContext context)
+        {
+            if (_tuning == null) return;
+            var size = _background.contentRect.size;
+            if (size.x <= 0f || size.y <= 0f) return;
+
+            var dark = new Color(0.035f, 0.025f, 0.05f);
+            var lightCorner = Color.Lerp(dark, _backgroundAccent, _tuning.abilityGradientTopLeftStrength);
+            var darkCorner = Color.Lerp(dark, _backgroundAccent, _tuning.abilityGradientBottomRightStrength);
+            // the other two corners sit halfway along the diagonal, so both triangles share the same gradient.
+            var middle = Color.Lerp(lightCorner, darkCorner, 0.5f);
+            var mesh = context.Allocate(4, 6);
+            mesh.SetNextVertex(new Vertex { position = new Vector3(0f, 0f, Vertex.nearZ), tint = lightCorner });
+            mesh.SetNextVertex(new Vertex { position = new Vector3(size.x, 0f, Vertex.nearZ), tint = middle });
+            mesh.SetNextVertex(new Vertex { position = new Vector3(size.x, size.y, Vertex.nearZ), tint = darkCorner });
+            mesh.SetNextVertex(new Vertex { position = new Vector3(0f, size.y, Vertex.nearZ), tint = middle });
+            mesh.SetNextIndex(0); mesh.SetNextIndex(1); mesh.SetNextIndex(2);
+            mesh.SetNextIndex(2); mesh.SetNextIndex(3); mesh.SetNextIndex(0);
         }
 
         private void PaintWipe(MeshGenerationContext context)

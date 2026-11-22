@@ -122,18 +122,17 @@ namespace Game50033
             if (ability == PlayerAbility.Primary)
             {
                 var hits = System.Array.ConvertAll(tuning.combo.hits, hit => Number(hit.damage));
-                return new PlayerAbilityStats(("Damage / hit", string.Join(" / ", hits)),
-                    ("Combo cooldown", Seconds(tuning.combo.comboCooldown)));
+                return new PlayerAbilityStats(("DMG", string.Join(" / ", hits)));
             }
 
             return ability switch
             {
-                PlayerAbility.Secondary => new(("Throw damage", Number(tuning.cymbalThrow.damage)),
-                    ("Cooldown", Seconds(tuning.cymbalThrow.cooldown)), ("Recast damage", Number(tuning.cymbalThrow.dashDamage))),
-                PlayerAbility.Special => new(("Damage", Number(tuning.crash.damage)),
-                    ("Recharge / charge", Seconds(tuning.crash.rechargeTime)), ("Charges", tuning.crash.maxCharges.ToString())),
+                PlayerAbility.Secondary => new(("DMG", Number(tuning.cymbalThrow.damage) + " / " + Number(tuning.cymbalThrow.dashDamage)),
+                    Cooldown(tuning.cymbalThrow.cooldown)),
+                PlayerAbility.Special => new(("DMG", Number(tuning.crash.damage)),
+                    Cooldown(tuning.crash.rechargeTime), ("Charges", tuning.crash.maxCharges.ToString())),
                 PlayerAbility.Defensive => new(("Parry window", Seconds(tuning.parry.duration)),
-                    ("Cooldown", Seconds(tuning.parry.cooldown))),
+                    Cooldown(tuning.parry.cooldown)),
                 _ => default
             };
         }

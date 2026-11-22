@@ -19,6 +19,8 @@ namespace Game50033
 
         public static string Number(float value) => value.ToString("0.##", CultureInfo.InvariantCulture);
         public static string Seconds(float value) => Number(value) + " s";
+        public static (string Label, string Value) Cooldown(float duration) =>
+            duration >= 1f ? ("CD", Seconds(duration)) : default;
         public static string Range(float minimum, float maximum) =>
             minimum == maximum ? Number(minimum) : Number(minimum) + "–" + Number(maximum);
     }

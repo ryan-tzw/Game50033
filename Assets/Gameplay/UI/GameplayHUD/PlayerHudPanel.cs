@@ -278,7 +278,7 @@ namespace Game50033
                         : i == 0 ? "X" : i == 1 ? "Y" : i == 2 ? "A" : i == 3 ? "B" : "RT";
                     var svg = keyboard ? i == 0 ? _tuning.leftMouse : i == 1 ? _tuning.rightMouse : i == 4 ? _tuning.space : null : null;
                     var artwork = i == 4 ? _tuning.dodgeIcon : chosen != null ? chosen.GetAbilityPreview(_slots[i]).icon : null;
-                    _icons[i].SetAppearance(accent, artwork, chosen != null ? chosen.AbilityPalette : null, i == 4, text, svg, !keyboard && i < 4, chosen != null ? chosen.AbilityBackground : null);
+                    _icons[i].SetAppearance(accent, artwork, chosen != null ? chosen.AbilityPalette : null, i == 4, text, svg, !keyboard && i < 4);
                 }
                 _shownRoster = null;
                 MarkDirtyRepaint();
@@ -372,7 +372,7 @@ namespace Game50033
                             : i == 0 ? "X" : i == 1 ? "Y" : i == 2 ? "A" : "B";
                         var image = keyboard ? i == 0 ? _tuning.leftMouse : i == 1 ? _tuning.rightMouse : null : null;
                         var preview = character != null ? character.GetAbilityPreview(ability) : default;
-                        _previews[i].SetAppearance(previewAccent, preview.icon, character != null ? character.AbilityPalette : null, false, prompt, image, !keyboard, character != null ? character.AbilityBackground : null);
+                        _previews[i].SetAppearance(previewAccent, preview.icon, character != null ? character.AbilityPalette : null, false, prompt, image, !keyboard);
                         _previewTitles[i].style.color = titleColor;
                         _previewTitles[i].text = string.IsNullOrWhiteSpace(preview.name) ? ability.ToString() : preview.name;
                         _previewDescriptions[i].text = string.IsNullOrWhiteSpace(preview.description) ? "Details coming soon." : preview.description;
@@ -462,7 +462,7 @@ namespace Game50033
             var stats = _player.Abilities != null ? _player.Abilities.GetAbilityStats(ability) : default;
             var accent = Color.Lerp(character.Tint, Color.white, 0.25f);
 
-            _inspectArtwork.SetAppearance(character.Tint, preview.icon, character.AbilityPalette, false, string.Empty, null, false, character.AbilityBackground);
+            _inspectArtwork.SetAppearance(character.Tint, preview.icon, character.AbilityPalette, false, string.Empty, null, false);
             _inspectName.text = string.IsNullOrEmpty(preview.name) ? ability.ToString() : preview.name;
             _inspectName.style.color = accent;
             _inspectType.text = ability.ToString();

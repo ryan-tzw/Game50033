@@ -82,6 +82,8 @@ namespace Game50033
         public Color promptBackground = new(0.015f, 0.018f, 0.025f, 0.98f);
         [Range(0f, 1f)] public float cooldownOpacity = 0.78f;
         [Header("Ability artwork")]
+        [Range(0f, 1f)] public float abilityGradientTopLeftStrength = 0.4f;
+        [Range(0f, 1f)] public float abilityGradientBottomRightStrength = 0.035f;
         public Texture2D dodgeIcon;
         public Color dodgeTint = new(0.94f, 0.9f, 0.8f, 1f);
         public Texture2D sharedAbilityBorder;

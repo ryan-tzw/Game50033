@@ -92,14 +92,12 @@ namespace Game50033
             if (tuning == null || !GetAbilityState(ability).Supported) return default;
             return ability switch
             {
-                PlayerAbility.Primary => new(("Damage / swing", Range(tuning.attack.damage, tuning.attack.damage * tuning.attack.sweetSpotMultiplier)),
-                    ("Combo cooldown", Seconds(tuning.attack.comboCooldown)), ("Combo swings", tuning.attack.combo.Length.ToString())),
-                PlayerAbility.Secondary => new(("Wave damage", Number(tuning.secondary.damage)),
-                    ("Cooldown", Seconds(tuning.secondary.cooldown)), ("Empowerment", "×" + Number(tuning.secondary.empowermentMultiplier))),
-                PlayerAbility.Special => new(("Damage", Range(tuning.special.damage, tuning.special.damage * tuning.special.sweetSpotMultiplier)),
-                    ("Cooldown", Seconds(tuning.special.cooldown))),
-                PlayerAbility.Defensive => new(("Damage", Number(tuning.defensive.damage)),
-                    ("Cooldown", Seconds(tuning.defensive.cooldown))),
+                PlayerAbility.Primary => new(("DMG", Range(tuning.attack.damage, tuning.attack.damage * tuning.attack.sweetSpotMultiplier))),
+                PlayerAbility.Secondary => new(("DMG", Number(tuning.secondary.damage)),
+                    ("Boost", "×" + Number(tuning.secondary.empowermentMultiplier))),
+                PlayerAbility.Special => new(("DMG", Range(tuning.special.damage, tuning.special.damage * tuning.special.sweetSpotMultiplier)),
+                    Cooldown(tuning.special.cooldown)),
+                PlayerAbility.Defensive => new(("DMG", Number(tuning.defensive.damage)), Cooldown(tuning.defensive.cooldown)),
                 _ => default
             };
         }

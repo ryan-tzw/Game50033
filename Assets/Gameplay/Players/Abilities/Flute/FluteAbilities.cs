@@ -406,14 +406,11 @@ namespace Game50033
             if (tuning == null || !GetAbilityState(ability).Supported) return default;
             return ability switch
             {
-                PlayerAbility.Primary => new(("Damage by Flow", Range(tuning.primary.minimumDamage, tuning.primary.maximumDamage)),
-                    ("Cooldown", "None")),
-                PlayerAbility.Secondary => new(("Damage", Number(tuning.secondary.damage)),
-                    ("Cooldown", Seconds(tuning.secondary.cooldown))),
-                PlayerAbility.Special => new(("Charged damage", Range(tuning.special.minimumDamage, tuning.special.maximumDamage)),
-                    ("Cooldown", Seconds(tuning.special.cooldown))),
-                PlayerAbility.Defensive => new(("Invulnerability", Seconds(tuning.defensive.invulnerabilityDuration)),
-                    ("Cooldown", Seconds(tuning.defensive.cooldown))),
+                PlayerAbility.Primary => new(("DMG", Range(tuning.primary.minimumDamage, tuning.primary.maximumDamage))),
+                PlayerAbility.Secondary => new(("DMG", Number(tuning.secondary.damage)), Cooldown(tuning.secondary.cooldown)),
+                PlayerAbility.Special => new(("DMG", Range(tuning.special.minimumDamage, tuning.special.maximumDamage)),
+                    Cooldown(tuning.special.cooldown)),
+                PlayerAbility.Defensive => new(Cooldown(tuning.defensive.cooldown)),
                 _ => default
             };
         }

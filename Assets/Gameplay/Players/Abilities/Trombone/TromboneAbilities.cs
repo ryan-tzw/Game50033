@@ -251,16 +251,22 @@ namespace Game50033
         public override PlayerAbilityStats GetAbilityStats(PlayerAbility ability)
         {
             if (tuning == null || !GetAbilityState(ability).Supported) return default;
+            if (ability == PlayerAbility.Primary)
+            {
+                var slowest = Mathf.Max(0.01f, tuning.primary.cooldown);
+                var fastest = Mathf.Clamp(tuning.primary.maximumPressureCooldown, 0.01f, slowest);
+                return new PlayerAbilityStats(
+                    ("DMG", Range(tuning.primary.minimumDamage, tuning.primary.maximumDamage)),
+                    ("Fire rate", Range(1f / slowest, 1f / fastest) + "/s"));
+            }
+
             return ability switch
             {
-                PlayerAbility.Primary => new(("Damage by Pressure", Range(tuning.primary.minimumDamage, tuning.primary.maximumDamage)),
-                    ("Cooldown by Pressure", Range(Mathf.Min(tuning.primary.cooldown, tuning.primary.maximumPressureCooldown), tuning.primary.cooldown) + " s")),
-                PlayerAbility.Secondary => new(("Zone radius", Number(tuning.commandZone.radius)),
-                    ("Cooldown", Seconds(tuning.commandZone.cooldown))),
-                PlayerAbility.Special => new(("Damage by Pressure", Range(tuning.special.minimumDamage, tuning.special.maximumDamage)),
-                    ("Cooldown", Seconds(tuning.special.cooldown))),
+                PlayerAbility.Secondary => new(Cooldown(tuning.commandZone.cooldown)),
+                PlayerAbility.Special => new(("DMG", Range(tuning.special.minimumDamage, tuning.special.maximumDamage)),
+                    Cooldown(tuning.special.cooldown)),
                 PlayerAbility.Defensive => new(("Guard duration", Seconds(tuning.defensive.guardLifespan)),
-                    ("Cooldown", Seconds(tuning.defensive.cooldown))),
+                    Cooldown(tuning.defensive.cooldown)),
                 _ => default
             };
         }
