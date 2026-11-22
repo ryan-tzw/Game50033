@@ -9,6 +9,7 @@ namespace Game50033
     {
         private readonly VisualElement _face;
         private readonly Image _symbol;
+        private readonly Image _background;
         private readonly Image _border;
         private readonly VisualElement _wipe;
         private readonly Label _countdown;
@@ -31,12 +32,13 @@ namespace Game50033
             pickingMode = PickingMode.Ignore;
             AddToClassList("hud-ability");
             _face = new VisualElement { pickingMode = PickingMode.Ignore }; _face.AddToClassList("hud-face"); Add(_face);
+            _background = new Image { name = "ability-background", pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.ScaleToFit }; _background.AddToClassList("hud-symbol"); _face.Add(_background);
             _symbol = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.ScaleToFit }; _symbol.AddToClassList("hud-symbol"); _face.Add(_symbol);
             _border = new Image { name = "shared-border", pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.ScaleToFit }; _border.AddToClassList("hud-symbol"); _face.Add(_border);
             _wipe = new VisualElement { pickingMode = PickingMode.Ignore }; _wipe.AddToClassList("hud-wipe"); _face.Add(_wipe);
             _wipe.generateVisualContent += PaintWipe;
             _countdown = new Label { pickingMode = PickingMode.Ignore }; _countdown.AddToClassList("hud-countdown"); _face.Add(_countdown);
-            _charges = new Label { pickingMode = PickingMode.Ignore }; _charges.AddToClassList("hud-charges"); _face.Add(_charges);
+            _charges = new Label { pickingMode = PickingMode.Ignore }; _charges.AddToClassList("hud-charges"); Add(_charges);
             _prompt = new VisualElement { pickingMode = PickingMode.Ignore }; _prompt.AddToClassList("hud-prompt"); Add(_prompt);
             _prompt.generateVisualContent += context =>
             {
@@ -56,11 +58,12 @@ namespace Game50033
             _promptImage = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.ScaleToFit }; _prompt.Add(_promptImage);
         }
 
-        public void Configure(GameplayHudTuning tuning, bool dodge)
+        public void Configure(GameplayHudTuning tuning, bool dodge, float sizeOverride = 0f, bool showPrompt = true)
         {
             _tuning = tuning;
-            _size = dodge ? tuning.dodgeIconSize : tuning.iconSize;
-            var unit = _size / 72f;
+            _size = sizeOverride > 0f ? sizeOverride : dodge ? tuning.dodgeIconSize : tuning.iconSize;
+            _background.style.display = dodge ? DisplayStyle.None : DisplayStyle.Flex;
+            _prompt.style.display = showPrompt ? DisplayStyle.Flex : DisplayStyle.None;
             _border.image = tuning.sharedAbilityBorder;
             _border.style.display = dodge ? DisplayStyle.None : DisplayStyle.Flex;
             style.width = style.height = _size;
@@ -69,12 +72,18 @@ namespace Game50033
             var radius = dodge ? _size * 0.5f : 0f;
             _face.style.borderTopLeftRadius = _face.style.borderTopRightRadius = radius;
             _face.style.borderBottomLeftRadius = _face.style.borderBottomRightRadius = radius;
-            _countdown.style.fontSize = Mathf.Max(18f, tuning.countdownFontSize * unit);
-            _charges.style.fontSize = Mathf.Max(16f, 21f * unit);
+            _countdown.style.fontSize = _charges.style.fontSize = tuning.abilityNumberFontSize;
+            _countdown.style.translate = new Translate(tuning.countdownOffset.x, tuning.countdownOffset.y);
+            // keep the label unclipped vertically, while anchoring its right edge using the authored inset.
+            _charges.style.right = tuning.chargeOffset.x;
+            _charges.style.top = tuning.chargeOffset.y;
+            _charges.style.unityTextOutlineWidth = tuning.chargeOutlineWidth;
             _promptText.style.fontSize = tuning.promptFontSize;
             var labelFont = FontDefinition.FromFont(tuning.promptFont != null ? tuning.promptFont : tuning.font);
-            _promptText.style.unityFontDefinition = _countdown.style.unityFontDefinition = _charges.style.unityFontDefinition = labelFont;
-            _countdown.style.unityFontStyleAndWeight = _charges.style.unityFontStyleAndWeight = FontStyle.Normal;
+            _promptText.style.unityFontDefinition = labelFont;
+            var numberFont = tuning.abilityNumberFont != null ? FontDefinition.FromFont(tuning.abilityNumberFont) : labelFont;
+            _countdown.style.unityFontDefinition = _charges.style.unityFontDefinition = numberFont;
+            _countdown.style.unityFontStyleAndWeight = _charges.style.unityFontStyleAndWeight = tuning.abilityNumberFontStyle;
             _promptText.style.unityFontStyleAndWeight = FontStyle.Normal;
             _prompt.style.bottom = -tuning.promptHeight * 0.5f;
             _promptImage.style.position = Position.Absolute;
@@ -85,11 +94,25 @@ namespace Game50033
             _prompt.style.borderLeftWidth = _prompt.style.borderRightWidth = tuning.promptBorderWidth;
         }
 
-        public void SetAppearance(Color accent, Texture2D artwork, Material palette, bool dodge, string prompt, VectorImage image, bool circularPrompt)
+        public void SetAppearance(Color accent, Texture2D artwork, Material palette, bool dodge, string prompt, VectorImage image, bool circularPrompt, Texture2D background = null)
         {
+            _background.image = background;
             _symbol.image = artwork;
-            _symbol.tintColor = Color.white;
-            _symbol.style.unityMaterial = _border.style.unityMaterial = new StyleMaterialDefinition(dodge ? null : palette);
+            _symbol.tintColor = dodge ? _tuning.dodgeTint : Color.white;
+            _symbol.style.unityMaterial = new StyleMaterialDefinition(dodge ? null : palette);
+            if (!dodge && palette != null)
+            {
+                var backgroundMaterial = MaterialDefinition.FromMaterial(palette);
+                backgroundMaterial.SetFloat("_PaletteLayer", 1f);
+                var borderMaterial = MaterialDefinition.FromMaterial(palette);
+                borderMaterial.SetFloat("_PaletteLayer", 2f);
+                _background.style.unityMaterial = new StyleMaterialDefinition(backgroundMaterial);
+                _border.style.unityMaterial = new StyleMaterialDefinition(borderMaterial);
+            }
+            else
+            {
+                _background.style.unityMaterial = _border.style.unityMaterial = new StyleMaterialDefinition((Material)null);
+            }
             _prompt.style.borderTopColor = _prompt.style.borderBottomColor = Color.Lerp(accent, Color.white, 0.75f);
             _prompt.style.borderLeftColor = _prompt.style.borderRightColor = Color.Lerp(accent, Color.white, 0.75f);
             var height = _tuning.promptHeight;
@@ -119,16 +142,16 @@ namespace Game50033
             if (_supported != state.Supported)
             {
                 _supported = state.Supported;
-                _symbol.style.opacity = _border.style.opacity = _supported ? 1f : 0.2f;
+                _symbol.style.opacity = _border.style.opacity = _background.style.opacity = _supported ? 1f : 0.2f;
             }
-            var timer = state.Supported && state.Remaining > 0.05f
-                ? state.Remaining >= 1 ? Mathf.CeilToInt(state.Remaining) * 10 : Mathf.CeilToInt(state.Remaining * 10) : 0;
+            var timer = state.Supported && state.Remaining > 0f ? Mathf.FloorToInt(state.Remaining) : -1;
             if (_timer != timer)
             {
                 _timer = timer;
-                _countdown.text = timer == 0 ? string.Empty : timer >= 10 ? (timer / 10).ToString()
-                    : (timer / 10f).ToString("0.0", CultureInfo.InvariantCulture);
+                _countdown.text = timer < 0 ? string.Empty : timer.ToString(CultureInfo.InvariantCulture);
             }
+            // keep zero legible through most of the final second, then fade faster near the end.
+            _countdown.style.opacity = timer == 0 ? Mathf.Sqrt(state.Remaining) : 1f;
             if (_chargeCount != state.Charges || _maxCharges != state.MaxCharges)
             {
                 _chargeCount = state.Charges; _maxCharges = state.MaxCharges;

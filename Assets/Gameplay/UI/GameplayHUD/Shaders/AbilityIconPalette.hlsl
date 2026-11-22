@@ -2,13 +2,17 @@
 #define CRESCENDO_ABILITY_ICON_PALETTE_INCLUDED
 
 void AbilityIconPalette_float(float4 Source, float4 Shadows, float4 DarkMidtones,
-    float4 LightMidtones, float4 Highlights, out float3 Color, out float Alpha)
+    float4 LightMidtones, float4 Highlights,
+    float4 BackgroundShadows, float4 BackgroundDarkMidtones, float4 BackgroundLightMidtones, float4 BackgroundHighlights,
+    float4 BorderShadows, float4 BorderDarkMidtones, float4 BorderLightMidtones, float4 BorderHighlights,
+    float PaletteLayer, out float3 Color, out float Alpha)
 {
     float brightness = saturate(Source.r);
-    float3 shadows = Shadows.rgb;
-    float3 darkMidtones = DarkMidtones.rgb;
-    float3 lightMidtones = LightMidtones.rgb;
-    float3 highlights = Highlights.rgb;
+    // one class material supplies independent palettes for its three artwork layers.
+    float3 shadows = PaletteLayer < 0.5 ? Shadows.rgb : PaletteLayer < 1.5 ? BackgroundShadows.rgb : BorderShadows.rgb;
+    float3 darkMidtones = PaletteLayer < 0.5 ? DarkMidtones.rgb : PaletteLayer < 1.5 ? BackgroundDarkMidtones.rgb : BorderDarkMidtones.rgb;
+    float3 lightMidtones = PaletteLayer < 0.5 ? LightMidtones.rgb : PaletteLayer < 1.5 ? BackgroundLightMidtones.rgb : BorderLightMidtones.rgb;
+    float3 highlights = PaletteLayer < 0.5 ? Highlights.rgb : PaletteLayer < 1.5 ? BackgroundHighlights.rgb : BorderHighlights.rgb;
 #ifndef UNITY_COLORSPACE_GAMMA
     // interpolate in authored colour space so a neutral palette preserves the source greys.
     brightness = LinearToSRGB(brightness);

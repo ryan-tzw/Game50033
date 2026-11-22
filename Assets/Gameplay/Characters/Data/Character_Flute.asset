@@ -14,22 +14,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.CharacterDefinition
   displayName: Flute
   sprite: {fileID: 5395042229362328217, guid: f4aa2dc303f9da7669b91fe830b83084, type: 3}
-  tint: {r: 0.95, g: 0.85, b: 0.55, a: 1}
+  tint: {r: 0.7411765, g: 0.54509807, b: 0.8509804, a: 1}
   playerPrefab: {fileID: 8127240988580949929, guid: 52493c21ef8314aaba0c76990588f7bb, type: 3}
   abilityPalette: {fileID: 2100000, guid: dbefa26d591307bac9a1c5f500fc3230, type: 2}
+  abilityBackground: {fileID: 2800000, guid: c1032d36278b46905835fa76c6a3d996, type: 3}
+  instrumentIcon: {fileID: 3648382318161221242, guid: c03bdf38f1cb45bfb7b1375a30a56c15, type: 3}
   abilityPreviews:
   - name: Homing Note
-    icon: {fileID: 2800000, guid: bc2431aeaa68a16bba0f0b8ea39335fe, type: 3}
+    icon: {fileID: 2800000, guid: a5322a8747f343d868bc3f0f96fd15f7, type: 3}
     description: Send a curving note after the nearest target. Higher Flow increases
       damage.
   - name: Rapid Shot
-    icon: {fileID: 2800000, guid: 10b362f9991db6df7b1533292e03fd4e, type: 3}
+    icon: {fileID: 2800000, guid: a2b90861119c36a30a890a45a0fabf5a, type: 3}
     description: Fire a fast projectile that can resonate lingering energy.
   - name: Evasive Step
-    icon: {fileID: 2800000, guid: 0c8870dcfa4f0fbd69424dff7f883ab1, type: 3}
+    icon: {fileID: 2800000, guid: 24cea2c2a40216cfb87008d769791930, type: 3}
     description: Evade with brief invulnerability. Avoiding a hit grants Flow and
       a short speed boost.
   - name: Charged Shot
-    icon: {fileID: 2800000, guid: b41ef8a4a961bc9edba5b71e0de3e3cf, type: 3}
+    icon: {fileID: 2800000, guid: 45920b7b2f55fb39dbcbc83c9f8d77bb, type: 3}
     description: Hold to charge and release a projectile. Its power increases with
       charge.

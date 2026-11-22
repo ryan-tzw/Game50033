@@ -22,6 +22,9 @@ namespace Game50033
         private readonly VisualElement _selection, _gameplay, _rosterRow;
         private readonly HudHealthBar _hearts;
         private readonly Label _highlightName, _selectionStatus;
+        private readonly Image _instrument;
+        private readonly HudAbilityIcon _inspectArtwork;
+        private readonly VisualElement[] _surfaces;
         private VisualElement[] _portraits = System.Array.Empty<VisualElement>();
         private CharacterRoster _shownRoster;
         private CharacterDefinition _shownCharacter;
@@ -31,7 +34,8 @@ namespace Game50033
         private PanelMode? _mode;
 
         private readonly VisualElement _inspector;
-        private readonly Label _inspectHint, _inspectName, _inspectType, _inspectDescription;
+        private readonly VisualElement _inspectHint;
+        private readonly Label _inspectKey, _inspectCaption, _inspectName, _inspectType, _inspectDescription;
         private readonly VisualElement[] _inspectMarkers = new VisualElement[4];
         private readonly (VisualElement Row, Label Name, Label Value)[] _inspectStats = new (VisualElement, Label, Label)[3];
         private InputActionAsset _inspectInputAsset;
@@ -63,7 +67,12 @@ namespace Game50033
             _highlightName = this.Q<Label>("highlight-name");
             _selectionStatus = this.Q<Label>("selection-status");
             _inspector = this.Q("ability-inspector");
-            _inspectHint = this.Q<Label>("inspect-hint");
+            _instrument = this.Q<Image>("instrument-icon");
+            _inspectArtwork = this.Q<HudAbilityIcon>("inspect-icon");
+            _surfaces = new[] { _selection, _inspector };
+            _inspectHint = this.Q("inspect-hint");
+            _inspectKey = this.Q<Label>("inspect-key");
+            _inspectCaption = this.Q<Label>("inspect-caption");
             _inspectName = this.Q<Label>("inspect-name");
             _inspectType = this.Q<Label>("inspect-type");
             _inspectDescription = this.Q<Label>("inspect-description");
@@ -114,21 +123,48 @@ namespace Game50033
             this.Query<TextElement>().ForEach(text => text.style.unityFontDefinition = FontDefinition.FromFont(_tuning.font));
             var headingFont = FontDefinition.FromFont(_tuning.headingFont != null ? _tuning.headingFont : _tuning.font);
             var labelFont = FontDefinition.FromFont(_tuning.promptFont != null ? _tuning.promptFont : _tuning.font);
-            var width = Mathf.Max(_tuning.iconSize * 4 + _tuning.dodgeIconSize + _tuning.iconGap * 4, _tuning.healthBarWidth);
+            var iconWidth = _tuning.iconSize * 4 + _tuning.dodgeIconSize + _tuning.iconGap * 4;
             var heartRowHeight = Mathf.Max(_tuning.heartHeight + _tuning.heartOutlineWidth * 2f, _tuning.healthBarHeight) + 2f;
             var abilityRowHeight = Mathf.Max(_tuning.iconSize, _tuning.dodgeIconSize);
             var heartGap = _tuning.promptHeight * 0.5f + 8f;
-            style.width = width + _tuning.panelPadding * 2;
-            style.paddingLeft = style.paddingRight = _tuning.panelPadding;
-            style.paddingTop = 10f;
+            var controlsHeight = abilityRowHeight + heartGap + heartRowHeight;
+            var groupWidth = Mathf.Max(iconWidth, _tuning.healthBarWidth) + _tuning.instrumentSize + _tuning.instrumentGap;
+            style.width = _tuning.columnWidth;
+            style.height = StyleKeyword.Auto;
             style.marginLeft = style.marginRight = _tuning.playerGap * 0.5f;
-            _gameplay.style.left = _gameplay.style.right = _tuning.panelPadding;
-            _gameplay.style.bottom = 0f;
-            _gameplay.style.height = abilityRowHeight + heartGap + heartRowHeight;
+            foreach (var surface in _surfaces)
+            {
+                surface.style.paddingLeft = surface.style.paddingRight = _tuning.panelPadding;
+                surface.style.paddingTop = surface.style.paddingBottom = _tuning.panelPadding;
+                surface.style.backgroundColor = _tuning.panelBackground;
+                surface.style.borderTopWidth = surface.style.borderBottomWidth = _tuning.panelBorderWidth;
+                surface.style.borderLeftWidth = surface.style.borderRightWidth = _tuning.panelBorderWidth;
+                surface.style.borderTopLeftRadius = surface.style.borderTopRightRadius = _tuning.panelCornerRadius;
+                surface.style.borderBottomLeftRadius = surface.style.borderBottomRightRadius = _tuning.panelCornerRadius;
+            }
+            _gameplay.style.height = controlsHeight;
+            var group = this.Q("gameplay-group");
+            group.style.width = groupWidth;
+            group.style.height = controlsHeight;
+            group.style.left = (_tuning.columnWidth - groupWidth) * 0.5f;
+            group.style.bottom = 0f;
+            var controls = this.Q("gameplay-controls");
+            controls.style.width = Mathf.Max(iconWidth, _tuning.healthBarWidth);
+            controls.style.height = controlsHeight;
             this.Q("abilities").style.height = abilityRowHeight;
             this.Q("abilities").style.justifyContent = Justify.Center;
             _hearts.style.height = heartRowHeight;
             _hearts.style.marginTop = heartGap;
+            _instrument.style.width = _instrument.style.height = _tuning.instrumentSize;
+            _instrument.style.bottom = 1f;
+            _inspectHint.style.width = _tuning.instrumentSize;
+            _inspectKey.style.unityFontDefinition = labelFont;
+            _inspectKey.style.fontSize = _tuning.promptFontSize;
+            _inspectKey.parent.style.height = _tuning.promptHeight;
+            _inspectKey.parent.style.backgroundColor = _tuning.promptBackground;
+            _inspectKey.parent.style.borderTopWidth = _inspectKey.parent.style.borderBottomWidth = _tuning.promptBorderWidth;
+            _inspectKey.parent.style.borderLeftWidth = _inspectKey.parent.style.borderRightWidth = _tuning.promptBorderWidth;
+            _inspector.style.marginBottom = _tuning.inspectGap;
             for (var i = 0; i < 5; i++)
             {
                 _icons[i].Configure(_tuning, i == 4);
@@ -141,9 +177,10 @@ namespace Game50033
                 _previews[i].SetState(new PlayerAbilityState(0, 1));
                 var row = this.Q("preview-row-" + i);
                 row.style.paddingLeft = _tuning.previewIconInset;
-                row.style.paddingTop = _tuning.previewIconInset;
+                row.style.paddingTop = row.style.paddingBottom = _tuning.previewIconInset;
                 row.style.alignItems = Align.FlexStart;
-                row.style.height = _tuning.previewRowHeight;
+                row.style.height = StyleKeyword.Auto;
+                row.style.minHeight = _tuning.previewRowHeight;
                 row.style.marginBottom = _tuning.iconGap;
                 _previewTitles[i].style.unityFontDefinition = headingFont;
                 _previewTitles[i].style.unityFontStyleAndWeight = FontStyle.Normal;
@@ -157,7 +194,10 @@ namespace Game50033
             _inspector.style.paddingLeft = _inspector.style.paddingRight = inspectPadding;
             _inspector.style.paddingTop = _inspector.style.paddingBottom = inspectPadding;
             _inspector.style.backgroundColor = _tuning.inspectBackground;
-            _inspectHint.style.fontSize = _inspectType.style.fontSize = _tuning.previewFontSize * 0.85f;
+            _inspectCaption.style.fontSize = _inspectType.style.fontSize = _tuning.previewFontSize * 0.85f;
+            _inspectArtwork.Configure(_tuning, false, _tuning.inspectIconSize, false);
+            _inspectArtwork.style.alignSelf = Align.FlexStart;
+            _inspectArtwork.SetState(new PlayerAbilityState(0f, 1f));
             _inspectName.style.unityFontDefinition = headingFont;
             _inspectName.style.unityFontStyleAndWeight = FontStyle.Normal;
             _inspectType.style.unityFontDefinition = labelFont;
@@ -171,7 +211,7 @@ namespace Game50033
             _renderedInspectSlot = -1;
             _highlightName.style.unityFontDefinition = headingFont;
             _highlightName.style.unityFontStyleAndWeight = FontStyle.Normal;
-            _highlightName.style.height = 30f;
+            _highlightName.style.height = 34f;
             _highlightName.style.fontSize = _tuning.previewFontSize * 1.3f;
             _rosterRow.style.height = _tuning.portraitSize;
             _selectionStatus.style.height = 22f;
@@ -192,18 +232,16 @@ namespace Game50033
             {
                 _mode = mode;
                 _renderedInspectSlot = -1;
-                _inspector.style.bottom = _gameplay.style.height.value.value + _tuning.inspectGap;
                 _shownCharacter = null;
                 _selection.style.display = mode == PanelMode.Selecting ? DisplayStyle.Flex : DisplayStyle.None;
                 _gameplay.style.display = mode != PanelMode.Selecting ? DisplayStyle.Flex : DisplayStyle.None;
-                style.height = mode == PanelMode.Selecting
-                    ? (4 * (_tuning.previewRowHeight + _tuning.iconGap) + _tuning.portraitSize + 72f)
-                    : _gameplay.style.height.value.value + 18f;
                 MarkDirtyRepaint();
             }
             var scheme = _input != null ? _input.currentControlScheme : string.Empty;
             var chosen = _player.Character;
-            var accent = mode != PanelMode.Selecting && chosen != null ? chosen.Tint : _player.PlayerColor;
+            var previewed = mode == PanelMode.Selecting && lobby.Roster != null && lobby.Roster.Count > 0
+                ? lobby.Roster[Mathf.Clamp(_selector.HighlightIndex, 0, lobby.Roster.Count - 1)] : chosen;
+            var accent = previewed != null ? previewed.Tint : _player.PlayerColor;
             _hearts.Refresh(_player.Health, accent);
             if (_scheme != scheme || _accent != accent || mode != PanelMode.Selecting
                 && (_shownCharacter != chosen || chosen != null && _shownPreviewRevision != chosen.PreviewRevision))
@@ -213,6 +251,22 @@ namespace Game50033
                 _accent = accent;
                 _shownCharacter = null;
                 _shownHighlight = -1;
+                foreach (var surface in _surfaces)
+                {
+                    var borderColor = Color.Lerp(accent, Color.white, 0.18f);
+                    surface.style.borderTopColor = surface.style.borderBottomColor = borderColor;
+                    surface.style.borderLeftColor = surface.style.borderRightColor = borderColor;
+                }
+                SetInstrumentImage(_instrument, chosen);
+                if (chosen != null && chosen.InstrumentIcon != null)
+                {
+                    // fit the image element itself to the sprite so horizontal instruments also sit on the bottom edge.
+                    var rect = chosen.InstrumentIcon.rect;
+                    var scale = _tuning.instrumentSize / Mathf.Max(1f, Mathf.Max(rect.width, rect.height));
+                    _instrument.style.width = rect.width * scale;
+                    _instrument.style.height = rect.height * scale;
+                    _instrument.style.left = (_tuning.instrumentSize - rect.width * scale) * 0.5f;
+                }
                 var keyboard = scheme == "Keyboard&Mouse";
                 _slots[0] = PlayerAbility.Primary;
                 _slots[1] = PlayerAbility.Secondary;
@@ -224,7 +278,7 @@ namespace Game50033
                         : i == 0 ? "X" : i == 1 ? "Y" : i == 2 ? "A" : i == 3 ? "B" : "RT";
                     var svg = keyboard ? i == 0 ? _tuning.leftMouse : i == 1 ? _tuning.rightMouse : i == 4 ? _tuning.space : null : null;
                     var artwork = i == 4 ? _tuning.dodgeIcon : chosen != null ? chosen.GetAbilityPreview(_slots[i]).icon : null;
-                    _icons[i].SetAppearance(accent, artwork, chosen != null ? chosen.AbilityPalette : null, i == 4, text, svg, !keyboard && i < 4);
+                    _icons[i].SetAppearance(accent, artwork, chosen != null ? chosen.AbilityPalette : null, i == 4, text, svg, !keyboard && i < 4, chosen != null ? chosen.AbilityBackground : null);
                 }
                 _shownRoster = null;
                 MarkDirtyRepaint();
@@ -265,7 +319,7 @@ namespace Game50033
                         frame.style.width = frame.style.height = _tuning.portraitSize;
                         frame.style.marginLeft = frame.style.marginRight = 3f;
                         var portrait = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.ScaleToFit };
-                        if (roster[i] != null) { portrait.sprite = roster[i].Sprite; portrait.tintColor = roster[i].Tint; }
+                        SetInstrumentImage(portrait, roster[i]);
                         frame.Add(portrait);
                         _portraits[i] = frame;
                         _rosterRow.Add(frame);
@@ -291,7 +345,12 @@ namespace Game50033
                     {
                         var frame = _portraits[i];
                         frame.style.opacity = (taken & (1 << i)) != 0 ? 0.3f : 1f;
-                        var border = i == highlight ? Color.Lerp(accent, Color.white, 0.65f) : new Color(0.2f, 0.23f, 0.3f);
+                        var classColor = roster[i] != null ? roster[i].Tint : accent;
+                        var border = i == highlight ? Color.Lerp(classColor, Color.white, 0.55f) : classColor * 0.7f;
+                        border.a = 1f;
+                        var radius = i == highlight ? 10f : _tuning.portraitSize * 0.5f;
+                        frame.style.borderTopLeftRadius = frame.style.borderTopRightRadius = radius;
+                        frame.style.borderBottomLeftRadius = frame.style.borderBottomRightRadius = radius;
                         frame.style.borderTopColor = frame.style.borderBottomColor = border;
                         frame.style.borderLeftColor = frame.style.borderRightColor = border;
                     }
@@ -313,7 +372,7 @@ namespace Game50033
                             : i == 0 ? "X" : i == 1 ? "Y" : i == 2 ? "A" : "B";
                         var image = keyboard ? i == 0 ? _tuning.leftMouse : i == 1 ? _tuning.rightMouse : null : null;
                         var preview = character != null ? character.GetAbilityPreview(ability) : default;
-                        _previews[i].SetAppearance(previewAccent, preview.icon, character != null ? character.AbilityPalette : null, false, prompt, image, !keyboard);
+                        _previews[i].SetAppearance(previewAccent, preview.icon, character != null ? character.AbilityPalette : null, false, prompt, image, !keyboard, character != null ? character.AbilityBackground : null);
                         _previewTitles[i].style.color = titleColor;
                         _previewTitles[i].text = string.IsNullOrWhiteSpace(preview.name) ? ability.ToString() : preview.name;
                         _previewDescriptions[i].text = string.IsNullOrWhiteSpace(preview.description) ? "Details coming soon." : preview.description;
@@ -334,6 +393,24 @@ namespace Game50033
                 movement.DodgeRechargeTime, movement.DodgeCharges, movement.MaxDodgeCharges) : default);
         }
 
+        private static void SetInstrumentImage(Image image, CharacterDefinition character)
+        {
+            image.sprite = character != null ? character.InstrumentIcon : null;
+            image.scaleMode = ScaleMode.ScaleToFit;
+            image.tintColor = Color.white;
+            if (character == null || character.AbilityPalette == null)
+            {
+                image.style.unityMaterial = new StyleMaterialDefinition((Material)null);
+                return;
+            }
+            var silhouette = MaterialDefinition.FromMaterial(character.AbilityPalette);
+            silhouette.SetColor("_Shadows", character.Tint);
+            silhouette.SetColor("_DarkMidtones", character.Tint);
+            silhouette.SetColor("_LightMidtones", character.Tint);
+            silhouette.SetColor("_Highlights", character.Tint);
+            image.style.unityMaterial = new StyleMaterialDefinition(silhouette);
+        }
+
         private void RefreshInspector(PanelMode mode, string scheme)
         {
             // use the paired action asset again after a player rebinds.
@@ -351,7 +428,9 @@ namespace Game50033
                 && _player.HasActiveInput && _inspectHold != null && _inspectHold.enabled;
             _inspectHint.style.display = available ? DisplayStyle.Flex : DisplayStyle.None;
             var gesture = _tuning.toggleAbilityInspection ? "Press" : "Hold";
-            _inspectHint.text = keyboard ? gesture + " Tab · Abilities" : gesture + " LT · Abilities";
+            _inspectKey.text = keyboard ? "Tab" : "LT";
+            _inspectKey.parent.style.width = _tuning.promptHeight * (keyboard ? 1.5f : 1f);
+            _inspectHint.tooltip = gesture + (keyboard ? " Tab" : " LT") + " to inspect abilities";
             var open = available && (_tuning.toggleAbilityInspection
                 ? _inspecting ^ _inspectHold.WasPressedThisFrame()
                 : _inspectHold.IsPressed());
@@ -383,6 +462,7 @@ namespace Game50033
             var stats = _player.Abilities != null ? _player.Abilities.GetAbilityStats(ability) : default;
             var accent = Color.Lerp(character.Tint, Color.white, 0.25f);
 
+            _inspectArtwork.SetAppearance(character.Tint, preview.icon, character.AbilityPalette, false, string.Empty, null, false, character.AbilityBackground);
             _inspectName.text = string.IsNullOrEmpty(preview.name) ? ability.ToString() : preview.name;
             _inspectName.style.color = accent;
             _inspectType.text = ability.ToString();

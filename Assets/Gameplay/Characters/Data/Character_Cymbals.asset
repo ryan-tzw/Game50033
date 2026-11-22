@@ -14,21 +14,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.CharacterDefinition
   displayName: Cymbals
   sprite: {fileID: 5395042229362328217, guid: f4aa2dc303f9da7669b91fe830b83084, type: 3}
-  tint: {r: 0.95, g: 0.4, b: 0.35, a: 1}
+  tint: {r: 0.4392157, g: 0.7882353, b: 0.6117647, a: 1}
   playerPrefab: {fileID: 8404843420213471496, guid: e524efb39ba21944eb75ec627cd5e6ac, type: 3}
   abilityPalette: {fileID: 2100000, guid: 22d6cab60c2755320938552457dc20db, type: 2}
+  abilityBackground: {fileID: 2800000, guid: 3f44ba4bc483e1b949fefd1958170bd8, type: 3}
+  instrumentIcon: {fileID: 21300000, guid: 4e4d7aa9877807745b35cb1932d1713e, type: 3}
   abilityPreviews:
   - name: Cymbal Combo
-    icon: {fileID: 2800000, guid: bea5901c0ea194dc38c54a8c7c58d893, type: 3}
+    icon: {fileID: 2800000, guid: 9c0a4e75bb505d007b8c1464cbcc04de, type: 3}
     description: An advancing melee combo with alternating cymbal strikes.
   - name: Cymbal Throw
-    icon: {fileID: 2800000, guid: f1e58d2bebcc3c7318ec96dd65bcf988, type: 3}
+    icon: {fileID: 2800000, guid: 53bd0df99ade0873e9d9ecf77bb90049, type: 3}
     description: Throw a cymbal that returns. Recast near its apex to dash after
       it.
   - name: Frontal Parry
-    icon: {fileID: 2800000, guid: 73f4880ae34ed636dbf531f98485a132, type: 3}
+    icon: {fileID: 2800000, guid: 82f76e31741fce039875864052e8bd77, type: 3}
     description: Parry projectiles in front of you. A successful block restores a
       Crash charge.
   - name: Crash
-    icon: {fileID: 2800000, guid: cf457c8f661d841d88016c24d76a5743, type: 3}
+    icon: {fileID: 2800000, guid: 173f01d8fdaadcdb590f6e6bd981ba62, type: 3}
     description: Spend a charge to strike a triangular area with a shockwave.

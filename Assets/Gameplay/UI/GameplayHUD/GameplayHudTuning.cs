@@ -8,12 +8,18 @@ namespace Game50033
     public sealed class GameplayHudTuning : ScriptableObject
     {
         [Header("Layout (1920 x 1080 reference)")]
+        [Min(320f)] public float columnWidth = 440f;
         [Min(32f)] public float iconSize = 56f;
         [Min(24f)] public float dodgeIconSize = 40f;
         [Min(0f)] public float iconGap = 6f;
-        [Min(0f)] public float panelPadding = 12f;
-        [Min(0f)] public float playerGap = 40f;
-        [Min(0f)] public float bottomMargin = 3f;
+        [Min(0f)] public float panelPadding = 16f;
+        [Min(0f)] public float playerGap = 16f;
+        [Min(0f)] public float bottomMargin = 12f;
+        [Min(24f)] public float instrumentSize = 50f;
+        [Min(0f)] public float instrumentGap = 16f;
+        public Color panelBackground = new(0.045f, 0.035f, 0.065f, 0.94f);
+        [Min(0f)] public float panelBorderWidth = 1.4f;
+        [Min(0f)] public float panelCornerRadius = 14f;
         [Header("Borders")]
         [Min(0f)] public float healthBorderWidth = 3f;
         [Min(0f)] public float promptBorderWidth = 1.5f;
@@ -43,22 +49,33 @@ namespace Game50033
         [Header("Typography")]
         public Font font;
         public Font headingFont;
-        public float countdownFontSize = 30f;
         public float promptFontSize = 16f;
-        [Tooltip("Used for input prompts, ability types, cooldowns and charge counts.")]
+        [Tooltip("Used for input prompts and ability types. Also the fallback when Ability Number Font is unset.")]
         public Font promptFont;
         [Min(16f)] public float promptHeight = 24f;
         [Min(0f)] public float promptPadding = 4f;
+        [Header("Ability numbers")]
+        [FormerlySerializedAs("chargeFont")] public Font abilityNumberFont;
+        [FormerlySerializedAs("chargeFontSize")]
+        [Min(12f)] public float abilityNumberFontSize = 26f;
+        public FontStyle abilityNumberFontStyle = FontStyle.Bold;
+        [Tooltip("Optical offset for the centred countdown, in UI pixels. Positive X moves right; positive Y moves down.")]
+        public Vector2 countdownOffset = new(0f, -3f);
+        [Header("Charge counts")]
+        [Min(0f)] public float chargeOutlineWidth = 1.25f;
+        [Tooltip("X is the inset from the icon's right edge (positive moves left). Y is the offset from its top (positive moves down).")]
+        public Vector2 chargeOffset = new(2f, -7f);
         [Header("Character selection")]
         [Min(0f)] public float previewIconInset = 12f;
-        [Min(90f)] public float previewRowHeight = 122f;
-        [Min(12f)] public float previewFontSize = 18f;
-        [Min(24f)] public float portraitSize = 52f;
+        [Min(90f)] public float previewRowHeight = 124f;
+        [Min(12f)] public float previewFontSize = 17f;
+        [Min(24f)] public float portraitSize = 68f;
         [Header("Ability Inspection")]
         public bool toggleAbilityInspection = true;
-        [Min(0f)] public float inspectGap = 28f;
-        [Min(0f)] public float inspectPadding = 12f;
-        [Min(12f)] public float inspectStatFontSize = 20f;
+        [Min(32f)] public float inspectIconSize = 72f;
+        [Min(0f)] public float inspectGap = 12f;
+        [Min(0f)] public float inspectPadding = 16f;
+        [Min(12f)] public float inspectStatFontSize = 16f;
         public Color inspectBackground = new(0.04f, 0.055f, 0.085f, 0.98f);
         [Header("Appearance")]
         public Color emptyHeart = new(0.025f, 0.025f, 0.035f, 1f);
@@ -66,6 +83,7 @@ namespace Game50033
         [Range(0f, 1f)] public float cooldownOpacity = 0.78f;
         [Header("Ability artwork")]
         public Texture2D dodgeIcon;
+        public Color dodgeTint = new(0.94f, 0.9f, 0.8f, 1f);
         public Texture2D sharedAbilityBorder;
         [Header("Input prompt artwork")]
         public VectorImage leftMouse;

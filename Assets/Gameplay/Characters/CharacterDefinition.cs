@@ -11,7 +11,7 @@ namespace Game50033
     {
         [SerializeField] private string displayName;
 
-        [Tooltip("Shown in the character roster/ready header and used as the in-world sprite when set.")]
+        [Tooltip("Used as the in-world character sprite when set.")]
         [SerializeField] private Sprite sprite;
 
         [Tooltip("Tint applied to the character's sprite (via the _PlayerTint shader property).")]
@@ -22,6 +22,10 @@ namespace Game50033
 
         [SerializeField] private Material abilityPalette;
         public Material AbilityPalette => abilityPalette;
+        [SerializeField] private Texture2D abilityBackground;
+        [SerializeField] private Sprite instrumentIcon;
+        public Texture2D AbilityBackground => abilityBackground;
+        public Sprite InstrumentIcon => instrumentIcon;
 
         [Serializable]
         public struct AbilityPreview

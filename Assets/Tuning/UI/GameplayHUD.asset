@@ -12,12 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31998f57bdb9eca4d8c8702976f7d7f5, type: 3}
   m_Name: GameplayHUD
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.GameplayHudTuning
+  columnWidth: 440
   iconSize: 53.9
   dodgeIconSize: 41.9
   iconGap: 6
-  panelPadding: 12
-  playerGap: 40
-  bottomMargin: 3
+  panelPadding: 16
+  playerGap: 16
+  bottomMargin: 12
+  instrumentSize: 50
+  instrumentGap: 16
+  panelBackground: {r: 0.045, g: 0.035, b: 0.065, a: 0.94}
+  panelBorderWidth: 1.4
+  panelCornerRadius: 14
   healthBorderWidth: 2.5
   promptBorderWidth: 1
   healthBarWidth: 0
@@ -106,27 +112,34 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  font: {fileID: 12800000, guid: a0979a15571bafcfb9fc1285a80642b6, type: 3}
+  font: {fileID: 12800000, guid: 25cc98fe52380b1c2af64cc8de941ce7, type: 3}
   headingFont: {fileID: 12800000, guid: 8595d790f2174ddecb28951ed3e33103, type: 3}
-  countdownFontSize: 30
   promptFontSize: 16
   promptFont: {fileID: 12800000, guid: 1804fbf3c348c60868f5f76f113b30cc, type: 3}
   promptHeight: 24
   promptPadding: 2.5
+  abilityNumberFont: {fileID: 12800000, guid: 298504253879c4bb997c4d849aeb8aca, type: 3}
+  abilityNumberFontSize: 24
+  abilityNumberFontStyle: 1
+  countdownOffset: {x: 0, y: -3}
+  chargeOutlineWidth: 1.5
+  chargeOffset: {x: 2, y: -11}
   previewIconInset: 12
-  previewRowHeight: 122
-  previewFontSize: 14.2
-  portraitSize: 53.3
+  previewRowHeight: 124
+  previewFontSize: 17
+  portraitSize: 68
   toggleAbilityInspection: 1
-  inspectGap: 21
-  inspectPadding: 12
-  inspectStatFontSize: 17.4
+  inspectIconSize: 72
+  inspectGap: 12
+  inspectPadding: 16
+  inspectStatFontSize: 16
   inspectBackground: {r: 0.05629228, g: 0.07355821, b: 0.103773594, a: 0.9529412}
   emptyHeart: {r: 0.025, g: 0.025, b: 0.035, a: 1}
   promptBackground: {r: 0.015, g: 0.018, b: 0.025, a: 0.98}
   cooldownOpacity: 0.78
-  dodgeIcon: {fileID: 2800000, guid: b3dc3155ffd8308559ca542cbe390fc7, type: 3}
-  sharedAbilityBorder: {fileID: 2800000, guid: ac51ecb24c3c5fc5aa797f6eeb46411d, type: 3}
+  dodgeIcon: {fileID: 2800000, guid: ed1379754d096da138241353b2aa2b9c, type: 3}
+  dodgeTint: {r: 0.94, g: 0.9, b: 0.8, a: 1}
+  sharedAbilityBorder: {fileID: 2800000, guid: c80a3254455e7301b9603ff24e1a944f, type: 3}
   leftMouse: {fileID: 7388822144124034973, guid: baaf4f7a55dd7aef5b367f4914595045, type: 3}
   rightMouse: {fileID: 7388822144124034973, guid: 8cc14245c6e29a4978f1e6bb67a39b3c, type: 3}
   space: {fileID: 7388822144124034973, guid: 986ab031931f3864fa3e5254cf63589e, type: 3}

@@ -14,21 +14,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.CharacterDefinition
   displayName: Guitar
   sprite: {fileID: 5395042229362328217, guid: f4aa2dc303f9da7669b91fe830b83084, type: 3}
-  tint: {r: 0.35, g: 0.8, b: 0.85, a: 1}
+  tint: {r: 0.9137255, g: 0.7411765, b: 0.39215687, a: 1}
   playerPrefab: {fileID: 9019545368423628371, guid: 37531a99c5eee3496ac27af004e69c68, type: 3}
   abilityPalette: {fileID: 2100000, guid: eb4e025a01024e9bd85b155619199fdb, type: 2}
+  abilityBackground: {fileID: 2800000, guid: 395bd3b9ea926b7b6a17e9aa300705a2, type: 3}
+  instrumentIcon: {fileID: 4751300937926204119, guid: 9cc4cdc54e67688c2b5f79618027ead6, type: 3}
   abilityPreviews:
   - name: Sweeping Combo
-    icon: {fileID: 2800000, guid: 1979757c5e338ecb495226513b9840dd, type: 3}
+    icon: {fileID: 2800000, guid: 28a47b716946440e2af0ca8fbcf7c184, type: 3}
     description: A three-hit sweeping combo. The outer edge rewards precise spacing.
   - name: Strum
-    icon: {fileID: 2800000, guid: d966496a1be1e1b538cd65f5bcf86e6a, type: 3}
+    icon: {fileID: 2800000, guid: 01fc255e8f761f62b9baebeb06977f51, type: 3}
     description: Send out a ranged wave and empower your next Primary or Special.
   - name: Backstep Sweep
-    icon: {fileID: 2800000, guid: bb477d6f6e843816e8257b31bc8586a8, type: 3}
+    icon: {fileID: 2800000, guid: a4cbbbd8ac872c4ebbf5b0243d7feb74, type: 3}
     description: Backstep and sweep with brief invulnerability. Keeps your Primary
       combo.
   - name: Overhead Smash
-    icon: {fileID: 2800000, guid: 405b343ab4cd3080c8ba851eb38f2537, type: 3}
+    icon: {fileID: 2800000, guid: 18e1ea66b0b7dcbca95f2608f40a0fe2, type: 3}
     description: A committed overhead strike. Position the target near the centre
       for bonus damage.

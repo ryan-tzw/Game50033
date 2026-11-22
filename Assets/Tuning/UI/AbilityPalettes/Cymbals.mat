@@ -36,11 +36,20 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
-    m_Floats: []
+    m_Floats:
+    - _PaletteLayer: 0
     m_Colors:
-    - _DarkMidtones: {r: 0.285, g: 0.120000005, b: 0.105000004, a: 1}
-    - _Highlights: {r: 0.99, g: 0.88, b: 0.87, a: 1}
-    - _LightMidtones: {r: 0.95, g: 0.4, b: 0.35, a: 1}
-    - _Shadows: {r: 0.015, g: 0.018, b: 0.025, a: 1}
+    - _BackgroundDarkMidtones: {r: 0.053803332, g: 0.07981, b: 0.079450004, a: 1}
+    - _BackgroundHighlights: {r: 0.10434922, g: 0.17271824, b: 0.14926177, a: 1}
+    - _BackgroundLightMidtones: {r: 0.079076275, g: 0.12626411, b: 0.114355884, a: 1}
+    - _BackgroundShadows: {r: 0.028530391, g: 0.033355884, b: 0.04454412, a: 1}
+    - _BorderDarkMidtones: {r: 0.24156864, g: 0.43352944, b: 0.3364706, a: 1}
+    - _BorderHighlights: {r: 0.8317647, g: 0.93647057, b: 0.8835294, a: 1}
+    - _BorderLightMidtones: {r: 0.5233333, g: 0.82, b: 0.67, a: 1}
+    - _BorderShadows: {r: 0.045, g: 0.035, b: 0.065, a: 1}
+    - _DarkMidtones: {r: 0.15276471, g: 0.2539706, b: 0.21152942, a: 1}
+    - _Highlights: {r: 0.8990588, g: 0.96188235, b: 0.93011767, a: 1}
+    - _LightMidtones: {r: 0.4392157, g: 0.7882353, b: 0.6117647, a: 1}
+    - _Shadows: {r: 0.018, g: 0.016, b: 0.027, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
