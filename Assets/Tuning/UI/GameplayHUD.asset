@@ -144,6 +144,10 @@ MonoBehaviour:
   dodgeIcon: {fileID: 2800000, guid: ed1379754d096da138241353b2aa2b9c, type: 3}
   dodgeTint: {r: 0.94, g: 0.9, b: 0.8, a: 1}
   sharedAbilityBorder: {fileID: 2800000, guid: c80a3254455e7301b9603ff24e1a944f, type: 3}
+  interactionBadgeSize: 15
+  interactionBadgePulseDuration: 0.38
+  revBadgeColor: {r: 0.34, g: 0.96, b: 0.88, a: 1}
+  resBadgeColor: {r: 1, g: 0.76, b: 0.33, a: 1}
   leftMouse: {fileID: 7388822144124034973, guid: baaf4f7a55dd7aef5b367f4914595045, type: 3}
   rightMouse: {fileID: 7388822144124034973, guid: 8cc14245c6e29a4978f1e6bb67a39b3c, type: 3}
   space: {fileID: 7388822144124034973, guid: 986ab031931f3864fa3e5254cf63589e, type: 3}

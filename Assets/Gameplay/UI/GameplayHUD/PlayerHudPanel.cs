@@ -110,6 +110,7 @@ namespace Game50033
             _inspector.style.display = DisplayStyle.None;
             for (var i = 0; i < _inspectMarkers.Length; i++)
             {
+                _icons[i].SetInteractionBadges(AbilityInteraction.None);
                 _icons[i].pickingMode = PickingMode.Ignore;
                 _inspectMarkers[i].style.display = DisplayStyle.None;
             }
@@ -270,8 +271,10 @@ namespace Game50033
                     var text = keyboard ? i == 2 ? "Q" : i == 3 ? "E" : string.Empty
                         : i == 0 ? "X" : i == 1 ? "Y" : i == 2 ? "A" : i == 3 ? "B" : "RT";
                     var svg = keyboard ? i == 0 ? _tuning.leftMouse : i == 1 ? _tuning.rightMouse : i == 4 ? _tuning.space : null : null;
-                    var artwork = i == 4 ? _tuning.dodgeIcon : chosen != null ? chosen.GetAbilityPreview(_slots[i]).icon : null;
+                    var preview = i < 4 && chosen != null ? chosen.GetAbilityPreview(_slots[i]) : default;
+                    var artwork = i == 4 ? _tuning.dodgeIcon : preview.icon;
                     _icons[i].SetAppearance(accent, artwork, chosen != null ? chosen.AbilityPalette : null, i == 4, text, svg, !keyboard && i < 4);
+                    _icons[i].SetInteractionBadges(preview.interactions, preview.conditionalInteractions);
                 }
                 MarkDirtyRepaint();
                 _hearts.MarkDirtyRepaint();
@@ -368,6 +371,7 @@ namespace Game50033
                         var image = keyboard ? i == 0 ? _tuning.leftMouse : i == 1 ? _tuning.rightMouse : null : null;
                         var preview = character != null ? character.GetAbilityPreview(ability) : default;
                         _previews[i].SetAppearance(previewAccent, preview.icon, character != null ? character.AbilityPalette : null, false, prompt, image, !keyboard);
+                        _previews[i].SetInteractionBadges(preview.interactions);
                         _previewTitles[i].style.color = titleColor;
                         _previewTitles[i].text = string.IsNullOrWhiteSpace(preview.name) ? ability.ToString() : preview.name;
                         _previewDescriptions[i].text = string.IsNullOrWhiteSpace(preview.description) ? "Details coming soon." : preview.description;
@@ -381,8 +385,15 @@ namespace Game50033
                 _shownCharacter = chosen;
                 _shownPreviewRevision = chosen != null ? chosen.PreviewRevision : -1;
             }
+            var abilities = _player.Abilities;
             for (var i = 0; i < 4; i++)
-                _icons[i].SetState(_player.Abilities != null ? _player.Abilities.GetAbilityState(_slots[i]) : default);
+            {
+                _icons[i].SetState(abilities != null ? abilities.GetAbilityState(_slots[i]) : default);
+                var ready = abilities != null && abilities.isActiveAndEnabled && _player.isActiveAndEnabled
+                    && _player.HasActiveInput && !_player.Health.IsDowned
+                    ? abilities.GetReadyInteractions(_slots[i]) : AbilityInteraction.None;
+                _icons[i].RefreshReadyInteractions(ready);
+            }
             var movement = _player.Movement;
             _icons[4].SetState(movement != null ? new PlayerAbilityState(movement.DodgeRechargeRemaining,
                 movement.DodgeRechargeTime, movement.DodgeCharges, movement.MaxDodgeCharges) : default);
@@ -456,6 +467,7 @@ namespace Game50033
             var accent = Color.Lerp(character.Tint, Color.white, 0.25f);
 
             _inspectArtwork.SetAppearance(character.Tint, preview.icon, character.AbilityPalette, false, string.Empty, null, false);
+            _inspectArtwork.SetInteractionBadges(preview.interactions);
             _inspectName.text = string.IsNullOrEmpty(preview.name) ? ability.ToString() : preview.name;
             _inspectName.style.color = accent;
             _inspectType.text = ability.ToString();

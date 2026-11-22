@@ -89,6 +89,11 @@ namespace Game50033
         public Texture2D dodgeIcon;
         public Color dodgeTint = new(0.94f, 0.9f, 0.8f, 1f);
         public Texture2D sharedAbilityBorder;
+        [Header("REV / RES badges")]
+        [Min(10f)] public float interactionBadgeSize = 15f;
+        [Min(0f)] public float interactionBadgePulseDuration = 0.38f;
+        public Color revBadgeColor = new(0.34f, 0.96f, 0.88f);
+        public Color resBadgeColor = new(1f, 0.76f, 0.33f);
         [Header("Input prompt artwork")]
         public VectorImage leftMouse;
         public VectorImage rightMouse;

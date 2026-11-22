@@ -10,6 +10,14 @@ namespace Game50033
         Recovery,
     }
 
+    [System.Flags]
+    public enum AbilityInteraction
+    {
+        None = 0,
+        Reverberation = 1,
+        Resonance = 2,
+    }
+
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Player))]
     public abstract class PlayerAbilities : MonoBehaviour
@@ -33,6 +41,7 @@ namespace Game50033
         // unsupported slots default to a disabled icon; concrete instruments expose their own live state.
         public virtual PlayerAbilityState GetAbilityState(PlayerAbility ability) => default;
         public virtual PlayerAbilityStats GetAbilityStats(PlayerAbility ability) => default;
+        public virtual AbilityInteraction GetReadyInteractions(PlayerAbility ability) => AbilityInteraction.None;
 
         // encounter boundary: stop whatever is running and start the fight with everything ready.
         // Override to also reset instrument resources that should not carry between fights.

@@ -32,6 +32,9 @@ namespace Game50033
         {
             public string name;
             public Texture2D icon;
+            public AbilityInteraction interactions;
+            [Tooltip("Effects that can become available or be spent before the cast. Include them in Interactions too.")]
+            public AbilityInteraction conditionalInteractions;
             [TextArea(2, 5)] public string description;
         }
 

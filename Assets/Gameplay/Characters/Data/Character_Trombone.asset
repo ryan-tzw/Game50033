@@ -22,17 +22,20 @@ MonoBehaviour:
   abilityPreviews:
   - name: Pressure Shot
     icon: {fileID: 2800000, guid: 464342b7923ea3da79c80e31c453a5fc, type: 3}
-    description: Fire a straight shot. Higher Pressure increases damage and can shorten
-      the cooldown.
+    interactions: 2
+    conditionalInteractions: 2
+    description: Fire a straight shot. Higher Pressure increases damage and fire rate. A successful Guard in the Command Zone primes the next shot to resonate.
   - name: Command Zone
     icon: {fileID: 2800000, guid: 7dfb78595e52edfedba8f48fde031a6e, type: 3}
-    description: Place a zone that helps maintain Pressure. Leaving it creates a
-      Sustain reverberation.
+    interactions: 1
+    conditionalInteractions: 0
+    description: Place a zone that helps maintain Pressure. Leaving it or consuming it with Special creates a Sustain REV.
   - name: Guard
     icon: {fileID: 2800000, guid: 609ecb83938d9089786265f0a3d0f04a, type: 3}
     description: Block one hit. In the Command Zone, a successful block primes the
       next Primary to resonate.
   - name: Pressure Blast
     icon: {fileID: 2800000, guid: 9e2507e4fc7af905387d304d673bacb3, type: 3}
-    description: Fire a powerful shot that leaves a Reverberation. Higher Pressure
-      increases damage.
+    interactions: 1
+    conditionalInteractions: 0
+    description: Fire a powerful shot that leaves a Reprise REV. Higher Pressure increases damage. Consumes your Command Zone.

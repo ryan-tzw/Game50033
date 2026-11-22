@@ -259,6 +259,9 @@ namespace Game50033
             }
         }
 
+        public override AbilityInteraction GetReadyInteractions(PlayerAbility ability) =>
+            ability == PlayerAbility.Primary && PrimaryResonates ? AbilityInteraction.Resonance : AbilityInteraction.None;
+
         public override PlayerAbilityStats GetAbilityStats(PlayerAbility ability)
         {
             if (tuning == null || !GetAbilityState(ability).Supported) return default;

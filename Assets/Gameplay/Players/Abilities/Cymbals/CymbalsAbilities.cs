@@ -116,6 +116,12 @@ namespace Game50033
                 return PlayerAttackPhase.None;
             }
         }
+        public override AbilityInteraction GetReadyInteractions(PlayerAbility ability) =>
+            ability == PlayerAbility.Secondary && !_recastUsed
+                && (CurrentThrow == ThrowState.Outbound || CurrentThrow == ThrowState.Returning)
+                && tuning != null && tuning.cymbalThrow.burstReverberation != null
+                ? AbilityInteraction.Reverberation : AbilityInteraction.None;
+
         public override PlayerAbilityStats GetAbilityStats(PlayerAbility ability)
         {
             if (tuning == null || !GetAbilityState(ability).Supported) return default;

@@ -14,6 +14,8 @@
 .ability-row { flex-direction: row; flex-shrink: 0; }
 .heart-row { flex-shrink: 0; }
 .hud-ability { position: relative; flex-shrink: 0; }
+.hud-interaction-badges { position: absolute; left: -3px; top: -3px; flex-direction: row; }
+.hud-interaction-badges > VisualElement { flex-shrink: 0; margin-right: 2px; }
 .hud-face { position: absolute; left: 0; right: 0; top: 0; bottom: 0; overflow: hidden; }
 .hud-symbol, .hud-wipe { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
 .hud-countdown { position: absolute; left: 0; right: 0; top: 0; bottom: 0; margin: 0; padding: 0; -unity-text-align: middle-center; color: white; -unity-text-outline-width: 1px; -unity-text-outline-color: black; }

@@ -168,12 +168,12 @@ namespace Game50033
             }
         }
 
+        internal bool CanConsume(float amount) =>
+            !float.IsNaN(amount) && !float.IsInfinity(amount) && amount >= 0f && Current >= amount;
+
         public bool TryConsume(float amount)
         {
-            if (float.IsNaN(amount) || float.IsInfinity(amount) || amount < 0f || Current < amount)
-            {
-                return false;
-            }
+            if (!CanConsume(amount)) return false;
 
             SetValue(Current - amount);
             return true;

@@ -25,12 +25,16 @@ MonoBehaviour:
     description: An advancing melee combo with alternating cymbal strikes.
   - name: Cymbal Throw
     icon: {fileID: 2800000, guid: 53bd0df99ade0873e9d9ecf77bb90049, type: 3}
-    description: Throw a cymbal that returns. Recast near its apex to dash after
-      it.
+    interactions: 1
+    conditionalInteractions: 1
+    description: Throw a returning cymbal. Recast in flight to leave a Burst REV. Recast near its apex to dash after it.
   - name: Frontal Parry
     icon: {fileID: 2800000, guid: 82f76e31741fce039875864052e8bd77, type: 3}
-    description: Parry projectiles in front of you. A successful block restores a
-      Crash charge.
+    interactions: 1
+    conditionalInteractions: 0
+    description: Parry a frontal hit to restore a Crash charge and leave an Amp REV.
   - name: Crash
     icon: {fileID: 2800000, guid: 173f01d8fdaadcdb590f6e6bd981ba62, type: 3}
-    description: Spend a charge to strike a triangular area with a shockwave.
+    interactions: 2
+    conditionalInteractions: 0
+    description: Spend a charge to send out a triangular shockwave that resonates with REVs in its path.

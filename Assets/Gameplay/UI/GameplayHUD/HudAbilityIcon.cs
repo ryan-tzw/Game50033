@@ -12,11 +12,14 @@ namespace Game50033
         private readonly HudAccentGradient _background;
         private readonly Image _border;
         private readonly VisualElement _wipe;
+        private readonly VisualElement _interactionOutline;
         private readonly Label _countdown;
         private readonly Label _charges;
         private readonly VisualElement _prompt;
         private readonly Label _promptText;
         private readonly Image _promptImage;
+        private readonly InteractionBadge _revBadge;
+        private readonly InteractionBadge _resBadge;
         private GameplayHudTuning _tuning;
         private float _size;
         private float _fraction = -1;
@@ -39,7 +42,19 @@ namespace Game50033
             _wipe = new VisualElement { pickingMode = PickingMode.Ignore }; _wipe.AddToClassList("hud-wipe"); _face.Add(_wipe);
             _wipe.generateVisualContent += PaintWipe;
             _countdown = new Label { pickingMode = PickingMode.Ignore }; _countdown.AddToClassList("hud-countdown"); _face.Add(_countdown);
+            _interactionOutline = new VisualElement { name = "interaction-outline", pickingMode = PickingMode.Ignore };
+            _interactionOutline.AddToClassList("hud-wipe");
+            _interactionOutline.style.visibility = Visibility.Hidden;
+            _interactionOutline.generateVisualContent += PaintInteractionOutline;
+            Add(_interactionOutline);
             _charges = new Label { pickingMode = PickingMode.Ignore }; _charges.AddToClassList("hud-charges"); Add(_charges);
+            var badges = new VisualElement { pickingMode = PickingMode.Ignore };
+            badges.AddToClassList("hud-interaction-badges");
+            _revBadge = new InteractionBadge(AbilityInteraction.Reverberation);
+            _resBadge = new InteractionBadge(AbilityInteraction.Resonance);
+            badges.Add(_revBadge);
+            badges.Add(_resBadge);
+            Add(badges);
             _prompt = new VisualElement { pickingMode = PickingMode.Ignore }; _prompt.AddToClassList("hud-prompt"); Add(_prompt);
             _prompt.generateVisualContent += context =>
             {
@@ -62,6 +77,9 @@ namespace Game50033
         public void Configure(GameplayHudTuning tuning, bool dodge, float sizeOverride = 0f, bool showPrompt = true)
         {
             _tuning = tuning;
+            _revBadge.Configure(tuning, tuning.revBadgeColor);
+            _resBadge.Configure(tuning, tuning.resBadgeColor);
+            _interactionOutline.MarkDirtyRepaint();
             _size = sizeOverride > 0f ? sizeOverride : dodge ? tuning.dodgeIconSize : tuning.iconSize;
             _background.style.display = dodge ? DisplayStyle.None : DisplayStyle.Flex;
             _prompt.style.display = showPrompt ? DisplayStyle.Flex : DisplayStyle.None;
@@ -129,6 +147,31 @@ namespace Game50033
             _symbol.MarkDirtyRepaint();
         }
 
+        internal void SetInteractionBadges(AbilityInteraction interactions, AbilityInteraction conditional = AbilityInteraction.None)
+        {
+            var wasPulsing = _revBadge.Pulse > 0f || _resBadge.Pulse > 0f;
+            _revBadge.SetCapability(interactions, conditional);
+            _resBadge.SetCapability(interactions, conditional);
+            if (wasPulsing) RefreshInteractionOutline();
+        }
+
+        internal void RefreshReadyInteractions(AbilityInteraction ready)
+        {
+            var revPulse = _revBadge.Pulse;
+            var resPulse = _resBadge.Pulse;
+            _revBadge.Refresh(ready);
+            _resBadge.Refresh(ready);
+            if (revPulse != _revBadge.Pulse || resPulse != _resBadge.Pulse)
+                RefreshInteractionOutline();
+        }
+
+        private void RefreshInteractionOutline()
+        {
+            _interactionOutline.style.visibility = _revBadge.Pulse > 0f || _resBadge.Pulse > 0f
+                ? Visibility.Visible : Visibility.Hidden;
+            _interactionOutline.MarkDirtyRepaint();
+        }
+
         public void SetState(PlayerAbilityState state)
         {
             var fraction = state.Supported ? Mathf.Clamp01(state.Remaining / state.Duration) : 1f;
@@ -180,5 +223,150 @@ namespace Game50033
             painter.ClosePath(); painter.Fill();
         }
 
+        private void PaintInteractionOutline(MeshGenerationContext context)
+        {
+            var rev = _revBadge.Pulse;
+            var res = _resBadge.Pulse;
+            var strength = Mathf.Max(rev, res);
+            if (strength <= 0f) return;
+
+            var rect = _interactionOutline.contentRect;
+            if (rect.width <= 0f || rect.height <= 0f) return;
+
+            var tint = Color.Lerp(_tuning.revBadgeColor, _tuning.resBadgeColor, res / (rev + res));
+            var painter = context.painter2D;
+            painter.BeginPath();
+            painter.MoveTo(rect.min);
+            painter.LineTo(new Vector2(rect.xMax, rect.yMin));
+            painter.LineTo(rect.max);
+            painter.LineTo(new Vector2(rect.xMin, rect.yMax));
+            painter.ClosePath();
+
+            var halo = tint;
+            halo.a *= strength * 0.32f;
+            painter.strokeColor = halo;
+            painter.lineWidth = 6f;
+            painter.Stroke();
+
+            var rim = Color.Lerp(tint, Color.white, 0.2f);
+            rim.a = tint.a * strength;
+            painter.strokeColor = rim;
+            painter.lineWidth = 2f;
+            painter.Stroke();
+        }
+
+        private sealed class InteractionBadge : VisualElement
+        {
+            private readonly AbilityInteraction _kind;
+            private Color _color;
+            private float _pulseDuration;
+            private float _pulseStartedAt = float.NegativeInfinity;
+            private float _pulse;
+            private bool _shown;
+            private bool _conditional;
+            private bool _ready;
+            public float Pulse => _pulse;
+
+            public InteractionBadge(AbilityInteraction kind)
+            {
+                _kind = kind;
+                pickingMode = PickingMode.Ignore;
+                name = kind == AbilityInteraction.Reverberation ? "rev-badge" : "res-badge";
+                style.display = DisplayStyle.None;
+                generateVisualContent += Paint;
+            }
+
+            public void Configure(GameplayHudTuning tuning, Color color)
+            {
+                style.width = style.height = tuning.interactionBadgeSize;
+                _color = color;
+                _pulseDuration = tuning.interactionBadgePulseDuration;
+                MarkDirtyRepaint();
+            }
+
+            public void SetCapability(AbilityInteraction interactions, AbilityInteraction conditional)
+            {
+                var shown = (interactions & _kind) != 0;
+                var isConditional = (conditional & _kind) != 0;
+                if (_shown == shown && _conditional == isConditional) return;
+                _shown = shown;
+                _conditional = isConditional;
+                _ready = false;
+                _pulse = 0f;
+                _pulseStartedAt = float.NegativeInfinity;
+                style.display = shown ? DisplayStyle.Flex : DisplayStyle.None;
+                MarkDirtyRepaint();
+            }
+
+            public void Refresh(AbilityInteraction ready)
+            {
+                if (!_shown || !_conditional) return;
+                var available = (ready & _kind) != 0;
+                var now = Time.unscaledTime;
+                if (available && !_ready) _pulseStartedAt = now;
+                var pulse = available && _pulseDuration > 0f
+                    ? 1f - Mathf.Clamp01((now - _pulseStartedAt) / _pulseDuration) : 0f;
+                if (_ready == available && _pulse == pulse) return;
+                _ready = available;
+                _pulse = pulse;
+                MarkDirtyRepaint();
+            }
+
+            private void Paint(MeshGenerationContext context)
+            {
+                var center = contentRect.center;
+                var radius = contentRect.width * 0.5f - 0.75f;
+                if (radius <= 0f) return;
+                var painter = context.painter2D;
+                if (_pulse > 0f)
+                {
+                    var halo = _color;
+                    halo.a *= _pulse * 0.75f;
+                    painter.strokeColor = halo;
+                    painter.lineWidth = 2f;
+                    Circle(painter, center, radius + Mathf.Lerp(4f, 1f, _pulse));
+                    painter.Stroke();
+                }
+
+                var ink = _color;
+                if (_conditional && !_ready) ink.a *= 0.45f;
+                painter.fillColor = new Color(0.035f, 0.04f, 0.065f);
+                painter.strokeColor = ink;
+                painter.lineWidth = 1.2f;
+                Circle(painter, center, radius);
+                painter.Fill();
+                painter.Stroke();
+                painter.fillColor = ink;
+                if (_kind == AbilityInteraction.Reverberation)
+                {
+                    Circle(painter, center, radius * 0.52f);
+                    painter.Stroke();
+                    Circle(painter, center, radius * 0.16f);
+                    painter.Fill();
+                    return;
+                }
+
+                var tip = radius * 0.7f;
+                var notch = radius * 0.18f;
+                painter.BeginPath();
+                painter.MoveTo(center + Vector2.up * tip);
+                painter.LineTo(center + new Vector2(notch, notch));
+                painter.LineTo(center + Vector2.right * tip);
+                painter.LineTo(center + new Vector2(notch, -notch));
+                painter.LineTo(center + Vector2.down * tip);
+                painter.LineTo(center + new Vector2(-notch, -notch));
+                painter.LineTo(center + Vector2.left * tip);
+                painter.LineTo(center + new Vector2(-notch, notch));
+                painter.ClosePath();
+                painter.Fill();
+            }
+
+            private static void Circle(Painter2D painter, Vector2 center, float radius)
+            {
+                painter.BeginPath();
+                painter.Arc(center, radius, 0f, 360f);
+                painter.ClosePath();
+            }
+        }
     }
 }

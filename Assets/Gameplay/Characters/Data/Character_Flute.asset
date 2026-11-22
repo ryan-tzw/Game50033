@@ -26,6 +26,8 @@ MonoBehaviour:
       damage.
   - name: Rapid Shot
     icon: {fileID: 2800000, guid: a2b90861119c36a30a890a45a0fabf5a, type: 3}
+    interactions: 2
+    conditionalInteractions: 0
     description: Fire a fast projectile that can resonate lingering energy.
   - name: Evasive Step
     icon: {fileID: 2800000, guid: 24cea2c2a40216cfb87008d769791930, type: 3}
@@ -33,5 +35,6 @@ MonoBehaviour:
       a short speed boost.
   - name: Charged Shot
     icon: {fileID: 2800000, guid: 45920b7b2f55fb39dbcbc83c9f8d77bb, type: 3}
-    description: Hold to charge and release a projectile. Its power increases with
-      charge.
+    interactions: 3
+    conditionalInteractions: 2
+    description: Hold to charge a shot that leaves a Burst REV. At full charge, spend Flow on release to make it resonate.
