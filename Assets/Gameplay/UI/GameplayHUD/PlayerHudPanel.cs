@@ -22,7 +22,7 @@ namespace Game50033
         private readonly VisualElement _selection, _gameplay, _rosterRow;
         private readonly HudHealthBar _hearts;
         private readonly Label _highlightName, _selectionStatus;
-        private readonly Image _instrument;
+        private readonly VisualElement _portrait;
         private readonly HudAbilityIcon _inspectArtwork;
         private readonly VisualElement[] _surfaces;
         private VisualElement[] _portraits = System.Array.Empty<VisualElement>();
@@ -67,7 +67,7 @@ namespace Game50033
             _highlightName = this.Q<Label>("highlight-name");
             _selectionStatus = this.Q<Label>("selection-status");
             _inspector = this.Q("ability-inspector");
-            _instrument = this.Q<Image>("instrument-icon");
+            _portrait = this.Q("active-portrait");
             _inspectArtwork = this.Q<HudAbilityIcon>("inspect-icon");
             _surfaces = new[] { _selection, _inspector };
             _inspectHint = this.Q("inspect-hint");
@@ -155,8 +155,8 @@ namespace Game50033
             this.Q("abilities").style.justifyContent = Justify.Center;
             _hearts.style.height = heartRowHeight;
             _hearts.style.marginTop = heartGap;
-            _instrument.style.width = _instrument.style.height = _tuning.instrumentSize;
-            _instrument.style.bottom = 1f;
+            _portrait.style.width = _portrait.style.height = _tuning.instrumentSize;
+            _portrait.style.bottom = 1f;
             _inspectHint.style.width = _tuning.instrumentSize;
             _inspectKey.style.unityFontDefinition = labelFont;
             _inspectKey.style.fontSize = _tuning.promptFontSize;
@@ -213,7 +213,7 @@ namespace Game50033
             _highlightName.style.unityFontStyleAndWeight = FontStyle.Normal;
             _highlightName.style.height = 34f;
             _highlightName.style.fontSize = _tuning.previewFontSize * 1.3f;
-            _rosterRow.style.height = _tuning.portraitSize;
+            _rosterRow.style.height = _tuning.portraitSize * _tuning.portraitHighlightScale;
             _selectionStatus.style.height = 22f;
             _selectionStatus.style.fontSize = _tuning.previewFontSize * 0.85f;
             _shownRoster = null;
@@ -246,6 +246,7 @@ namespace Game50033
             if (_scheme != scheme || _accent != accent || mode != PanelMode.Selecting
                 && (_shownCharacter != chosen || chosen != null && _shownPreviewRevision != chosen.PreviewRevision))
             {
+                if (_scheme != scheme) _shownRoster = null;
                 _scheme = scheme;
                 _renderedInspectSlot = -1;
                 _accent = accent;
@@ -257,16 +258,8 @@ namespace Game50033
                     surface.style.borderTopColor = surface.style.borderBottomColor = borderColor;
                     surface.style.borderLeftColor = surface.style.borderRightColor = borderColor;
                 }
-                SetInstrumentImage(_instrument, chosen);
-                if (chosen != null && chosen.InstrumentIcon != null)
-                {
-                    // fit the image element itself to the sprite so horizontal instruments also sit on the bottom edge.
-                    var rect = chosen.InstrumentIcon.rect;
-                    var scale = _tuning.instrumentSize / Mathf.Max(1f, Mathf.Max(rect.width, rect.height));
-                    _instrument.style.width = rect.width * scale;
-                    _instrument.style.height = rect.height * scale;
-                    _instrument.style.left = (_tuning.instrumentSize - rect.width * scale) * 0.5f;
-                }
+                SetPortrait(_portrait, chosen);
+                _portrait.style.display = chosen != null && chosen.Portrait != null ? DisplayStyle.Flex : DisplayStyle.None;
                 var keyboard = scheme == "Keyboard&Mouse";
                 _slots[0] = PlayerAbility.Primary;
                 _slots[1] = PlayerAbility.Secondary;
@@ -280,7 +273,6 @@ namespace Game50033
                     var artwork = i == 4 ? _tuning.dodgeIcon : chosen != null ? chosen.GetAbilityPreview(_slots[i]).icon : null;
                     _icons[i].SetAppearance(accent, artwork, chosen != null ? chosen.AbilityPalette : null, i == 4, text, svg, !keyboard && i < 4);
                 }
-                _shownRoster = null;
                 MarkDirtyRepaint();
                 _hearts.MarkDirtyRepaint();
             }
@@ -315,13 +307,17 @@ namespace Game50033
                             _selector.TryConfirm();
                             evt.StopPropagation();
                         });
-                        frame.AddToClassList("roster-portrait");
                         frame.style.width = frame.style.height = _tuning.portraitSize;
-                        frame.style.marginLeft = frame.style.marginRight = 3f;
-                        var portrait = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.ScaleToFit };
-                        SetInstrumentImage(portrait, roster[i]);
+                        var margin = 3f + _tuning.portraitSize * (_tuning.portraitHighlightScale - 1f) * 0.6f;
+                        frame.style.marginLeft = frame.style.marginRight = margin;
+                        // scale the artwork inside a fixed pointer target so mouse hover remains stable.
+                        var portrait = new VisualElement { pickingMode = PickingMode.Ignore };
+                        portrait.AddToClassList("hud-portrait");
+                        portrait.AddToClassList("roster-portrait");
+                        portrait.style.transitionDuration = new System.Collections.Generic.List<TimeValue> { new(_tuning.portraitHighlightDuration, TimeUnit.Second) };
+                        SetPortrait(portrait, roster[i]);
                         frame.Add(portrait);
-                        _portraits[i] = frame;
+                        _portraits[i] = portrait;
                         _rosterRow.Add(frame);
                     }
                     _shownHighlight = _shownTaken = -1;
@@ -348,9 +344,8 @@ namespace Game50033
                         var classColor = roster[i] != null ? roster[i].Tint : accent;
                         var border = i == highlight ? Color.Lerp(classColor, Color.white, 0.55f) : classColor * 0.7f;
                         border.a = 1f;
-                        var radius = i == highlight ? 10f : _tuning.portraitSize * 0.5f;
-                        frame.style.borderTopLeftRadius = frame.style.borderTopRightRadius = radius;
-                        frame.style.borderBottomLeftRadius = frame.style.borderBottomRightRadius = radius;
+                        var scale = i == highlight ? _tuning.portraitHighlightScale : 1f;
+                        frame.style.scale = new Scale(new Vector3(scale, scale, 1f));
                         frame.style.borderTopColor = frame.style.borderBottomColor = border;
                         frame.style.borderLeftColor = frame.style.borderRightColor = border;
                     }
@@ -393,22 +388,20 @@ namespace Game50033
                 movement.DodgeRechargeTime, movement.DodgeCharges, movement.MaxDodgeCharges) : default);
         }
 
-        private static void SetInstrumentImage(Image image, CharacterDefinition character)
+        private void SetPortrait(VisualElement portrait, CharacterDefinition character)
         {
-            image.sprite = character != null ? character.InstrumentIcon : null;
-            image.scaleMode = ScaleMode.ScaleToFit;
-            image.tintColor = Color.white;
-            if (character == null || character.AbilityPalette == null)
+            if (portrait.childCount == 0)
             {
-                image.style.unityMaterial = new StyleMaterialDefinition((Material)null);
-                return;
+                portrait.Add(new HudAccentGradient());
+                var image = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.ScaleToFit };
+                image.AddToClassList("hud-symbol");
+                portrait.Add(image);
             }
-            var silhouette = MaterialDefinition.FromMaterial(character.AbilityPalette);
-            silhouette.SetColor("_Shadows", character.Tint);
-            silhouette.SetColor("_DarkMidtones", character.Tint);
-            silhouette.SetColor("_LightMidtones", character.Tint);
-            silhouette.SetColor("_Highlights", character.Tint);
-            image.style.unityMaterial = new StyleMaterialDefinition(silhouette);
+
+            portrait.Q<HudAccentGradient>().SetAppearance(_tuning, character != null ? character.Tint : Color.white);
+            var artwork = portrait.Q<Image>();
+            artwork.image = character != null ? character.Portrait : null;
+            artwork.style.unityMaterial = new StyleMaterialDefinition(character != null ? character.AbilityPalette : null);
         }
 
         private void RefreshInspector(PanelMode mode, string scheme)

@@ -1513,7 +1513,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 3.0714e-41, y: 0, z: 4.5559e-41, w: 0.003310401}
+  m_BoundingSphereOverride: {x: 4.5647e-41, y: 3.1416292e-10, z: 3.091e-41, w: 3.309217e-29}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ForceVisible: 0
@@ -3281,20 +3281,6 @@ CapsuleCollider:
   m_Height: 1.2
   m_Direction: 1
   m_Center: {x: 0, y: 0.6, z: 0}
---- !u!114 &2011138027
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2011138023}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d67538803fc187461b7182b1a7d2ef32, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Game50033.CombatHurtbox
-  tuning: {fileID: 11400000, guid: 7ae75eab9ec54b91902329cba2dfd6e5, type: 2}
-  anchor: {fileID: 0}
 --- !u!4 &2011138026
 Transform:
   m_ObjectHideFlags: 0
@@ -3311,6 +3297,20 @@ Transform:
   - {fileID: 1933669125}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2011138027
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2011138023}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d67538803fc187461b7182b1a7d2ef32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.CombatHurtbox
+  tuning: {fileID: 11400000, guid: 7ae75eab9ec54b91902329cba2dfd6e5, type: 2}
+  anchor: {fileID: 0}
 --- !u!1 &2025274984
 GameObject:
   m_ObjectHideFlags: 0

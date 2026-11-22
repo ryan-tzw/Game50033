@@ -18,7 +18,7 @@ MonoBehaviour:
   playerPrefab: {fileID: 8127240988580949929, guid: 52493c21ef8314aaba0c76990588f7bb, type: 3}
   abilityPalette: {fileID: 2100000, guid: dbefa26d591307bac9a1c5f500fc3230, type: 2}
   abilityBackground: {fileID: 2800000, guid: c1032d36278b46905835fa76c6a3d996, type: 3}
-  instrumentIcon: {fileID: 3648382318161221242, guid: c03bdf38f1cb45bfb7b1375a30a56c15, type: 3}
+  portrait: {fileID: 2800000, guid: b6cc95885745c914daa89c57a806e009, type: 3}
   abilityPreviews:
   - name: Homing Note
     icon: {fileID: 2800000, guid: a5322a8747f343d868bc3f0f96fd15f7, type: 3}

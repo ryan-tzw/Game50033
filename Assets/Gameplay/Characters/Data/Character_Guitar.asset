@@ -18,7 +18,7 @@ MonoBehaviour:
   playerPrefab: {fileID: 9019545368423628371, guid: 37531a99c5eee3496ac27af004e69c68, type: 3}
   abilityPalette: {fileID: 2100000, guid: eb4e025a01024e9bd85b155619199fdb, type: 2}
   abilityBackground: {fileID: 2800000, guid: 395bd3b9ea926b7b6a17e9aa300705a2, type: 3}
-  instrumentIcon: {fileID: 4751300937926204119, guid: 9cc4cdc54e67688c2b5f79618027ead6, type: 3}
+  portrait: {fileID: 2800000, guid: 47cd276d3350ee571817f4c427246afa, type: 3}
   abilityPreviews:
   - name: Sweeping Combo
     icon: {fileID: 2800000, guid: 28a47b716946440e2af0ca8fbcf7c184, type: 3}

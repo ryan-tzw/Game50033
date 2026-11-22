@@ -70,6 +70,8 @@ namespace Game50033
         [Min(90f)] public float previewRowHeight = 124f;
         [Min(12f)] public float previewFontSize = 17f;
         [Min(24f)] public float portraitSize = 68f;
+        [Range(1f, 1.25f)] public float portraitHighlightScale = 1.14f;
+        [Min(0f)] public float portraitHighlightDuration = 0.22f;
         [Header("Ability Inspection")]
         public bool toggleAbilityInspection = true;
         [Min(32f)] public float inspectIconSize = 72f;

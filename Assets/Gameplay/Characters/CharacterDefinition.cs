@@ -23,9 +23,9 @@ namespace Game50033
         [SerializeField] private Material abilityPalette;
         public Material AbilityPalette => abilityPalette;
         [SerializeField] private Texture2D abilityBackground;
-        [SerializeField] private Sprite instrumentIcon;
+        [SerializeField] private Texture2D portrait;
         public Texture2D AbilityBackground => abilityBackground;
-        public Sprite InstrumentIcon => instrumentIcon;
+        public Texture2D Portrait => portrait;
 
         [Serializable]
         public struct AbilityPreview

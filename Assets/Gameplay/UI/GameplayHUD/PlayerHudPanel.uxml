@@ -72,7 +72,7 @@
                 </ui:VisualElement>
                 <ui:Label name="inspect-caption" text="Abilities" picking-mode="Ignore" />
             </ui:VisualElement>
-            <ui:Image name="instrument-icon" class="instrument-icon" picking-mode="Ignore" />
+            <ui:VisualElement name="active-portrait" class="hud-portrait active-portrait" picking-mode="Ignore" />
             <ui:VisualElement name="gameplay-controls" class="gameplay-controls" picking-mode="Ignore">
                 <ui:VisualElement name="abilities" class="ability-row" picking-mode="Ignore">
                     <game:HudAbilityIcon name="slot-0" />

@@ -128,6 +128,8 @@ MonoBehaviour:
   previewRowHeight: 124
   previewFontSize: 17
   portraitSize: 68
+  portraitHighlightScale: 1.14
+  portraitHighlightDuration: 0.22
   toggleAbilityInspection: 1
   inspectIconSize: 72
   inspectGap: 12
