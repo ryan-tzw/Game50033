@@ -30,6 +30,7 @@ namespace Game50033
         private Reverberation _reverberationPrefab;
         private float _revStrength;
         private bool _finished;
+        private DebugProjectileTrace _debugTrace;
         private bool _pulsing;
         private bool _bigHit;
         private IHittable _pulseTarget;
@@ -174,6 +175,7 @@ namespace Game50033
             SceneManager.activeSceneChanged -= HandleSceneChanged;
             // Disabling or unloading a projectile is cancellation, never a REV-producing impact.
             _finished = true;
+            _debugTrace?.Finish();
             _reverberationPrefab = null;
             if (_hitVolume != null)
             {
@@ -304,6 +306,8 @@ namespace Game50033
             _previousPosition = start;
             var scale = transform.lossyScale;
             var radius = _hitVolume.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
+            var distance = Mathf.Min(Speed * Time.fixedDeltaTime, Range - _travelled);
+            _source.Session?.Debug.BeginSphereSweep(this, ref _debugTrace, start, radius, _direction * distance);
             foreach (var overlap in Physics.OverlapSphere(start, radius, collisionMask, QueryTriggerInteraction.Collide))
             {
                 HandleContact(overlap);
@@ -314,7 +318,6 @@ namespace Game50033
             }
 
             // resolve projected fields only along the path the projectile can actually travel.
-            var distance = Mathf.Min(Speed * Time.fixedDeltaTime, Range - _travelled);
             var hits = Physics.SphereCastAll(start, radius, _direction, distance, collisionMask, QueryTriggerInteraction.Collide);
             Array.Sort(hits, (first, second) => first.distance.CompareTo(second.distance));
             var sweptDistance = 0f;
@@ -326,6 +329,7 @@ namespace Game50033
                 }
                 _resonatingAttack.ActivateAlongSweep(start + _direction * sweptDistance, start + _direction * hit.distance, radius);
                 sweptDistance = hit.distance;
+                _debugTrace?.CompleteFrame(distance > 0f ? hit.distance / distance : 0f);
                 SetPosition(start + _direction * Mathf.Min(distance, hit.distance + 0.005f));
                 HandleContact(hit.collider);
                 if (_finished || _pulsing)
@@ -334,6 +338,7 @@ namespace Game50033
                 }
             }
             _resonatingAttack.ActivateAlongSweep(start + _direction * sweptDistance, start + _direction * distance, radius);
+            _debugTrace?.CompleteFrame(1f);
             SetPosition(start + _direction * distance);
             _travelled += distance;
             if (_travelled >= Range)
@@ -523,6 +528,7 @@ namespace Game50033
 
         private void StopCollisions()
         {
+            _debugTrace?.Finish();
             _hitVolume.enabled = false;
             _resonatingAttack.enabled = false;
         }

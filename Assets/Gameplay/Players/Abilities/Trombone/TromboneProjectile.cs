@@ -33,6 +33,7 @@ namespace Game50033
         private TromboneProjectile _replayPrefab;
         private Vector3 _stepOrigin;
         private bool _finished;
+        private DebugProjectileTrace _debugTrace;
         public float MaximumTravelDistance => Mathf.Min(maximumDistance, speed * lifetime);
         public LayerMask CollisionMask => collisionMask;
         public SphereCollider HitVolume => GetComponent<SphereCollider>();
@@ -150,6 +151,8 @@ namespace Game50033
             var scale = transform.lossyScale;
             var radius = _hitVolume.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
 
+            var distance = Mathf.Min(speed * Time.fixedDeltaTime, maximumDistance - _distanceTravelled);
+            _sourcePlayer.Session?.Debug.BeginSphereSweep(this, ref _debugTrace, start, radius, _flightDirection * distance);
             foreach (var overlap in Physics.OverlapSphere(start, radius, collisionMask, QueryTriggerInteraction.Collide))
             {
                 HandleContact(overlap);
@@ -160,7 +163,6 @@ namespace Game50033
                 }
             }
             // test the projected sweep separately, stopping at the first blocking 3d hit.
-            var distance = Mathf.Min(speed * Time.fixedDeltaTime, maximumDistance - _distanceTravelled);
             var hits = Physics.SphereCastAll(
                 start,
                 radius,
@@ -178,6 +180,7 @@ namespace Game50033
                 }
 
                 _resonatingAttack.ActivateAlongSweep(start, start + _flightDirection * hit.distance, radius);
+                _debugTrace?.CompleteFrame(distance > 0f ? hit.distance / distance : 0f);
                 SetPosition(start + _flightDirection * Mathf.Min(distance, hit.distance + HitOverlapDistance));
                 HandleContact(hit.collider);
 
@@ -188,6 +191,7 @@ namespace Game50033
             }
 
             _resonatingAttack.ActivateAlongSweep(start, start + _flightDirection * distance, radius);
+            _debugTrace?.CompleteFrame(1f);
             SetPosition(start + _flightDirection * distance);
             _distanceTravelled += distance;
 
@@ -268,6 +272,7 @@ namespace Game50033
             }
 
             _finished = true;
+            _debugTrace?.Finish();
             _hitVolume.enabled = false;
             _resonatingAttack.enabled = false;
 

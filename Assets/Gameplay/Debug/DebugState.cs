@@ -41,7 +41,8 @@ namespace Game50033
             for (var i = _attackSnapshots.Count - 1; i >= 0; i--)
             {
                 var snapshot = _attackSnapshots[i];
-                if (!snapshot.Scene.isLoaded || Time.time - snapshot.RecordedAt >= Mathf.Max(0f, lifetime))
+                if (!snapshot.Scene.isLoaded || (snapshot.LiveFrame >= 0
+                    ? snapshot.LiveFrame != Time.frameCount : Time.time - snapshot.RecordedAt >= Mathf.Max(0f, lifetime)))
                     _attackSnapshots.RemoveAt(i);
             }
 
@@ -58,6 +59,21 @@ namespace Game50033
         {
             if (trace == null || !ShowHitboxes || !ShowPlayerAttacks || _projectileTraces.Contains(trace)) return;
             _projectileTraces.Add(trace);
+        }
+
+        internal void BeginSphereSweep(Behaviour owner, ref DebugProjectileTrace trace,
+            Vector3 centre, float radius, Vector3 motion)
+        {
+            trace?.BeginFrame();
+            if (!ShowHitboxes || !ShowPlayerAttacks) return;
+            if (trace == null)
+            {
+                trace = new DebugProjectileTrace(owner, keepLastStep: true);
+                trace.BeginFrame();
+            }
+            trace.AddSweep(centre, centre, radius, motion);
+            trace.CompleteFrame(0f);
+            RecordProjectileTrace(trace);
         }
 
         public void SetNoCooldowns(bool enabled)

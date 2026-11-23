@@ -104,6 +104,8 @@ namespace Game50033
             // Check for exit directly because zones always spawn around their owner.
             if (IsOwnerInside)
             {
+                _owner.Session?.Debug.RecordAttack(new DebugAttackSnapshot(transform.position, Vector3.forward, 0f,
+                    Radius, 360f, Vector3.zero, 1f, live: true));
                 return;
             }
 

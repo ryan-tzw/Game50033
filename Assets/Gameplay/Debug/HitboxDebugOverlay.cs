@@ -11,8 +11,8 @@ namespace Game50033
         private readonly IReadOnlyList<Player> _players;
         private readonly List<Vector2> _contour = new(192);
         private readonly List<int> _contourEnds = new(128);
-        private readonly Vector2[] _sweepPoints = new Vector2[4];
-        private readonly Vector2[] _hull = new Vector2[8];
+        private readonly Vector2[] _projectedPoints = new Vector2[6];
+        private readonly Vector2[] _hull = new Vector2[12];
 
         public HitboxDebugOverlay(DebugState state, DebugVisualizationTuning tuning, IReadOnlyList<Player> players = null)
         {
@@ -51,6 +51,18 @@ namespace Game50033
             for (var i = 0; i < snapshots.Count; i++)
             {
                 var snapshot = snapshots[i];
+                if (!snapshot.Scene.isLoaded || snapshot.LiveFrame >= 0 && snapshot.LiveFrame != Time.frameCount) continue;
+                if (snapshot.Shape != DebugAttackSnapshot.Geometry.Sector)
+                {
+                    if (!_state.ShowPlayerAttacks) continue;
+                    if (snapshot.Shape == DebugAttackSnapshot.Geometry.Capsule)
+                        DrawCapsule(painter, camera, snapshot.Origin, snapshot.Direction, snapshot.OuterRadius,
+                            _tuning.playerAttackColor, dashed: snapshot.LiveFrame < 0);
+                    else
+                        DrawPrism(painter, camera, snapshot);
+                    continue;
+                }
+
                 var boundary = Mathf.Clamp(snapshot.SweetSpotRadius, snapshot.InnerRadius, snapshot.OuterRadius);
                 if (_state.ShowPlayerAttacks)
                 {
@@ -73,7 +85,7 @@ namespace Game50033
             for (var i = 0; _state.ShowPlayerAttacks && i < traces.Count; i++)
             {
                 var trace = traces[i];
-                if (!trace.Scene.isLoaded || !trace.IsFinished && trace.Frame != Time.frameCount) continue;
+                if (!trace.Scene.isLoaded || !trace.IsFinished && !trace.KeepLastStep && trace.Frame != Time.frameCount) continue;
                 DrawProjectile(painter, camera, trace);
             }
 
@@ -89,7 +101,7 @@ namespace Game50033
         }
 
         private void DrawCapsule(Painter2D painter, Camera camera, Vector3 worldBottom, Vector3 worldTop,
-            float radiusWorld, Color color)
+            float radiusWorld, Color color, bool dashed = false)
         {
             painter.fillColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.fillOpacity));
             painter.strokeColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.outlineOpacity));
@@ -118,7 +130,23 @@ namespace Game50033
             painter.Arc(bottom, radius, angle + 180f, angle + 360f);
             painter.ClosePath();
             painter.Fill();
-            if (painter.lineWidth > 0f) painter.Stroke();
+            if (painter.lineWidth <= 0f) return;
+            if (dashed)
+            {
+                _contour.Clear();
+                for (var cap = 0; cap < 2; cap++)
+                {
+                    var centre = cap == 0 ? top : bottom;
+                    for (var i = 0; i <= 24; i++)
+                    {
+                        var radians = (angle + cap * 180f + i * 7.5f) * Mathf.Deg2Rad;
+                        _contour.Add(centre + new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)) * radius);
+                    }
+                }
+                painter.BeginPath();
+                StrokeDashed(painter, 0, _contour.Count, true);
+            }
+            painter.Stroke();
         }
 
         private void DrawSector(Painter2D painter, Camera camera, in DebugAttackSnapshot snapshot,
@@ -155,6 +183,13 @@ namespace Game50033
             if (!fullCircle) painter.ClosePath();
             painter.fillColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.fillOpacity));
             painter.Fill(FillRule.OddEven);
+
+            if (snapshot.LiveFrame >= 0)
+            {
+                painter.strokeColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.outlineOpacity));
+                if (painter.lineWidth > 0f) painter.Stroke();
+                return;
+            }
 
             // dash lengths are measured in panel pixels, independent of range, depth stretch and camera zoom.
             // these are historical impact snapshots; their expiry never extends a damage window.
@@ -215,50 +250,18 @@ namespace Game50033
                     minimumDepth = Mathf.Min(minimumDepth, depth);
                     maximumDepth = Mathf.Max(maximumDepth, depth);
                     var point = this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel, world, camera));
-                    _sweepPoints[i] = point;
+                    _projectedPoints[i] = point;
                     minimum = Vector2.Min(minimum, point);
                     maximum = Vector2.Max(maximum, point);
                 }
                 if (maximumDepth + sweep.Radius < camera.nearClipPlane || minimumDepth - sweep.Radius > camera.farClipPlane) continue;
                 var edge = this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel,
                     sweep.Inside + camera.transform.right * sweep.Radius, camera));
-                var radius = Vector2.Distance(edge, _sweepPoints[0]);
+                var radius = Vector2.Distance(edge, _projectedPoints[0]);
                 if (radius <= 0f || !contentRect.Overlaps(Rect.MinMaxRect(minimum.x - radius, minimum.y - radius,
                     maximum.x + radius, maximum.y + radius))) continue;
 
-                // sort four points and remove duplicates before building a counterclockwise convex hull.
-                // collinear motion becomes a capsule; coincident endpoints become a sphere.
-                for (var i = 1; i < 4; i++)
-                {
-                    var point = _sweepPoints[i];
-                    var j = i - 1;
-                    while (j >= 0 && (_sweepPoints[j].x > point.x || _sweepPoints[j].x == point.x && _sweepPoints[j].y > point.y))
-                    {
-                        _sweepPoints[j + 1] = _sweepPoints[j];
-                        j--;
-                    }
-                    _sweepPoints[j + 1] = point;
-                }
-                var unique = 0;
-                for (var i = 0; i < 4; i++)
-                    if (unique == 0 || (_sweepPoints[i] - _sweepPoints[unique - 1]).sqrMagnitude > 0.00000001f)
-                        _sweepPoints[unique++] = _sweepPoints[i];
-                var hullCount = 0;
-                if (unique == 1) _hull[hullCount++] = _sweepPoints[0];
-                else
-                {
-                    for (var pass = 0; pass < 2; pass++)
-                    {
-                        var limit = pass == 0 ? 2 : hullCount + 1;
-                        for (var i = pass == 0 ? 0 : unique - 2; pass == 0 ? i < unique : i >= 0; i += pass == 0 ? 1 : -1)
-                        {
-                            var point = _sweepPoints[i];
-                            while (hullCount >= limit && Cross(_hull[hullCount - 2], _hull[hullCount - 1], point) <= 0f) hullCount--;
-                            _hull[hullCount++] = point;
-                        }
-                    }
-                    hullCount--;
-                }
+                var hullCount = BuildHull(4);
 
                 // round the hull by the query radius, targeting 0.2 panel pixels of arc chord error.
                 var first = _contour.Count;
@@ -305,6 +308,85 @@ namespace Game50033
                 }
             }
             painter.Stroke();
+        }
+
+        private void DrawPrism(Painter2D painter, Camera camera, in DebugAttackSnapshot snapshot)
+        {
+            var minimumDepth = float.PositiveInfinity;
+            var maximumDepth = float.NegativeInfinity;
+            for (var i = 0; i < 6; i++)
+            {
+                var world = (i % 3) switch
+                {
+                    0 => snapshot.Origin,
+                    1 => snapshot.Direction,
+                    _ => snapshot.StretchAxis
+                };
+                if (i >= 3) world += snapshot.Extrusion;
+                var depth = Vector3.Dot(world - camera.transform.position, camera.transform.forward);
+                minimumDepth = Mathf.Min(minimumDepth, depth);
+                maximumDepth = Mathf.Max(maximumDepth, depth);
+                _projectedPoints[i] = this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel, world, camera));
+            }
+            if (maximumDepth < camera.nearClipPlane || minimumDepth > camera.farClipPlane) return;
+
+            var hullCount = BuildHull(6);
+            if (hullCount < 3) return;
+            var color = _tuning.playerAttackColor;
+            painter.fillColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.fillOpacity));
+            painter.strokeColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.outlineOpacity));
+            _contour.Clear();
+            painter.BeginPath();
+            painter.MoveTo(_hull[0]);
+            for (var i = 0; i < hullCount; i++)
+            {
+                if (i > 0) painter.LineTo(_hull[i]);
+                _contour.Add(_hull[i]);
+            }
+            painter.ClosePath();
+            painter.Fill();
+            if (painter.lineWidth <= 0f) return;
+            painter.BeginPath();
+            StrokeDashed(painter, 0, hullCount, true);
+            painter.Stroke();
+        }
+
+        private int BuildHull(int pointCount)
+        {
+            // sort projected points and remove duplicates before building a counterclockwise convex hull.
+            // collinear motion becomes a capsule; coincident endpoints become a sphere.
+            for (var i = 1; i < pointCount; i++)
+            {
+                var point = _projectedPoints[i];
+                var j = i - 1;
+                while (j >= 0 && (_projectedPoints[j].x > point.x || _projectedPoints[j].x == point.x && _projectedPoints[j].y > point.y))
+                {
+                    _projectedPoints[j + 1] = _projectedPoints[j];
+                    j--;
+                }
+                _projectedPoints[j + 1] = point;
+            }
+            var unique = 0;
+            for (var i = 0; i < pointCount; i++)
+                if (unique == 0 || (_projectedPoints[i] - _projectedPoints[unique - 1]).sqrMagnitude > 0.00000001f)
+                    _projectedPoints[unique++] = _projectedPoints[i];
+            var hullCount = 0;
+            if (unique == 1) _hull[hullCount++] = _projectedPoints[0];
+            else
+            {
+                for (var pass = 0; pass < 2; pass++)
+                {
+                    var limit = pass == 0 ? 2 : hullCount + 1;
+                    for (var i = pass == 0 ? 0 : unique - 2; pass == 0 ? i < unique : i >= 0; i += pass == 0 ? 1 : -1)
+                    {
+                        var point = _projectedPoints[i];
+                        while (hullCount >= limit && Cross(_hull[hullCount - 2], _hull[hullCount - 1], point) <= 0f) hullCount--;
+                        _hull[hullCount++] = point;
+                    }
+                }
+                hullCount--;
+            }
+            return hullCount;
         }
 
         private static float Cross(Vector2 a, Vector2 b, Vector2 c)

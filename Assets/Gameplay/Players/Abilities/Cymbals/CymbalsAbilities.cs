@@ -354,11 +354,13 @@ namespace Game50033
         // gameplay is on the XZ plane: a damage circle extends as a column so target height does not matter.
         // triggers are ignored because they are detection/range volumes (the boss has a 10-unit one), not bodies.
         // returns false when a hit callback downed or disabled this player, so the caller stops.
-        private bool DamageColumn(Vector3 point, float radius, HashSet<IHittable> alreadyHit, float damage, Vector3 direction, bool big)
+        private bool DamageColumn(Vector3 point, float radius, HashSet<IHittable> alreadyHit, float damage,
+            Vector3 direction, bool big, bool live = false)
         {
             var combo = tuning.combo;
             var bottom = new Vector3(point.x, transform.position.y + radius, point.z);
             var top = bottom + Vector3.up * Mathf.Max(0f, combo.hitColumnHeight - 2f * radius);
+            Player.Session?.Debug.RecordAttack(DebugAttackSnapshot.Capsule(bottom, top, radius, live));
             if (tuning.showHitboxes)
             {
                 if (_debugColumns.Count >= 64) _debugColumns.RemoveAt(0);
@@ -527,7 +529,8 @@ namespace Game50033
                 // damage rides the combo's hitting point ahead of the dashing player.
                 var combo = tuning.combo;
                 var point = combo.GetHitPoint(transform.position, _dashDirection);
-                if (!DamageColumn(point, combo.hitRadius, _hitThisPass, settings.dashDamage, _dashDirection, true)) return;
+                if (!DamageColumn(point, combo.hitRadius, _hitThisPass, settings.dashDamage, _dashDirection,
+                    big: true, live: true)) return;
                 _flightSpeed = 0f;
                 if (weaponVisual != null) weaponVisual.SetCharge(_dashDirection);
                 if (!Player.Movement.IsDisplacing || elapsed >= _dashDuration + 0.1f)
@@ -541,7 +544,7 @@ namespace Game50033
         }
 
         private bool FlightDamage(CymbalsTuning.ThrowSettings settings, Vector3 direction) =>
-            DamageColumn(_cymbalPosition, settings.hitRadius, _hitThisPass, settings.damage, direction, false);
+            DamageColumn(_cymbalPosition, settings.hitRadius, _hitThisPass, settings.damage, direction, big: false, live: true);
 
         // normalised flight speed for presentation: the curve's slope, where 2 is the default peak.
         private static float Slope(AnimationCurve curve, float t)
@@ -647,6 +650,9 @@ namespace Game50033
                 return;
             }
             if (weaponVisual != null) weaponVisual.SetParryPose(_parryDirection, elapsed / settings.raiseTime);
+            // the parry tests incoming direction; its presentation range sets the length of this guide.
+            Player.Session?.Debug.RecordAttack(new DebugAttackSnapshot(transform.position, _parryDirection, 0f,
+                settings.range, settings.coneAngle, Vector3.zero, 1f, live: true));
         }
 
         internal override bool TryParryHit(Vector3 incomingFrom)
@@ -818,6 +824,13 @@ namespace Game50033
 
                 // resonance uses the same ground triangle as the crash waves.
                 settings.GetTriangle(_crashTip, _crashDirection, out var left, out var right);
+                if (Player.Session?.Debug is { ShowHitboxes: true, ShowPlayerAttacks: true } debug)
+                {
+                    settings.GetTriangle(Vector3.zero, Vector3.forward, out var localLeft, out var localRight);
+                    var volume = _crashCollider.transform;
+                    debug.RecordAttack(DebugAttackSnapshot.Triangle(volume.position, volume.TransformPoint(localLeft),
+                        volume.TransformPoint(localRight), volume.TransformVector(Vector3.up * combo.hitColumnHeight)));
+                }
                 var fields = Reverberation.Active;
                 var camera = fields.Count > 0 ? Camera.main : null;
                 for (var i = fields.Count - 1; i >= 0; i = Mathf.Min(i - 1, fields.Count - 1))
@@ -846,13 +859,13 @@ namespace Game50033
             // detach before editing: changing a mesh the collider still holds leaves the collider empty.
             _crashCollider.sharedMesh = null;
             if (_crashMesh == null) _crashMesh = new Mesh { name = "Crash volume" };
-            var half = settings.width * 0.5f;
-            var l = settings.length;
+            settings.GetTriangle(Vector3.zero, Vector3.forward, out var left, out var right);
+            var heightOffset = Vector3.up * height;
             _crashMesh.Clear();
             _crashMesh.vertices = new[]
             {
-                new Vector3(0f, 0f, 0f), new Vector3(-half, 0f, l), new Vector3(half, 0f, l),
-                new Vector3(0f, height, 0f), new Vector3(-half, height, l), new Vector3(half, height, l),
+                Vector3.zero, left, right,
+                heightOffset, left + heightOffset, right + heightOffset,
             };
             _crashMesh.triangles = new[]
             {
