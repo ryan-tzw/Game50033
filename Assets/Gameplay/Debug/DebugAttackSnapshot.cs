@@ -5,7 +5,7 @@ namespace Game50033
 
     public readonly struct DebugAttackSnapshot
     {
-        internal enum Geometry { Sector, Capsule, Triangle }
+        internal enum Geometry { Sector, Capsule, Triangle, BossLine }
 
         internal readonly Geometry Shape;
         internal readonly Vector3 Extrusion;
@@ -57,5 +57,8 @@ namespace Game50033
 
         internal static DebugAttackSnapshot Triangle(Vector3 tip, Vector3 left, Vector3 right, Vector3 extrusion) =>
             new(Geometry.Triangle, tip, left, right, 0f, extrusion, false);
+
+        internal static DebugAttackSnapshot BossLine(Vector3 start, Vector3 end) =>
+            new(Geometry.BossLine, start, end, default, 0f, default, false);
     }
 }

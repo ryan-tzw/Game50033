@@ -11,9 +11,26 @@ namespace Game50033
         private IReadOnlyList<DebugAttackSnapshot> _attackSnapshotsView;
         private readonly List<DebugProjectileTrace> _projectileTraces = new();
         private IReadOnlyList<DebugProjectileTrace> _projectileTracesView;
+        private readonly List<BossCollider> _bossColliders = new();
+
+        internal readonly struct BossCollider
+        {
+            internal readonly Behaviour Owner;
+            internal readonly Collider Collider;
+            internal readonly Vector3[] MeshVertices;
+
+            internal BossCollider(Behaviour owner, Collider collider)
+            {
+                Owner = owner;
+                Collider = collider;
+                MeshVertices = collider is MeshCollider { convex: true, sharedMesh: { isReadable: true } mesh }
+                    ? mesh.vertices : null;
+            }
+        }
 
         public IReadOnlyList<DebugAttackSnapshot> AttackSnapshots => _attackSnapshotsView ??= _attackSnapshots.AsReadOnly();
         public IReadOnlyList<DebugProjectileTrace> ProjectileTraces => _projectileTracesView ??= _projectileTraces.AsReadOnly();
+        internal IReadOnlyList<BossCollider> BossColliders => _bossColliders;
 
         public bool NoCooldowns { get; private set; }
         public bool Invincibility { get; set; }
@@ -22,6 +39,7 @@ namespace Game50033
         public bool ShowEnemyHurtboxes { get; set; } = true;
         public bool ShowPlayerHurtboxes { get; set; } = true;
         public bool ShowPlayerAttacks { get; set; } = true;
+        public bool ShowBossAttacks { get; set; } = true;
         public bool ShowSpecialZones { get; set; } = true;
         public bool BlocksMouseCombat { get; internal set; }
 
@@ -32,12 +50,24 @@ namespace Game50033
 
         public void RecordAttack(in DebugAttackSnapshot snapshot)
         {
-            if (!ShowHitboxes || !ShowPlayerAttacks && !(ShowSpecialZones && snapshot.HasSweetSpot)) return;
+            if (!ShowHitboxes) return;
+            if (snapshot.Shape == DebugAttackSnapshot.Geometry.BossLine ? !ShowBossAttacks
+                : !ShowPlayerAttacks && !(ShowSpecialZones && snapshot.HasSweetSpot)) return;
             _attackSnapshots.Add(snapshot);
         }
 
+        internal void RegisterBossCollider(Behaviour owner, Collider collider) =>
+            _bossColliders.Add(new BossCollider(owner, collider));
+
         public void ExpireAttackSnapshots(float lifetime)
         {
+            for (var i = _bossColliders.Count - 1; i >= 0; i--)
+            {
+                var shape = _bossColliders[i];
+                if (shape.Owner == null || shape.Collider == null || !shape.Collider.gameObject.scene.isLoaded)
+                    _bossColliders.RemoveAt(i);
+            }
+
             for (var i = _attackSnapshots.Count - 1; i >= 0; i--)
             {
                 var snapshot = _attackSnapshots[i];

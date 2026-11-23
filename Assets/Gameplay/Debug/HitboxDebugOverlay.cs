@@ -11,8 +11,9 @@ namespace Game50033
         private readonly IReadOnlyList<Player> _players;
         private readonly List<Vector2> _contour = new(192);
         private readonly List<int> _contourEnds = new(128);
-        private readonly Vector2[] _projectedPoints = new Vector2[6];
-        private readonly Vector2[] _hull = new Vector2[12];
+        private Vector3[] _worldPoints = new Vector3[8];
+        private Vector2[] _projectedPoints = new Vector2[8];
+        private Vector2[] _hull = new Vector2[16];
 
         public HitboxDebugOverlay(DebugState state, DebugVisualizationTuning tuning, IReadOnlyList<Player> players = null)
         {
@@ -52,6 +53,11 @@ namespace Game50033
             {
                 var snapshot = snapshots[i];
                 if (!snapshot.Scene.isLoaded || snapshot.LiveFrame >= 0 && snapshot.LiveFrame != Time.frameCount) continue;
+                if (snapshot.Shape == DebugAttackSnapshot.Geometry.BossLine)
+                {
+                    if (_state.ShowBossAttacks) DrawBossLine(painter, camera, snapshot);
+                    continue;
+                }
                 if (snapshot.Shape != DebugAttackSnapshot.Geometry.Sector)
                 {
                     if (!_state.ShowPlayerAttacks) continue;
@@ -87,6 +93,15 @@ namespace Game50033
                 var trace = traces[i];
                 if (!trace.Scene.isLoaded || !trace.IsFinished && !trace.KeepLastStep && trace.Frame != Time.frameCount) continue;
                 DrawProjectile(painter, camera, trace);
+            }
+
+            var bossColliders = _state.BossColliders;
+            for (var i = 0; _state.ShowBossAttacks && i < bossColliders.Count; i++)
+            {
+                var shape = bossColliders[i];
+                if (shape.Owner == null || !shape.Owner.isActiveAndEnabled || shape.Collider == null
+                    || !shape.Collider.enabled || !shape.Collider.gameObject.activeInHierarchy) continue;
+                DrawBossCollider(painter, camera, shape);
             }
 
             // draw the small player shapes last so larger attack previews cannot cover their outlines.
@@ -310,44 +325,106 @@ namespace Game50033
             painter.Stroke();
         }
 
+        private void DrawBossLine(Painter2D painter, Camera camera, in DebugAttackSnapshot snapshot)
+        {
+            if (painter.lineWidth <= 0f) return;
+            var start = camera.WorldToViewportPoint(snapshot.Origin);
+            var end = camera.WorldToViewportPoint(snapshot.Direction);
+            if (Mathf.Max(start.z, end.z) < camera.nearClipPlane || Mathf.Min(start.z, end.z) > camera.farClipPlane) return;
+
+            var color = _tuning.bossAttackColor;
+            painter.strokeColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.outlineOpacity));
+            _contour.Clear();
+            _contour.Add(this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel, snapshot.Origin, camera)));
+            _contour.Add(this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel, snapshot.Direction, camera)));
+            painter.BeginPath();
+            StrokeDashed(painter, 0, _contour.Count, false);
+            painter.Stroke();
+        }
+
+        private void DrawBossCollider(Painter2D painter, Camera camera, in DebugState.BossCollider shape)
+        {
+            var collider = shape.Collider;
+            var volume = collider.transform;
+            var color = _tuning.bossAttackColor;
+            if (collider is SphereCollider sphere)
+            {
+                var scale = volume.lossyScale;
+                var radius = sphere.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
+                var centre = volume.TransformPoint(sphere.center);
+                DrawCapsule(painter, camera, centre, centre, radius, color);
+            }
+            else if (collider is BoxCollider box)
+            {
+                var half = box.size * 0.5f;
+                for (var i = 0; i < 8; i++)
+                {
+                    var corner = new Vector3((i & 1) == 0 ? -half.x : half.x, (i & 2) == 0 ? -half.y : half.y,
+                        (i & 4) == 0 ? -half.z : half.z);
+                    _worldPoints[i] = volume.TransformPoint(box.center + corner);
+                }
+                DrawProjectedHull(painter, camera, 8, color, dashed: false);
+            }
+            else if (shape.MeshVertices is { Length: > 0 } vertices)
+            {
+                if (_worldPoints.Length < vertices.Length)
+                {
+                    var capacity = Mathf.NextPowerOfTwo(vertices.Length);
+                    _worldPoints = new Vector3[capacity];
+                    _projectedPoints = new Vector2[capacity];
+                    _hull = new Vector2[capacity * 2];
+                }
+                for (var i = 0; i < vertices.Length; i++) _worldPoints[i] = volume.TransformPoint(vertices[i]);
+                DrawProjectedHull(painter, camera, vertices.Length, color, dashed: false);
+            }
+        }
+
         private void DrawPrism(Painter2D painter, Camera camera, in DebugAttackSnapshot snapshot)
+        {
+            _worldPoints[0] = snapshot.Origin;
+            _worldPoints[1] = snapshot.Direction;
+            _worldPoints[2] = snapshot.StretchAxis;
+            for (var i = 0; i < 3; i++) _worldPoints[i + 3] = _worldPoints[i] + snapshot.Extrusion;
+            DrawProjectedHull(painter, camera, 6, _tuning.playerAttackColor, dashed: true);
+        }
+
+        private void DrawProjectedHull(Painter2D painter, Camera camera, int pointCount, Color color, bool dashed)
         {
             var minimumDepth = float.PositiveInfinity;
             var maximumDepth = float.NegativeInfinity;
-            for (var i = 0; i < 6; i++)
+            var minimum = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
+            var maximum = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+            for (var i = 0; i < pointCount; i++)
             {
-                var world = (i % 3) switch
-                {
-                    0 => snapshot.Origin,
-                    1 => snapshot.Direction,
-                    _ => snapshot.StretchAxis
-                };
-                if (i >= 3) world += snapshot.Extrusion;
+                var world = _worldPoints[i];
                 var depth = Vector3.Dot(world - camera.transform.position, camera.transform.forward);
                 minimumDepth = Mathf.Min(minimumDepth, depth);
                 maximumDepth = Mathf.Max(maximumDepth, depth);
-                _projectedPoints[i] = this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel, world, camera));
+                var point = this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel, world, camera));
+                _projectedPoints[i] = point;
+                minimum = Vector2.Min(minimum, point);
+                maximum = Vector2.Max(maximum, point);
             }
-            if (maximumDepth < camera.nearClipPlane || minimumDepth > camera.farClipPlane) return;
+            if (maximumDepth < camera.nearClipPlane || minimumDepth > camera.farClipPlane
+                || !contentRect.Overlaps(Rect.MinMaxRect(minimum.x, minimum.y, maximum.x, maximum.y))) return;
 
-            var hullCount = BuildHull(6);
+            var hullCount = BuildHull(pointCount);
             if (hullCount < 3) return;
-            var color = _tuning.playerAttackColor;
             painter.fillColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.fillOpacity));
             painter.strokeColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.outlineOpacity));
-            _contour.Clear();
             painter.BeginPath();
             painter.MoveTo(_hull[0]);
-            for (var i = 0; i < hullCount; i++)
-            {
-                if (i > 0) painter.LineTo(_hull[i]);
-                _contour.Add(_hull[i]);
-            }
+            for (var i = 1; i < hullCount; i++) painter.LineTo(_hull[i]);
             painter.ClosePath();
             painter.Fill();
             if (painter.lineWidth <= 0f) return;
-            painter.BeginPath();
-            StrokeDashed(painter, 0, hullCount, true);
+            if (dashed)
+            {
+                _contour.Clear();
+                for (var i = 0; i < hullCount; i++) _contour.Add(_hull[i]);
+                painter.BeginPath();
+                StrokeDashed(painter, 0, hullCount, true);
+            }
             painter.Stroke();
         }
 

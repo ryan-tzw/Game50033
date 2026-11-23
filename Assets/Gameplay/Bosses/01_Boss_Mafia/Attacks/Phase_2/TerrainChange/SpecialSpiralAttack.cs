@@ -45,6 +45,8 @@ namespace Game50033
             
             _meshCollider.convex = true;
             _meshCollider.isTrigger = true;
+            if (rotating)
+                FindAnyObjectByType<GameSession>()?.Debug.RegisterBossCollider(this, _meshCollider);
             
             _matColor = material.color;
             _matColorTranslucent = material.color;
