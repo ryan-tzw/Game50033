@@ -26,6 +26,7 @@ namespace Game50033
         private float _activeDuration;
         private float _recoveryDuration;
         private float _chargeElapsed;
+        private int _chargeStartedFrame;
         private float _speedRewardUntil;
         private bool _gameplayReady;
         private bool _evasionRewarded;
@@ -175,14 +176,15 @@ namespace Game50033
             }
             if (IsCharging)
             {
-                if (Player.SpecialHeld)
+                // the press that starts charging is still visible during this frame's LateUpdate.
+                if (Time.frameCount != _chargeStartedFrame && Player.SpecialPressedThisFrame)
                 {
-                    _chargeElapsed = Mathf.Min(tuning.special.chargeDuration,
-                        _chargeElapsed + Player.Hitstop.ActionDeltaTime);
+                    ReleaseChargedAttack();
                 }
                 else
                 {
-                    ReleaseChargedAttack();
+                    _chargeElapsed = Mathf.Min(tuning.special.chargeDuration,
+                        _chargeElapsed + Player.Hitstop.ActionDeltaTime);
                 }
             }
             else if (CurrentAction != Action.None && ActionProgress >= 1f)
@@ -259,6 +261,7 @@ namespace Game50033
             }
 
             _chargeElapsed = 0f;
+            _chargeStartedFrame = Time.frameCount;
             _specialRequiresRelease = true;
             BeginAction(Action.Charge, Player.AimDirection, tuning.special.chargeDuration, 0f);
             return true;

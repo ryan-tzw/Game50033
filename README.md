@@ -60,7 +60,7 @@ Gamepad buttons are bound by **position**, not by the letter printed on them. Sw
 | Toggle aim mode | Left Shift | — | — | — | — | Toggles keyboard/mouse Auto ↔ Manual; the choice persists on that player across scene transitions. |
 | Primary attack | Left click | Left face button | X | □ | Y | Guitar: three-hit sweeping combo; hold to continue/repeat. Other characters retain their current abilities/placeholders. |
 | Secondary attack | Right click | Top face button | Y | △ | X | Guitar: travelling Strum wave; empowers the next Primary. |
-| Special attack | E | Bottom face button | A | ✕ | B | Not implemented (used as **join / pick** in the lobby) |
+| Special attack | E | Bottom face button | A | ✕ | B | Flute presses once to charge and again to fire. Also used as **join / pick** in the lobby. |
 | Defensive | Q | Right face button | B | ○ | A | Not implemented (used as **back** in the lobby) |
 | Dash | Space | Right trigger | RT | R2 | ZR | Existing dodge: two charges, invulnerability, timed recharge |
 

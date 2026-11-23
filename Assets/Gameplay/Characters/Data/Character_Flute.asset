@@ -37,4 +37,4 @@ MonoBehaviour:
     icon: {fileID: 2800000, guid: 45920b7b2f55fb39dbcbc83c9f8d77bb, type: 3}
     interactions: 3
     conditionalInteractions: 2
-    description: Hold to charge a shot that leaves a Burst REV. At full charge, spend Flow on release to make it resonate.
+    description: Press to charge, then press again to fire a shot that leaves a Burst REV. At full charge, firing spends Flow to make it resonate.
