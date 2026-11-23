@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.TromboneTuning
   actionDuration: 0.25
   primary:
-    cooldown: 0.5
-    maximumPressureCooldown: 0.3
+    cooldown: 2
+    maximumPressureCooldown: 1
     minimumDamage: 8
     maximumDamage: 40
     projectile:
@@ -27,9 +27,11 @@ MonoBehaviour:
         m_Bits: 4294967295
       radius: 0.1
   special:
-    cooldown: 3
-    minimumDamage: 8
-    maximumDamage: 40
+    windup: 0.45
+    recovery: 1.15
+    cooldown: 6
+    minimumDamage: 24
+    maximumDamage: 80
     projectile:
       speed: 16
       maximumDistance: 16
@@ -45,9 +47,10 @@ MonoBehaviour:
     pressureDecayMultiplier: 0.5
   pressure:
     maximum: 100
-    stationaryGainPerSecond: 8
-    gainPerAttack: 1
-    decayPerSecond: 4
+    stationaryGainPerSecond: 0
+    gainPerAttack: 15
+    idleDecayPerSecond: 3
+    decayPerSecond: 8
     minimumMovementSpeed: 0.1
     teleportDistance: 3
   defensive:
@@ -64,56 +67,79 @@ MonoBehaviour:
     effectMaterial: {fileID: 2100000, guid: 360455d3e9ccc4b8e8c6b3fd73f5f922, type: 2}
     weaponWidth: 0.95
     idleOffset: {x: 0.2, y: 0.36, z: 0.06}
+    gripPoint: {x: 0, y: 0}
+    restingTilt: 0
     muzzleOffset: {x: 0.125, y: 0.055}
     poseResponse: 24
     cueWidth: 0.018
     gold: {r: 1, g: 0.72, b: 0.18, a: 1}
     resonatingColor: {r: 0.55, g: 0.95, b: 1, a: 1}
-    primaryRecovery: 0.22
-    primaryRecoil: 0.1
-    primaryKick: 5
-    flashDuration: 0.065
-    flashRadius: 0.075
-    zoneSweepDuration: 0.42
+    pressureGlow: 1
+    anticipationTime: 1.1
+    anticipationPullback: 0.34
+    anticipationLift: 0.16
+    anticipationTilt: 55
+    shotSquash: 0.12
+    anticipationTremble: 0.014
+    recoilSquash: 0.03
+    primaryRecovery: 1.5
+    primaryRecoilBuild: 0.18
+    primaryRecoil: 0.18
+    primaryKick: 8
+    flashDuration: 0.11
+    flashRadius: 0.12
+    zoneSweepDuration: 1.5
     zoneWeaponReach: 0.4
     zoneLineWidth: 0.035
     zoneOpacity: 0.65
     zoneHeight: 0.035
+    zoneDeployDuration: 0.32
+    zoneShakeDistance: 0.045
+    zoneShakeFrequency: 9
+    zoneDeployWidthMultiplier: 2.6
+    zoneMarkerReach: 0.18
+    zoneMarkerWidth: 0.045
     guardOffset: {x: 0.16, y: 0.37, z: 0.08}
     guardDownAngle: 68
     guardRaiseTime: 0.08
     blockDuration: 0.16
     blockKick: 0.045
     guardCueRadius: 0.16
-    specialRecovery: 0.5
-    specialRecoil: 0.22
-    specialKick: 10
-    specialFlashScale: 1.6
+    guardWindupTime: 0.07
+    guardImpactScale: 1
+    guardWaveRadius: 0.9
+    guardShockwaveDuration: 0.45
+    guardWaveWidth: 0.05
+    specialRecovery: 1.6
+    specialRecoilBuild: 0.45
+    specialRecoil: 0.5
+    specialKick: 16
+    specialFlashScale: 2.6
     primaryShotWidth: 0.045
-    specialShotWidth: 0.065
+    specialShotWidth: 0.095
     primaryShotLength: 0.18
-    specialShotLength: 0.45
+    specialShotLength: 0.65
     primaryTrailTime: 0.055
-    specialTrailTime: 0.1
+    specialTrailTime: 0.12
   pressureVisuals:
     radius: 0.55
     height: 0.055
-    trackWidth: 0.018
-    fillWidth: 0.03
-    response: 24
-    trackColor: {r: 0.4, g: 0.32, b: 0.2, a: 0.3}
+    trackWidth: 0.014
+    fillWidth: 0.022
+    response: 5
+    trackColor: {r: 0.75, g: 0.6, b: 0.32, a: 0.22}
     losingColor: {r: 1, g: 0.5, b: 0.3, a: 1}
     fullColor: {r: 1, g: 0.88, b: 0.45, a: 1}
     fullColorThreshold: 0.7
     noteSprite: {fileID: 21300000, guid: 85c2f04c4ed0458ca2a78c761227a72f, type: 3}
-    lowNoteRate: 1.2
-    highNoteRate: 5
-    noteLifetime: 1.2
-    noteSize: 0.18
-    spawnRadius: 0.25
-    noteHeight: 0.15
-    riseDistance: 0.5
+    lowNoteRate: 0.35
+    highNoteRate: 1.6
+    noteLifetime: 2.6
+    noteSize: 0.14
+    spawnRadius: 0.55
+    noteHeight: 0.1
+    riseDistance: 0.2
     driftDistance: 0.12
-    emissionResponse: 6
+    emissionResponse: 1.5
   specialReverberationStrengthMultiplier: 0.5
   hitEffect: {fileID: 11400000, guid: 645a021c6bfb12b42a710932ef781155, type: 2}
