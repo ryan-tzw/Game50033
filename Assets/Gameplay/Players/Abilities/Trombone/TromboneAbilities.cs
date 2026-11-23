@@ -43,6 +43,14 @@ namespace Game50033
         public bool IsGuarding => _guardUntil > ActionTime;
         public bool PrimaryResonates => _primaryResonates;
         public override float MovementSpeedMultiplier => IsGuarding ? tuning.defensive.movementSpeedMultiplier : 1f;
+        public override bool BlocksDefensive => IsGuarding;
+        internal override bool CanInterruptAttack => _activeUntil > 0f && !IsGuarding;
+
+        internal override void InterruptAttack()
+        {
+            EndAction();
+            if (_weaponVisual != null) _weaponVisual.Cancel();
+        }
 
         private void OnEnable()
         {
@@ -137,7 +145,7 @@ namespace Game50033
             var cooldown = Mathf.Lerp(tuning.primary.cooldown,
                 Mathf.Min(tuning.primary.cooldown, tuning.primary.maximumPressureCooldown), pressure);
             _primaryCooldownDuration = Mathf.Max(0.01f, cooldown);
-            BeginAction(ref _primaryReadyAt, _primaryCooldownDuration, blockMovement: true, blockDodge: false);
+            BeginAction(ref _primaryReadyAt, _primaryCooldownDuration, blockMovement: true);
             AccumulatePressure();
             if (_weaponVisual != null) _weaponVisual.PlayShot(direction, ProjectilePosition, special: false, resonates: resonates, interval: cooldown);
             return true;
@@ -152,18 +160,18 @@ namespace Game50033
             _commandZone = Instantiate(commandZonePrefab, transform.position, Quaternion.identity);
             _commandZone.Ended += HandleCommandZoneEnded;
             _commandZone.Initialize(Player);
-            BeginAction(blockMovement: false, blockDodge: false);
+            BeginAction(blockMovement: false);
             if (_weaponVisual != null) _weaponVisual.PlayZone(Player.AimDirection);
             return true;
         }
 
         public override bool TryUseDefensive()
         {
-            if (!CanActivate || IsGuarding || !CooldownReady(_defensiveReadyAt)) return false;
+            if (!Player.CanUseDefensive || !CooldownReady(_defensiveReadyAt)) return false;
 
             _guardUntil = ActionTime + Mathf.Max(0.01f, tuning.defensive.guardLifespan);
             Player.Health.GrantAbilityInvulnerability(tuning.defensive.guardLifespan);
-            BeginAction(ref _defensiveReadyAt, tuning.defensive.cooldown, blockMovement: false, blockDodge: true);
+            BeginAction(ref _defensiveReadyAt, tuning.defensive.cooldown, blockMovement: false);
             if (_weaponVisual != null) _weaponVisual.PlayGuard(Player.AimDirection);
             return true;
         }
@@ -181,7 +189,7 @@ namespace Game50033
             projectile.InitializeSpecial(Player, direction, damage, specialReverberationPrefab,
                 Mathf.Max(0.01f, damage * tuning.specialReverberationStrengthMultiplier), specialProjectilePrefab);
             if (_commandZone != null) _commandZone.ConsumeZone();
-            BeginAction(ref _specialReadyAt, tuning.special.cooldown, blockMovement: true, blockDodge: true);
+            BeginAction(ref _specialReadyAt, tuning.special.cooldown, blockMovement: true);
             AccumulatePressure();
             if (_weaponVisual != null) _weaponVisual.PlayShot(direction, ProjectilePosition, special: true, resonates: false, interval: tuning.special.cooldown);
             return true;
@@ -192,17 +200,17 @@ namespace Game50033
 
         private bool CooldownReady(float readyAt) => IgnoreCooldowns || Time.time >= readyAt;
 
-        private void BeginAction(ref float readyAt, float cooldown, bool blockMovement, bool blockDodge)
+        private void BeginAction(ref float readyAt, float cooldown, bool blockMovement)
         {
             readyAt = IgnoreCooldowns ? 0f : Time.time + cooldown;
-            BeginAction(blockMovement, blockDodge);
+            BeginAction(blockMovement);
         }
 
-        private void BeginAction(bool blockMovement, bool blockDodge)
+        private void BeginAction(bool blockMovement)
         {
             _activeUntil = ActionTime + Mathf.Max(0.01f, tuning.actionDuration);
             BlocksMovement = blockMovement;
-            BlocksDodge = blockDodge;
+            BlocksDodge = IsGuarding;
             BlocksAbilities = true;
         }
 
@@ -223,6 +231,7 @@ namespace Game50033
         private void EndGuard()
         {
             _guardUntil = 0f;
+            BlocksDodge = false;
             Player.Health.ClearAbilityInvulnerability();
         }
 
@@ -230,7 +239,7 @@ namespace Game50033
         {
             _activeUntil = 0f;
             BlocksMovement = false;
-            BlocksDodge = false;
+            BlocksDodge = IsGuarding;
             BlocksAbilities = false;
         }
 

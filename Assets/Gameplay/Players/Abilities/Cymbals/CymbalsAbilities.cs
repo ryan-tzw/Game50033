@@ -84,6 +84,11 @@ namespace Game50033
         public int MaxCrashCharges => tuning.crash.maxCharges;
         public bool IsParrying { get; private set; }
         public float ParryCooldownRemaining => Mathf.Max(0f, _parryReadyAt - Time.time);
+        public override bool BlocksDefensive => IsParrying || ((IsAttacking || IsCrashing || IsThrowing) && !CanInterruptAttack);
+        internal override bool CanInterruptAttack =>
+            (IsAttacking && CurrentPhase is Phase.Windup or Phase.Recovery)
+            || CurrentThrow == ThrowState.Windup
+            || CurrentCrash is CrashState.Windup or CrashState.Recovery;
 
         // body attack poses for PlayerAnimation; presentation only, read from the existing ability state.
         // free-walking parts (throw flight, the parry hold) report None so the walk cycle keeps playing.
@@ -292,8 +297,6 @@ namespace Game50033
 
             if (!_lungeRequested)
             {
-                // starting the lunge with the approach lets the windup be dash-cancelled,
-                // because movement refuses a dodge while a displacement is pending.
                 _lungeRequested = true;
                 if (_hit.lungeDistance > 0f)
                     Player.Movement.TryStartDisplacement(_direction, _hit.lungeDistance, _hit.approach, combo.lungeEasing);
@@ -611,10 +614,9 @@ namespace Game50033
             var fresh = Time.frameCount - _lastDefensiveFrame > 1;
             _lastDefensiveFrame = Time.frameCount;
             if (!isActiveAndEnabled || !fresh) return false;
-            // both cymbals are needed, so the thrown cymbal must be back.
-            if (!Player.CanUseAbilities || IsAttacking || IsThrowing || IsCrashing || IsParrying
-                || Time.time < _parryReadyAt) return false;
+            if (!Player.CanUseDefensive || Time.time < _parryReadyAt) return false;
 
+            if (CanInterruptAttack) InterruptAttack();
             IsParrying = true;
             _parryStartedAt = Time.time;
             _parryRewarded = false;
@@ -622,9 +624,8 @@ namespace Game50033
             _parryDirection.y = 0f;
             _parryDirection = _parryDirection.sqrMagnitude > 0.0001f
                 ? _parryDirection.normalized : Player.Movement.FacingDirection;
-            // free movement and a dash-cancel; no other abilities while the cymbals hold the parry.
             BlocksMovement = false;
-            BlocksDodge = false;
+            BlocksDodge = true;
             BlocksAbilities = true;
             if (weaponVisual != null) weaponVisual.SetParryPose(_parryDirection, 0f);
             return true;
@@ -877,6 +878,18 @@ namespace Game50033
             BlocksDodge = false;
             BlocksAbilities = false;
             if (weaponVisual != null) weaponVisual.Cancel();
+        }
+
+        internal override void InterruptAttack()
+        {
+            if (IsAttacking)
+            {
+                if (_impactResolved) FinishHit();
+                else AbortHit();
+                Player.Movement.CancelDisplacement();
+            }
+            else if (IsCrashing) EndCrash();
+            else if (IsThrowing) EndThrow(startCooldown: false);
         }
 
         public override void Cancel()

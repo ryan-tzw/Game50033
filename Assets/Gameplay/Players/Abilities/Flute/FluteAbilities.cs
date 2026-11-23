@@ -51,7 +51,8 @@ namespace Game50033
         public float SpecialCooldownRemaining => Mathf.Max(0f, _specialReadyAt - Time.time);
         public float DefensiveCooldownRemaining => Mathf.Max(0f, _defensiveReadyAt - Time.time);
 
-        public override bool BlocksDefensive => IsEvasive || CurrentAction == Action.Release;
+        public override bool BlocksDefensive => IsEvasive || (CurrentAction != Action.None && !CanInterruptAttack);
+        internal override bool CanInterruptAttack => AnimationPhase is PlayerAttackPhase.Windup or PlayerAttackPhase.Recovery;
         public override float MovementSpeedMultiplier => Player.Hitstop.ActionTime < _speedRewardUntil
             ? tuning.defensive.successSpeedMultiplier : 1f;
         public override PlayerAttackPhase AnimationPhase
@@ -371,7 +372,7 @@ namespace Game50033
             _recoveryDuration = recoveryDuration;
             BlocksMovement = action == Action.Evasive;
             BlocksAbilities = true;
-            BlocksDodge = action == Action.Evasive;
+            BlocksDodge = true;
         }
 
         private void EndAction()

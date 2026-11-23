@@ -64,7 +64,10 @@ namespace Game50033
         public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDowned && !IsHitStunned && !Hitstop.IsStopped
             && (Abilities == null || !Abilities.isActiveAndEnabled || !Abilities.BlocksMovement);
         public bool CanDodge => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !IsHitStunned && !Hitstop.IsStopped
-            && Movement.CanDodge && (Abilities == null || !Abilities.isActiveAndEnabled || !Abilities.BlocksDodge);
+            && Movement.CanDodgeIgnoringDisplacement
+            && (CanCancelAttackForDodge || (!Movement.IsDisplacing
+                && (Abilities == null || !Abilities.isActiveAndEnabled || !Abilities.BlocksDodge)));
+        private bool CanCancelAttackForDodge => Abilities != null && Abilities.isActiveAndEnabled && Abilities.CanInterruptAttack;
         public bool CanUseAbilities => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !IsHitStunned && !Hitstop.IsStopped
             && !Movement.IsDodging && Abilities != null && Abilities.isActiveAndEnabled && !Abilities.BlocksAbilities;
 
@@ -149,7 +152,15 @@ namespace Game50033
                     _manualMouseAim = !_manualMouseAim;
 
                 // dodge is press-only; ability activation is retried while held.
-                if (_dodgeAction.WasPressedThisFrame()) Movement.TryDodge(CanDodge);
+                if (_dodgeAction.WasPressedThisFrame() && CanDodge)
+                {
+                    if (CanCancelAttackForDodge)
+                    {
+                        Abilities.InterruptAttack();
+                        Movement.CancelDisplacement();
+                    }
+                    Movement.TryDodge(true);
+                }
 
                 var blockMouseCombat = Session != null && Session.Debug.BlocksMouseCombat;
 

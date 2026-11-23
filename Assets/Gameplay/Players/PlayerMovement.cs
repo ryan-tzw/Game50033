@@ -40,8 +40,9 @@ namespace Game50033
         public float DodgeProgress => Mathf.Clamp01(_dodgeElapsed / Mathf.Max(0.01f, dodgeTuning.dodgeDuration));
         public bool IsDisplacing { get; private set; }
         public bool IsInvulnerable => IsDodging && isActiveAndEnabled && _controller != null && _controller.enabled;
-        public bool CanDodge => isActiveAndEnabled && _controller != null && _controller.enabled
-            && !IsDodging && !IsDisplacing && (DodgeCharges > 0 || InfiniteDodge) && (_hitstop == null || !_hitstop.IsStopped);
+        public bool CanDodge => CanDodgeIgnoringDisplacement && !IsDisplacing;
+        internal bool CanDodgeIgnoringDisplacement => isActiveAndEnabled && _controller != null && _controller.enabled
+            && !IsDodging && (DodgeCharges > 0 || InfiniteDodge) && (_hitstop == null || !_hitstop.IsStopped);
         public int DodgeCharges { get; private set; }
         public int MaxDodgeCharges => dodgeTuning.maxDodgeCharges;
         public float DodgeRechargeRemaining => DodgeCharges < MaxDodgeCharges

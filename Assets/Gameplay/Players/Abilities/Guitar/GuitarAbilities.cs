@@ -62,7 +62,14 @@ namespace Game50033
         public bool IsStrumming => _action == GuitarAction.Secondary;
         public bool IsDefending => _action == GuitarAction.Defensive;
         public float DefensiveCooldownRemaining => Mathf.Max(0f, _defensiveReadyAt - Time.time);
-        public override bool BlocksDefensive => IsAttacking && (IsDefending || AnimationPhase == PlayerAttackPhase.Active);
+        public override bool BlocksDefensive => IsAttacking && (IsDefending || !CanInterruptAttack);
+        internal override bool CanInterruptAttack => AnimationPhase switch
+        {
+            PlayerAttackPhase.Windup => true,
+            // player input can tick before the ability resolves a hit on a long frame.
+            PlayerAttackPhase.Recovery => IsStrumming ? _strumReleased : _impactResolved,
+            _ => false
+        };
         public override PlayerAttackPhase AnimationPhase
         {
             get
@@ -561,13 +568,8 @@ namespace Game50033
             BlocksAbilities = true;
             return true;
         }
-        public override bool TryUseDefensive()
+        internal override void InterruptAttack()
         {
-            if (!isActiveAndEnabled || !Player.CanUseDefensive || (!IgnoreCooldowns && Time.time < _defensiveReadyAt)) return false;
-            var defensive = tuning.defensive;
-            if (defensive.backstepDistance > 0f && (!Player.Movement.isActiveAndEnabled
-                || !GetComponent<CharacterController>().enabled)) return false;
-
             var comboIndex = !IsAttacking && Time.time > _comboExpiresAt ? 0 : _nextComboIndex;
             // a cancelled anticipation retries its strike; a strike already in recovery counts as completed.
             if (IsAttacking && ComboStep > 0 && AnimationPhase == PlayerAttackPhase.Recovery)
@@ -583,8 +585,19 @@ namespace Game50033
             var empowermentMultiplier = _empowerMultiplier;
             Cancel();
             _nextComboIndex = comboIndex;
+            _comboExpiresAt = Time.time + tuning.attack.comboResetDelay;
             HasEmpoweredAttack = empowered;
             _empowerMultiplier = empowermentMultiplier;
+        }
+
+        public override bool TryUseDefensive()
+        {
+            if (!isActiveAndEnabled || !Player.CanUseDefensive || (!IgnoreCooldowns && Time.time < _defensiveReadyAt)) return false;
+            var defensive = tuning.defensive;
+            if (defensive.backstepDistance > 0f && (!Player.Movement.isActiveAndEnabled
+                || !GetComponent<CharacterController>().enabled)) return false;
+
+            InterruptAttack();
             _direction = Player.GetAttackDirection();
             _direction.y = 0f;
             _direction = _direction.sqrMagnitude > 0.0001f ? _direction.normalized : Player.Movement.FacingDirection;
