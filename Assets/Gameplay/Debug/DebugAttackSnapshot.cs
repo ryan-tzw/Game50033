@@ -10,6 +10,7 @@ namespace Game50033
         internal readonly Geometry Shape;
         internal readonly Vector3 Extrusion;
         internal readonly int LiveFrame;
+        internal readonly bool IsReverberation;
         public readonly Vector3 Origin;
         public readonly Vector3 Direction;
         public readonly Vector3 StretchAxis;
@@ -26,11 +27,12 @@ namespace Game50033
 
         public DebugAttackSnapshot(Vector3 origin, Vector3 direction, float innerRadius, float outerRadius,
             float angle, Vector3 stretchAxis, float stretch, float sweetSpotRadius = -1f, bool sweetSpotInside = false,
-            bool live = false)
+            bool live = false, bool reverberation = false)
         {
             Shape = Geometry.Sector;
             Extrusion = Vector3.zero;
             LiveFrame = live ? Time.frameCount : -1;
+            IsReverberation = reverberation;
             Origin = origin;
             Direction = direction;
             InnerRadius = innerRadius;
@@ -45,18 +47,20 @@ namespace Game50033
         }
 
         private DebugAttackSnapshot(Geometry shape, Vector3 first, Vector3 second, Vector3 third,
-            float radius, Vector3 extrusion, bool live)
-            : this(first, second, 0f, radius, 0f, third, 1f, live: live)
+            float radius, Vector3 extrusion, bool live, bool reverberation = false)
+            : this(first, second, 0f, radius, 0f, third, 1f, live: live, reverberation: reverberation)
         {
             Shape = shape;
             Extrusion = extrusion;
         }
 
-        internal static DebugAttackSnapshot Capsule(Vector3 bottom, Vector3 top, float radius, bool live = false) =>
-            new(Geometry.Capsule, bottom, top, default, radius, default, live);
+        internal static DebugAttackSnapshot Capsule(Vector3 bottom, Vector3 top, float radius, bool live = false,
+            bool reverberation = false) =>
+            new(Geometry.Capsule, bottom, top, default, radius, default, live, reverberation);
 
-        internal static DebugAttackSnapshot Triangle(Vector3 tip, Vector3 left, Vector3 right, Vector3 extrusion) =>
-            new(Geometry.Triangle, tip, left, right, 0f, extrusion, false);
+        internal static DebugAttackSnapshot Triangle(Vector3 tip, Vector3 left, Vector3 right, Vector3 extrusion,
+            bool reverberation = false) =>
+            new(Geometry.Triangle, tip, left, right, 0f, extrusion, false, reverberation);
 
         internal static DebugAttackSnapshot BossLine(Vector3 start, Vector3 end) =>
             new(Geometry.BossLine, start, end, default, 0f, default, false);

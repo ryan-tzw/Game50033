@@ -58,26 +58,29 @@ namespace Game50033
                     if (_state.ShowBossAttacks) DrawBossLine(painter, camera, snapshot);
                     continue;
                 }
+                if (snapshot.IsReverberation && !_state.ShowReverberationAreas) continue;
+                var attackVisible = snapshot.IsReverberation || _state.ShowPlayerAttacks;
+                var attackColor = snapshot.IsReverberation ? _tuning.reverberationAreaColor : _tuning.playerAttackColor;
                 if (snapshot.Shape != DebugAttackSnapshot.Geometry.Sector)
                 {
-                    if (!_state.ShowPlayerAttacks) continue;
+                    if (!attackVisible) continue;
                     if (snapshot.Shape == DebugAttackSnapshot.Geometry.Capsule)
                         DrawCapsule(painter, camera, snapshot.Origin, snapshot.Direction, snapshot.OuterRadius,
-                            _tuning.playerAttackColor, dashed: snapshot.LiveFrame < 0);
+                            attackColor, dashed: snapshot.LiveFrame < 0);
                     else
-                        DrawPrism(painter, camera, snapshot);
+                        DrawPrism(painter, camera, snapshot, attackColor);
                     continue;
                 }
 
                 var boundary = Mathf.Clamp(snapshot.SweetSpotRadius, snapshot.InnerRadius, snapshot.OuterRadius);
-                if (_state.ShowPlayerAttacks)
+                if (attackVisible)
                 {
                     // when both categories are visible, replace the sweet band rather than blending two fills there.
                     var inner = _state.ShowSpecialZones && snapshot.HasSweetSpot && snapshot.SweetSpotInside
                         ? boundary : snapshot.InnerRadius;
                     var outer = _state.ShowSpecialZones && snapshot.HasSweetSpot && !snapshot.SweetSpotInside
                         ? boundary : snapshot.OuterRadius;
-                    DrawSector(painter, camera, snapshot, inner, outer, _tuning.playerAttackColor);
+                    DrawSector(painter, camera, snapshot, inner, outer, attackColor);
                 }
                 if (_state.ShowSpecialZones && snapshot.HasSweetSpot)
                 {
@@ -93,6 +96,16 @@ namespace Game50033
                 var trace = traces[i];
                 if (!trace.Scene.isLoaded || !trace.IsFinished && !trace.KeepLastStep && trace.Frame != Time.frameCount) continue;
                 DrawProjectile(painter, camera, trace);
+            }
+
+            if (_state.ShowReverberationAreas)
+            {
+                var fields = Reverberation.Active;
+                for (var i = 0; i < fields.Count; i++)
+                {
+                    var field = fields[i];
+                    if (field != null && field.IsAvailable) DrawReverberation(painter, camera, field);
+                }
             }
 
             var bossColliders = _state.BossColliders;
@@ -379,13 +392,65 @@ namespace Game50033
             }
         }
 
-        private void DrawPrism(Painter2D painter, Camera camera, in DebugAttackSnapshot snapshot)
+        private void DrawReverberation(Painter2D painter, Camera camera, Reverberation field)
+        {
+            var strip = new ReverberationOverlap.FootprintStrip(field);
+            var count = strip.SegmentCount;
+            if (count == 0) return;
+
+            var origin = field.GroundOrigin;
+            var scale = field.FootprintScale;
+            var extent = field.FootprintRadius * scale;
+            var depth = Vector3.Dot(origin - camera.transform.position, camera.transform.forward);
+            if (depth + extent < camera.nearClipPlane || depth - extent > camera.farClipPlane) return;
+
+            strip.GetEdge(0, out var innerStart, out var outerStart);
+            strip.GetEdge(count, out _, out var outerEnd);
+            var closedLoop = field.FootprintReveal >= 1f && count > 1
+                && (outerStart - outerEnd).sqrMagnitude < 0.00000001f;
+            var lastEdge = closedLoop ? count - 1 : count;
+            var hasHole = innerStart.sqrMagnitude > 0f;
+
+            painter.BeginPath();
+            for (var i = 0; i <= lastEdge; i++)
+            {
+                strip.GetEdge(i, out _, out var outer);
+                var point = this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel, origin + outer * scale, camera));
+                if (i == 0) painter.MoveTo(point);
+                else painter.LineTo(point);
+            }
+            if (closedLoop) painter.ClosePath();
+            if (hasHole)
+            {
+                for (var i = lastEdge; i >= 0; i--)
+                {
+                    strip.GetEdge(i, out var inner, out _);
+                    var point = this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel, origin + inner * scale, camera));
+                    if (closedLoop && i == lastEdge) painter.MoveTo(point);
+                    else painter.LineTo(point);
+                }
+                painter.ClosePath();
+            }
+            else if (!closedLoop)
+            {
+                painter.LineTo(this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel, origin, camera)));
+                painter.ClosePath();
+            }
+
+            var color = _tuning.reverberationAreaColor;
+            painter.fillColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.fillOpacity));
+            painter.strokeColor = new Color(color.r, color.g, color.b, color.a * Mathf.Clamp01(_tuning.outlineOpacity));
+            painter.Fill(FillRule.OddEven);
+            if (painter.lineWidth > 0f) painter.Stroke();
+        }
+
+        private void DrawPrism(Painter2D painter, Camera camera, in DebugAttackSnapshot snapshot, Color color)
         {
             _worldPoints[0] = snapshot.Origin;
             _worldPoints[1] = snapshot.Direction;
             _worldPoints[2] = snapshot.StretchAxis;
             for (var i = 0; i < 3; i++) _worldPoints[i + 3] = _worldPoints[i] + snapshot.Extrusion;
-            DrawProjectedHull(painter, camera, 6, _tuning.playerAttackColor, dashed: true);
+            DrawProjectedHull(painter, camera, 6, color, dashed: true);
         }
 
         private void DrawProjectedHull(Painter2D painter, Camera camera, int pointCount, Color color, bool dashed)

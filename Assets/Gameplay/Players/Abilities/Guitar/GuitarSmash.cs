@@ -42,6 +42,8 @@ namespace Game50033
         public void Replay(float damageMultiplier)
         {
             if (_owner == null) return;
+            _owner.Session?.Debug.RecordAttack(new DebugAttackSnapshot(_centre, _direction, 0f, _radius,
+                360f, Vector3.forward, 1f, _sweetSpotRadius, sweetSpotInside: true, reverberation: true));
             var colliders = new Collider[32];
             Resolve(damageMultiplier, new HashSet<IHittable>(), new List<CombatHurtbox>(), ref colliders);
         }

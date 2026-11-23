@@ -12,6 +12,7 @@ namespace Game50033
         [Header("Impact snapshots")]
         public Color playerAttackColor = new Color(1f, 155f / 255f, 66f / 255f);
         public Color bossAttackColor = new Color(1f, 80f / 255f, 106f / 255f);
+        public Color reverberationAreaColor = new Color(1f, 219f / 255f, 105f / 255f);
         public Color specialZoneColor = new Color(170f / 255f, 140f / 255f, 1f);
         [Tooltip("World-time lifetime of a historical impact preview, independent of attacker hitstop.")]
         [Min(0f)] public float snapshotDuration = 0.12f;

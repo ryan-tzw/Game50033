@@ -15,6 +15,7 @@ MonoBehaviour:
   enemyHurtboxColor: {r: 0.4392157, g: 0.9019608, b: 0.60784316, a: 1}
   playerAttackColor: {r: 1, g: 0.60784316, b: 0.25882354, a: 1}
   bossAttackColor: {r: 1, g: 0.3137255, b: 0.41568628, a: 1}
+  reverberationAreaColor: {r: 1, g: 0.85882354, b: 0.4117647, a: 1}
   specialZoneColor: {r: 0.6666667, g: 0.54901963, b: 1, a: 1}
   snapshotDuration: 0.12
   snapshotDashLength: 5

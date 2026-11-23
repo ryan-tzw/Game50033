@@ -118,6 +118,10 @@ namespace Game50033
             bossAttacks.SetValueWithoutNotify(_session.Debug.ShowBossAttacks);
             bossAttacks.RegisterValueChangedCallback(evt => _session.Debug.ShowBossAttacks = evt.newValue);
             _panel.Add(bossAttacks);
+            var reverberationAreas = new Toggle("REV/RES areas") { name = "reverberation-areas", focusable = false };
+            reverberationAreas.SetValueWithoutNotify(_session.Debug.ShowReverberationAreas);
+            reverberationAreas.RegisterValueChangedCallback(evt => _session.Debug.ShowReverberationAreas = evt.newValue);
+            _panel.Add(reverberationAreas);
             var specialZones = new Toggle("Special zones") { name = "special-zones", focusable = false };
             specialZones.SetValueWithoutNotify(_session.Debug.ShowSpecialZones);
             specialZones.RegisterValueChangedCallback(evt => _session.Debug.ShowSpecialZones = evt.newValue);
@@ -148,7 +152,8 @@ namespace Game50033
             if (visualizationTuning != null) _session.Debug.ExpireAttackSnapshots(visualizationTuning.snapshotDuration);
             var show = _session.Debug.ShowHitboxes && visualizationTuning != null
                 && (_session.Debug.ShowPlayerHurtboxes || _session.Debug.ShowEnemyHurtboxes
-                    || _session.Debug.ShowPlayerAttacks || _session.Debug.ShowBossAttacks || _session.Debug.ShowSpecialZones);
+                    || _session.Debug.ShowPlayerAttacks || _session.Debug.ShowBossAttacks
+                    || _session.Debug.ShowSpecialZones || _session.Debug.ShowReverberationAreas);
             _hitboxOverlay.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
             // sample after gameplay movement; no polling or path generation is needed while hidden.
             if (show) _hitboxOverlay.MarkDirtyRepaint();

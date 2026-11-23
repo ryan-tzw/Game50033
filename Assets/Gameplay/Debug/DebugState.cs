@@ -40,6 +40,7 @@ namespace Game50033
         public bool ShowPlayerHurtboxes { get; set; } = true;
         public bool ShowPlayerAttacks { get; set; } = true;
         public bool ShowBossAttacks { get; set; } = true;
+        public bool ShowReverberationAreas { get; set; } = true;
         public bool ShowSpecialZones { get; set; } = true;
         public bool BlocksMouseCombat { get; internal set; }
 
@@ -51,8 +52,10 @@ namespace Game50033
         public void RecordAttack(in DebugAttackSnapshot snapshot)
         {
             if (!ShowHitboxes) return;
-            if (snapshot.Shape == DebugAttackSnapshot.Geometry.BossLine ? !ShowBossAttacks
-                : !ShowPlayerAttacks && !(ShowSpecialZones && snapshot.HasSweetSpot)) return;
+            var visible = snapshot.Shape == DebugAttackSnapshot.Geometry.BossLine ? ShowBossAttacks
+                : snapshot.IsReverberation ? ShowReverberationAreas
+                : ShowPlayerAttacks || ShowSpecialZones && snapshot.HasSweetSpot;
+            if (!visible) return;
             _attackSnapshots.Add(snapshot);
         }
 
