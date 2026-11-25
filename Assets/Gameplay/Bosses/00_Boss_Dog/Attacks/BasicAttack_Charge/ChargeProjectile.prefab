@@ -26,13 +26,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2322340388511198349}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0.02, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3969489670747236407}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!212 &6198827452393312816
 SpriteRenderer:
   serializedVersion: 2
@@ -182,7 +182,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e512cb98544040d459b633bddaf8d3ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.ChargeProjectile
-  telegraphPrefab: {fileID: 133819519238865925, guid: 42ce7bdac8a64254fbbcc73e6d0a06f0, type: 3}
 --- !u!54 &5060948077741906430
 Rigidbody:
   m_ObjectHideFlags: 0
