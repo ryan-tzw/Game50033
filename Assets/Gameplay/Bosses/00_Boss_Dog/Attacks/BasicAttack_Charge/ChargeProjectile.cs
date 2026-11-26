@@ -76,7 +76,7 @@ namespace Game50033
             _sr.flipX = _boss.Movement.FlipX;
         }
 
-        protected override void DestroyProjectile()
+        public override void DestroyProjectile()
         {
             if (_controlReleased) return;
             base.DestroyProjectile();

@@ -1157,7 +1157,6 @@ MonoBehaviour:
   BossStopDistance: 6
   attackDuration: 1.2
   BossAttackInterval: 3
-  BoneProjectile: {fileID: 333596568652972358, guid: bcafc2289682cb84e966226852bd2771, type: 3}
 --- !u!1 &2057771716 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8108986738537790486, guid: ff3b50050c9e43dfdb723bcfed88e34b, type: 3}

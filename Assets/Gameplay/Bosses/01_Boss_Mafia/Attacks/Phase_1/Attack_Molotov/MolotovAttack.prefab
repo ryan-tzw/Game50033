@@ -67,3 +67,5 @@ MonoBehaviour:
   telegraphPrefab: {fileID: 0}
   extendToWall: 0
   maxDistance: 30
+  bossWindUpAnimationName: 
+  bossAttackAnimationName: Throw

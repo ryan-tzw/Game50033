@@ -108,7 +108,7 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.485, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -130,7 +130,7 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.485, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -152,7 +152,7 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.485, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -174,7 +174,7 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.485, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -196,7 +196,7 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.485, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -218,7 +218,7 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.485, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -240,7 +240,7 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.485, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -262,7 +262,7 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.485, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -284,7 +284,7 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.485, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -306,7 +306,7 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.485, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -333,7 +333,9 @@ TextureImporter:
     spriteCustomMetadata:
       entries:
       - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":128.0,"y":128.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.48500001430511477,"y":0.0},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":9,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
+        value: '{"sliceOnImport":true,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":128.0,"y":128.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5249999761581421,"y":0.0},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":9,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
+      - key: SpriteEditor.SliceOnImport
+        value: True
     nameFileIdTable:
       Mafia_Walk_0: 2691376234986554932
       Mafia_Walk_1: 1003064832

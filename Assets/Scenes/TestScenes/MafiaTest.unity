@@ -1192,7 +1192,7 @@ SpriteRenderer:
   m_MaskInteraction: 0
   m_Sprite: {fileID: 4723107735738678597, guid: 8231d3ca0b5fe5042a40e3831efcbe23, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_FlipX: 1
+  m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
   m_Size: {x: 1, y: 1}
@@ -6878,7 +6878,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 4.5915e-41, y: 0, z: 0, w: -4.7442757e-24}
+  m_BoundingSphereOverride: {x: 0, y: 4.59214e-40, z: 2.7152126e-20, w: 8.081629e-39}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ForceVisible: 0
@@ -9701,7 +9701,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 112
+  m_Constraints: 116
   m_CollisionDetection: 0
 --- !u!4 &2087794619
 Transform:

@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83480484681c3524baed5920682d1d02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.SpecialSpiralAttack
-  windUpTime: 1
+  windUpTime: 2
   activeTime: 5
   recoveryTime: 5
   _projectile: {fileID: 0}
@@ -68,14 +68,18 @@ MonoBehaviour:
   telegraphPrefab: {fileID: 0}
   extendToWall: 0
   maxDistance: 30
+  bossWindUpAnimationName: WindUp
+  bossAttackAnimationName: Spin
   numberOfPoints: 4
-  radius: 11
+  radius: 15
   rotating: 1
   rotationSpeed: 3
-  pointsOnLine: 20
-  amplitude: 0
-  frequency: 1
-  width: 2
+  pointsOnLine: 30
+  amplitude: 1.5
+  frequency: 2
+  startWidth: 0.5
+  endWidth: 5
+  waveAngle: 100
   material: {fileID: 2100000, guid: 29eb871e21830c94d8a35b6f8d5457bc, type: 2}
 --- !u!54 &4448901404150190987
 Rigidbody:
