@@ -11,6 +11,7 @@ Shader "Experimental/2D Sprite Lit"
         [ToggleUI] _SpriteFlatDepth("Depth From XZ Plane", Float) = 0
         _SpriteRotation("Visual Rotation (Degrees)", Float) = 0
         _SpritePivot("Visual Rotation Pivot", Vector) = (0,0,0,0)
+        [HideInInspector] _SpriteDepthPlane("World Depth Plane", Vector) = (0,0,0,0)
         
         // flash when entity gets hit
         _FlashAmount("Flash Amount", Range(0.0, 1.0)) = 0.0
@@ -201,6 +202,7 @@ Shader "Experimental/2D Sprite Lit"
             float _SpriteFlatDepth;
             float _SpriteRotation;
             float4 _SpritePivot;
+            float4 _SpriteDepthPlane;
 
             // hlsl variables for flash
             half _FlashAmount;

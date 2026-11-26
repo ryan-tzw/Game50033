@@ -211,7 +211,7 @@ Varyings LitPassVertex(Attributes input)
 
     float3 billboardPositionWS = TransformViewToWorld(billboardPositionVS);
     float4 billboardPositionCS = TransformWViewToHClip(billboardPositionVS);
-    // modes 0/1 retain mesh/XZ depth; mode 2 uses a vertical plane through the grip.
+    // modes 0/1 retain mesh/XZ depth; mode 2 can use an explicit world-space depth plane.
     float4 depthCS = vertexInput.positionCS;
     if (_SpriteFlatDepth > 0.5 && _SpriteFlatDepth < 1.5)
     {
@@ -244,10 +244,15 @@ Varyings LitPassVertex(Attributes input)
         }
         else depthCS = billboardPositionCS;
 #if defined(_RECEIVE_WEAPON_SHADOWS)
-        // receive environment shadows at the same upright surface used for obstacle occlusion.
-        // the shadow-caster pass still uses the original mesh to cast onto the ground.
+        // keep environment shadow sampling tied to the grip independently of the depth plane.
         output.casterPositionWS = uprightPositionWS;
 #endif
+        float planeDenominator = dot(rayWS, _SpriteDepthPlane.xyz);
+        if (abs(planeDenominator) > 0.0001)
+        {
+            float distance = (_SpriteDepthPlane.w - dot(billboardPositionWS, _SpriteDepthPlane.xyz)) / planeDenominator;
+            depthCS = TransformWorldToHClip(billboardPositionWS + rayWS * distance);
+        }
     }
     billboardPositionCS.z = depthCS.z / depthCS.w * billboardPositionCS.w;
     
