@@ -86,8 +86,11 @@ namespace Game50033
             Health = GetComponent<BossHealth>();
             Attacks = GetComponent<BossAttacks>();
             Movement.Initialize();
-            Health.Initialize(BossTotalPhases);
             Attacks.Initialize();
+            // If no phase count was set, use the phases assigned to BossAttacks.
+            if (BossTotalPhases <= 0) BossTotalPhases = Attacks.ConfiguredPhaseCount;
+            if (BossTotalPhases <= 0) Debug.LogError("Boss has no configured attack phases.", this);
+            Health.Initialize(BossTotalPhases);
             Health.HealthChanged += HandleHealthChange;
             Health.Dead += Die;
             Health.ChangePhase += HandleHealthPhase;
@@ -101,14 +104,23 @@ namespace Game50033
             // disabling the boss (e.g. the encounter freezing it after the fight) pauses its parts with it.
             if (Movement) Movement.enabled = true;
             if (Attacks) Attacks.enabled = true;
-            Attacks.StartedAttack += () => { _attackAnimator.SetTrigger(AttackId); };
+            if (Attacks) Attacks.StartedAttack += HandleAttackStarted;
+        }
+
+        private void HandleAttackStarted()
+        {
+            if (_attackAnimator != null) _attackAnimator.SetTrigger(AttackId);
         }
 
         private void OnDisable()
         {
             // parts may already be destroyed when the scene unloads.
             if (Movement) { Movement.StopMovement(); Movement.enabled = false; }
-            if (Attacks) Attacks.enabled = false;
+            if (Attacks)
+            {
+                Attacks.StartedAttack -= HandleAttackStarted;
+                Attacks.enabled = false;
+            }
         }
 
         public void SetTargets(IReadOnlyList<Player> livingPlayers)

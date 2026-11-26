@@ -30,6 +30,12 @@ namespace Game50033
         protected TrailRenderer _trail;
         private bool _destroying;
 
+        public virtual bool ControlsBoss => false;
+        public virtual void InterruptBossControl() { }
+        public virtual bool CanLaunch(Vector3 position, Vector3 direction) => true;
+
+        protected static Vector3 GetLaunchPosition(Vector3 origin) => origin + Vector3.up * 0.15f;
+
         private static readonly int HitStateId = Animator.StringToHash("Hit");
 
         public void InitializeProjectile(Player player, BaseBoss boss, Vector3 target, TargetedBossAttack targetedBossAttack)
@@ -58,7 +64,7 @@ namespace Game50033
         protected void Initialize(Vector3 target)
         {
 
-            _target = target + new Vector3(0f, 0.15f, 0f);
+            _target = GetLaunchPosition(target);
 
             float dropHeight = _targetedBossAttack.projectileHomingHeight;
             if(dropHeight > 0f)
@@ -67,7 +73,7 @@ namespace Game50033
             }
             else
             {
-                _start = transform.position + new Vector3(0f, 0.15f, 0f);
+                _start = GetLaunchPosition(transform.position);
             }
 
             transform.position = _start;
