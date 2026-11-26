@@ -39,6 +39,8 @@ namespace Game50033
         private int _pulsesRemaining;
         private float _pulseDamage;
         private float _damageRemaining;
+        private float _pulseResonanceDamage;
+        private float _resonanceDamageRemaining;
         private float _nextPulseAt;
         private float _presentationScale = 1f;
         private TrailRenderer _trail;
@@ -402,6 +404,7 @@ namespace Game50033
                 return;
             }
             var damage = _damage * _resonatingAttack.DamageMultiplier;
+            var hit = HitInfo.FromResonatingAttack(_source.gameObject, damage, _direction, _damage, isReplay: _replay != null);
             if (kind == Kind.Secondary && target is Component component)
             {
                 _pulsing = true;
@@ -411,6 +414,8 @@ namespace Game50033
                 _pulsesRemaining = Mathf.Clamp(_replay?.PulseCount ?? tuning.secondary.pulseCount, 1, 8);
                 _pulseDamage = damage / _pulsesRemaining;
                 _damageRemaining = damage;
+                _pulseResonanceDamage = hit.ResonanceDamage / _pulsesRemaining;
+                _resonanceDamageRemaining = hit.ResonanceDamage;
                 StopCollisions();
                 HideHead();
                 ApplyPulse();
@@ -422,7 +427,7 @@ namespace Game50033
             Finish(true);
             if (target != null)
             {
-                target.TakeHit(new HitInfo(_source.gameObject, damage, _direction));
+                target.TakeHit(hit);
                 PlayHit(point, damage);
             }
         }
@@ -445,10 +450,12 @@ namespace Game50033
         private void ApplyPulse()
         {
             var damage = _pulsesRemaining == 1 ? _damageRemaining : _pulseDamage;
+            var resonanceDamage = _pulsesRemaining == 1 ? _resonanceDamageRemaining : _pulseResonanceDamage;
             _damageRemaining -= damage;
+            _resonanceDamageRemaining -= resonanceDamage;
             _pulsesRemaining--;
             _nextPulseAt = Time.time + (_replay?.PulseSpacing ?? tuning.secondary.pulseSpacing);
-            _pulseTarget.TakeHit(new HitInfo(_source.gameObject, damage, _direction));
+            _pulseTarget.TakeHit(new HitInfo(_source.gameObject, damage, _direction, resonanceDamage));
             PlayHit(transform.position, damage);
             if (_pulsesRemaining == 0)
             {

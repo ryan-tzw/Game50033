@@ -35,6 +35,7 @@ namespace Game50033
         private ProjectileReplay _specialReplay;
         private float? _replayDistance;
         private float? _replayLifetime;
+        private bool _isReplay;
         private TromboneProjectile _replayPrefab;
         private Vector3 _stepOrigin;
         private bool _finished;
@@ -203,7 +204,8 @@ namespace Game50033
             if (target != null)
             {
                 var damage = _damage * _resonatingAttack.DamageMultiplier;
-                target.TakeHit(new HitInfo(_sourcePlayer.gameObject, damage, _flightDirection));
+                target.TakeHit(HitInfo.FromResonatingAttack(_sourcePlayer.gameObject, damage, _flightDirection,
+                    _damage, _isReplay));
 
                 if (tuning.hitEffect != null)
                     tuning.hitEffect.Play(new HitEffectRequest(other.ClosestPoint(transform.position), _flightDirection,
@@ -292,6 +294,7 @@ namespace Game50033
                 var shot = Instantiate(_prefab, _origin, Quaternion.LookRotation(_direction));
                 shot._replayDistance = _remainingDistance;
                 shot._replayLifetime = _remainingLifetime;
+                shot._isReplay = true;
                 shot.Initialize(_owner, _direction, _damage * damageMultiplier, canResonate: false, pressure: _pressure);
             }
         }

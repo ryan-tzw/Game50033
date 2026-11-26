@@ -138,7 +138,8 @@ namespace Game50033
                 var direction = hit.bounds.center - transform.position;
                 direction.y = 0f;
                 direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.forward;
-                target.TakeHit(new HitInfo(attacker, damagePerTick * _strength, direction));
+                var dealt = damagePerTick * _strength;
+                target.TakeHit(new HitInfo(attacker, dealt, direction, resonanceDamage: dealt));
             }
         }
 

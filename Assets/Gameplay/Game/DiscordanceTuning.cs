@@ -3,8 +3,7 @@ namespace Game50033
     using UnityEngine;
 
     /// <summary>
-    /// One boss's Discordance numbers (GDD: Discordance Management). The meter itself runs in the
-    /// encounter's EncounterManager, which only raises events; what each level does is boss code.
+    /// Discordance rates, thresholds and modifiers for an encounter.
     /// </summary>
     [CreateAssetMenu(menuName = "Game50033/Tuning/Discordance", fileName = "Discordance")]
     public sealed class DiscordanceTuning : ScriptableObject
@@ -26,6 +25,12 @@ namespace Game50033
 
         [Tooltip("Meter values where each level starts, ascending: element 0 starts level 1. Below the first, the level is 0.")]
         public float[] thresholds = { 33f, 66f, 100f };
+
+        [Header("Threshold modifiers")]
+        [Range(0f, 1f)] public float conventionalDamageMultiplier = 0.75f;
+        [Range(0.05f, 1f)] public float attackDelayMultiplier = 0.5f;
+        [Min(1f)] public float projectileSpeedMultiplier = 1.5f;
+        [Min(1f)] public float projectileCountMultiplier = 1.5f;
 
         public float RateForPhase(int phase)
         {

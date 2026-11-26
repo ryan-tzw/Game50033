@@ -77,7 +77,8 @@ namespace Game50033
                 if (!overlaps) continue;
 
                 hitTargets.Add(target);
-                target.TakeHit(new HitInfo(_owner.gameObject, damage, _direction));
+                target.TakeHit(HitInfo.FromResonatingAttack(_owner.gameObject, damage, _direction, _damage,
+                    isReplay: !liveImpact));
                 if (_owner == null || liveImpact && (live == null || !live.isActiveAndEnabled || _owner.Health.IsDowned)) return;
                 if (_hitEffect != null)
                 {

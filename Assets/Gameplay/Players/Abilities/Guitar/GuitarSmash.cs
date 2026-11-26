@@ -105,9 +105,11 @@ namespace Game50033
                 offset.y = 0f;
                 var sweet = offset.sqrMagnitude <= _sweetSpotRadius * _sweetSpotRadius + 0.000001f;
                 var direction = offset.sqrMagnitude > 0.0001f ? offset.normalized : _direction;
-                var dealt = _damage * damageMultiplier * (sweet ? _sweetSpotMultiplier : 1f);
+                var sweetMultiplier = sweet ? _sweetSpotMultiplier : 1f;
+                var dealt = _damage * damageMultiplier * sweetMultiplier;
                 hitTargets.Add(target);
-                target.TakeHit(new HitInfo(_owner.gameObject, dealt, direction));
+                target.TakeHit(HitInfo.FromResonatingAttack(_owner.gameObject, dealt, direction,
+                    _damage * sweetMultiplier, isReplay: !liveImpact));
                 if (_hitEffect != null) _hitEffect.Play(new HitEffectRequest(contact, direction, dealt, true));
                 if (liveImpact && (live == null || !live.IsResolvingSmash)) return false;
 

@@ -87,7 +87,8 @@ namespace Game50033
 
                 if (explosionDamage > 0f)
                 {
-                    target.TakeHit(new HitInfo(attacker, explosionDamage * activation.Strength, direction));
+                    var dealt = explosionDamage * activation.Strength;
+                    target.TakeHit(new HitInfo(attacker, dealt, direction, resonanceDamage: dealt));
                 }
             }
         }

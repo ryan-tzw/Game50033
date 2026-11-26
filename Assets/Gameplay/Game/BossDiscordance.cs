@@ -16,6 +16,10 @@ namespace Game50033
         public float Value { get; private set; }
         public float Maximum => tuning != null ? tuning.max : 100f;
         public int Level { get; private set; }
+        public float ConventionalDamageMultiplier => _session != null && Level >= 1 ? tuning.conventionalDamageMultiplier : 1f;
+        public float AttackDelayMultiplier => _session != null && Level >= 2 ? tuning.attackDelayMultiplier : 1f;
+        public float ProjectileSpeedMultiplier => _session != null && Level >= 3 ? tuning.projectileSpeedMultiplier : 1f;
+        public float ProjectileCountMultiplier => _session != null && Level >= 3 ? tuning.projectileCountMultiplier : 1f;
         public event Action<float> ValueChanged;
         public event Action<int, int> LevelChanged;
 

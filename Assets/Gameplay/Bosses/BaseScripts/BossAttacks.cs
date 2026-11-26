@@ -10,6 +10,7 @@ namespace Game50033
         private bool _initialized;
         private BaseBoss _boss;
         private BossAttackStack _stack;
+        private BossDiscordance _discordance;
 
         [Header("Phase 1")]
         [SerializeField] private AttackSet phase1;
@@ -45,6 +46,7 @@ namespace Game50033
             if (_initialized) return;
             _boss = GetComponent<BaseBoss>();
             _stack = GetComponent<BossAttackStack>();
+            _discordance = GetComponent<BossDiscordance>();
             StartedAttack += () => { IsAttacking = true; };
             _stack.RegisterAttacks(GetPhaseAttacks());
             _initialized = true;
@@ -52,7 +54,12 @@ namespace Game50033
 
         protected void Update()
         {
-            if (bossAttackIntervalTimer > 0f) bossAttackIntervalTimer -= Time.deltaTime;
+            if (bossAttackIntervalTimer > 0f)
+            {
+                // only accelerate the remaining gap once the cast and its authored recovery have ended.
+                var delayScale = !IsAttacking && _discordance != null ? _discordance.AttackDelayMultiplier : 1f;
+                bossAttackIntervalTimer -= Time.deltaTime / Mathf.Max(0.05f, delayScale);
+            }
 
             if (ReferenceEquals(_controlledAttack, null)) return;
 

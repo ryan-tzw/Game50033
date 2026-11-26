@@ -23,3 +23,7 @@ MonoBehaviour:
   - 33
   - 66
   - 100
+  conventionalDamageMultiplier: 0.75
+  attackDelayMultiplier: 0.5
+  projectileSpeedMultiplier: 1.5
+  projectileCountMultiplier: 1.5

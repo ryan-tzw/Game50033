@@ -26,13 +26,14 @@ namespace Game50033
         public event Action<float, float> HealthChanged;
         public event Action Dead;
         public event Action<int> ChangePhase;
-        /// <summary>Every accepted hit, with the health it actually took (less than hit.Damage on the killing blow).</summary>
+        /// <summary>Every accepted hit, with HP lost after damage modifiers and the remaining HP cap.</summary>
         public event Action<HitInfo, float> Damaged;
 
         private int _bossNextPhase;
         private int _bossTotalPhases;
         private int _bossCurrentPhase;
         private float? _phaseThreshold;
+        private BossDiscordance _discordance;
 
         internal void Initialize(int BossTotalPhases, float? maximumHealth = null, float? phaseThreshold = null)
         {
@@ -40,6 +41,7 @@ namespace Game50033
 
             _bossHealthPoints = Mathf.Max(0.01f, maximumHealth ?? _bossHealthPoints);
             _phaseThreshold = phaseThreshold;
+            _discordance = GetComponent<BossDiscordance>();
             _bossCurrentHealth = _bossCurrentHealth < 0f
                 ? _bossHealthPoints
                 : Mathf.Clamp(_bossCurrentHealth, 0f, _bossHealthPoints);
@@ -67,8 +69,17 @@ namespace Game50033
                 return;
             }
 
+            var damage = hit.Damage;
+            var conventionalMultiplier = _discordance != null ? _discordance.ConventionalDamageMultiplier : 1f;
+            if (conventionalMultiplier != 1f)
+            {
+                var resonance = float.IsNaN(hit.ResonanceDamage) ? 0f : Mathf.Clamp(hit.ResonanceDamage, 0f, damage);
+                damage = (damage - resonance) * conventionalMultiplier + resonance;
+            }
+            if (damage <= 0f) return;
+
             var before = _bossCurrentHealth;
-            _bossCurrentHealth = Mathf.Max(0f, _bossCurrentHealth - hit.Damage);
+            _bossCurrentHealth = Mathf.Max(0f, _bossCurrentHealth - damage);
             _lastHitTime = Time.time;
             SetHitFlash(1f);
 
