@@ -49,8 +49,9 @@ namespace Game50033
 
         private Animator _attackAnimator;
 
-        public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDead && !Attacks.IsAttacking;
-        public bool CanTryAttacking => isActiveAndEnabled && Movement.InRange && !Health.IsDead && !Attacks.IsAttacking;
+        public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDead && !Attacks.IsAttacking && fightStarted;
+        public bool CanTryAttacking => isActiveAndEnabled && Movement.InRange && !Health.IsDead && !Attacks.IsAttacking && fightStarted;
+        [SerializeField] private bool fightStarted = false;
 
         protected void Awake()
         {
@@ -137,6 +138,7 @@ namespace Game50033
 
             Movement.StopMovement(!CanMove);
             if (CanTryAttacking && Targets.Count != 0) { Attacks.TryAttacking(); }
+            
         }
 
         private void HandleHealthChange(float currentHealth, float maxHealth)
