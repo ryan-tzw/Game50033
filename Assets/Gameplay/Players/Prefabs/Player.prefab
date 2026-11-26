@@ -368,7 +368,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ac044bbe2400c21f9b2acb6fa1fd7338, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerFacingIndicator
   tuning: {fileID: 11400000, guid: fde4eafc4187f8ef582763a71028e2bd, type: 2}
   material: {fileID: 2100000, guid: cefa194dd3809d1ae974f91ca5fba9fb, type: 2}
