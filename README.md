@@ -3,7 +3,8 @@
 A music-themed, 2D top-down boss rush for 2–4 players in local co-op. See `50.033 GDD.pdf` for the full design.
 
 - **Unity:** 6000.3.24f1 (URP)
-- **Scene flow:** `Lobby` → `Cutscene1` → `BossOneScene` (dog boss) → `Cutscene2` → `MafiaTest` (Mafia boss) → back to `Lobby`. All of these are in Build Profiles. Open `Lobby` and press Play to go through the whole flow. `Game.unity` is no longer part of the run. The main menu isn't built yet; it will go in front of `Lobby`.
+- **Scene flow:** `MainMenu` → `Lobby` → `Cutscene1` → `BossOneScene` (dog boss) → `Cutscene2` → `MafiaTest` (Mafia boss) → back to `Lobby`. All of these are in Build Profiles, with `MainMenu` first. Open `MainMenu` (or `Lobby` to skip it) and press Play to go through the whole flow. `Game.unity` is no longer part of the run.
+  - **Main menu (placeholder):** Start, Settings, Quit. Start is selected when the menu opens, so a controller only needs up/down and A; the keyboard uses the arrows and Enter, and the mouse can click. Start loads the Lobby, where everyone (including whoever used the menu) presses A / E to join. Settings has Master, Music and SFX volume sliders (left/right in 10% steps, B / Esc to go back), saved between sessions. Quit closes the game in a build and does nothing in the Editor. There's no way back to the menu yet.
   - The order lives in `Assets/Tuning/Flow/GameFlow.asset`. Each scene has a `GameManager` that loads the next one.
   - `Cutscene1` and `Cutscene2` are the same placeholder: each fades the word "Placeholder" in and out, then loads the next scene.
   - Players who joined in the lobby are carried through every scene with their characters, starting each fight with full hearts, dodges and cooldowns.
@@ -92,6 +93,15 @@ The four square icons show the current instrument's live cooldowns with radial d
 Prompts follow each PlayerInput's paired control scheme, including a KB/M player assigned to any player index. KB/M order is **Left Click, Right Click, Q, E, Space SVG**. Gamepad order is **X, Y, A, B, RT**, with circular face-button badges. Defensive and Special therefore exchange display positions between schemes while their bindings stay unchanged. The three supplied SVGs remain at their original Assets paths and include their VectorImage import metadata.
 
 Verification in isolated Unity Play mode used virtual paired controllers plus KB/M at PlayerIndex 2: 1/2/3/4-player layouts were checked and rendered at 1920×1080; actual Guitar activations drove all four cooldown queries; damage/healing, downed/revived hearts, two-charge dodge depletion and normal recharge, roster removal and sole KB/M-at-index-2 prompts passed. Downing used a shorter test-only revival setting; production health settings were unchanged. The unified integration then passed 83 checks in the actual Lobby → Cutscene1 → Game flow: 1–4 layouts, input-driven browsing/confirmation, claims, unreadying, leave/rejoin, stable panels across prefab replacement, hidden/restored cutscene HUD, no duplicate HUD, live health/cooldowns, and KB/M at index 2. Batch-mode keyboard testing explicitly routed simulated input to the Game view. Hardware gamepad feel and target-build visual performance still need manual testing.
+
+### Main menu
+
+| Do this | Keyboard & mouse | Gamepad |
+|---|---|---|
+| Move between options | ↑ / ↓ (or hover with the mouse) | D-pad / left stick up and down |
+| Select | Enter or click | Bottom face button (A / ✕) |
+| Change a volume slider | ← / → | D-pad / left stick left and right |
+| Back from Settings | Esc | Right face button (B / ○) |
 
 ### Lobby
 

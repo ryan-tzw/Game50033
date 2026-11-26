@@ -66,10 +66,11 @@ Coupling to a fitting owner (e.g., boss → roster, Guitar → PlayerMovement) i
 Use **one scene per independently developed boss encounter**. Maintain the current lobby-to-game flow while extending it to more encounter scenes:
 
 ```text
-Lobby.unity -> Cutscene1.unity -> TestScenes/BossOneScene.unity -> Cutscene2.unity -> TestScenes/MafiaTest.unity -> Lobby
+MainMenu.unity -> Lobby.unity -> Cutscene1.unity -> TestScenes/BossOneScene.unity -> Cutscene2.unity -> TestScenes/MafiaTest.unity -> Lobby
 (order in GameFlow.runScenes; Game.unity is no longer in the run; each boss scene has its own GameManager + EncounterManager)
 ```
 
+- **Main menu (`UI/MainMenu`, `Scenes/MainMenu.unity`, first in Build Profiles):** a scene-local UI Toolkit placeholder with no players, `PlayerJoinManager` or `GameManager`. UI Toolkit reads the project-wide `InputSystem_Actions` UI map, so any keyboard, mouse or gamepad navigates it without joining. One option is always focused (Start by default, re-focused if a click clears focus), so controllers only need up/down and submit. Start loads `GameFlow.lobbyScene`; the persistent root below is still created by the Lobby, and everyone joins there. Settings drives `VolumeSettings` (plain static helper, PlayerPrefs) on `Audio/Crescendo.mixer`'s exposed `MasterVolume`, `MusicVolume`, `SFXVolume` and `UIVolume`; a slider at 100% keeps the mixer's authored level and lower values reduce from it (SFX covers both SFX and UI groups). Slider step lives in `Assets/Tuning/UI/MainMenuTuning.asset`. Saved volumes are applied when the menu opens, so starting Play from another scene uses the mixer's defaults. There is no return to the menu yet; that will need a teardown of the persistent root.
 - The existing `GameSession` plus `PlayerJoinManager` live on a persistent manager root. Joined player roots (with `PlayerInput`) also survive scene transitions. This retains device pairing, player indices, and selected instrument instances.
 - **Current implementation uses `DontDestroyOnLoad` and ordinary scene loading.** Keep it for now. Separate boss scenes do **not** require a new `Core.unity` scene or mandatory additive loading. Additive loading is an option later for persistent shared environments or simultaneous streamed scenes, not a prerequisite.
 - Bosses, arena geometry, hazards, scene lighting, arena-specific UI, and encounter scripts are **scene-local** and get destroyed when their encounter is unloaded. The shared player HUD belongs to the persistent session root and survives alongside it.

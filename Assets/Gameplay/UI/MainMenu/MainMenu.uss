@@ -1,0 +1,75 @@
+/* Placeholder main menu look. Focus and hover share one style so controller and mouse read the same. */
+.menu-root {
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(24, 20, 34);
+}
+
+.menu-title {
+    font-size: 120px;
+    color: rgb(255, 214, 120);
+    -unity-font-style: bold;
+    margin-bottom: 60px;
+}
+
+.menu-panel {
+    align-items: center;
+}
+
+.settings-panel {
+    width: 900px;
+}
+
+.settings-title {
+    font-size: 48px;
+    color: rgb(240, 236, 228);
+    margin-bottom: 24px;
+}
+
+.menu-button {
+    width: 420px;
+    height: 72px;
+    margin: 10px;
+    font-size: 36px;
+    color: rgb(240, 236, 228);
+    background-color: rgb(52, 44, 70);
+    border-width: 3px;
+    border-color: rgb(80, 70, 104);
+    border-radius: 8px;
+}
+
+.menu-button:hover,
+.menu-button:focus {
+    background-color: rgb(96, 74, 46);
+    border-color: rgb(255, 214, 120);
+    color: rgb(255, 240, 200);
+}
+
+.menu-slider {
+    width: 860px;
+    margin: 12px;
+    padding: 8px 16px;
+    border-width: 3px;
+    border-color: rgba(0, 0, 0, 0);
+    border-radius: 8px;
+}
+
+.menu-slider:focus,
+.menu-slider:hover {
+    border-color: rgb(255, 214, 120);
+    background-color: rgba(96, 74, 46, 0.6);
+}
+
+.menu-slider > .unity-label {
+    font-size: 32px;
+    min-width: 300px;
+    color: rgb(240, 236, 228);
+}
+
+.menu-hint {
+    position: absolute;
+    bottom: 40px;
+    font-size: 26px;
+    color: rgb(170, 162, 190);
+}

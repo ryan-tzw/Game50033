@@ -1,0 +1,19 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="MainMenu.uss" />
+    <ui:VisualElement name="menu-root" class="menu-root">
+        <ui:Label text="CRESCENDO" class="menu-title" />
+        <ui:VisualElement name="main-panel" class="menu-panel">
+            <ui:Button name="start" text="Start" class="menu-button" />
+            <ui:Button name="settings" text="Settings" class="menu-button" />
+            <ui:Button name="quit" text="Quit" class="menu-button" />
+        </ui:VisualElement>
+        <ui:VisualElement name="settings-panel" class="menu-panel settings-panel">
+            <ui:Label text="Settings" class="settings-title" />
+            <ui:Slider name="master-volume" label="Master volume" low-value="0" high-value="1" value="1" class="menu-slider" />
+            <ui:Slider name="music-volume" label="Music volume" low-value="0" high-value="1" value="1" class="menu-slider" />
+            <ui:Slider name="sfx-volume" label="SFX volume" low-value="0" high-value="1" value="1" class="menu-slider" />
+            <ui:Button name="back" text="Back" class="menu-button" />
+        </ui:VisualElement>
+        <ui:Label name="hint" text="Up / Down to move  ·  A / Enter to select" class="menu-hint" />
+    </ui:VisualElement>
+</ui:UXML>
