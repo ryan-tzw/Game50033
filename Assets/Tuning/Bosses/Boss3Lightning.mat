@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Boss3Lightning
+  m_Shader: {fileID: 4800000, guid: e162661a56b4b29338300f599c119f00, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties:
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _AnimationSpeed: 1.6
+    - _Distortion: 0.07
+    - _FlickerFrequency: 18
+    - _GlowIntensity: 1.3
+    - _Jaggedness: 0.17
+    - _NoiseScale: 8
+    - _Opacity: 1
+    - _Telegraph: 0
+    - _Thickness: 0.28
+    m_Colors:
+    - _CoreColor: {r: 0.9, g: 0.99, b: 1.25, a: 1}
+    - _GlowColor: {r: 0.025, g: 0.48, b: 1.6, a: 1}
+    - _TelegraphColor: {r: 1, g: 0.16, b: 0.19, a: 0.8}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

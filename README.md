@@ -14,6 +14,8 @@ A music-themed, 2D top-down boss rush for 2–4 players in local co-op. See `50.
 
 ---
 
+**Boss 3 development scene.** Open `Assets/Scenes/Boss3.unity` and enter Play Mode. Press **E** on keyboard or the bottom face button on each controller to join as Guitar. The boss casts Bouncing Arc when a player enters range. Its continuous red warning shows the full route before the blue beam fires. Tune the beam and phase break in `Assets/Tuning/Bosses/ExterminatorBot.asset` and the lightning colours in `Boss3Lightning.mat` beside it. The scene is available for direct Editor testing.
+
 ## 1. One-time setup on each machine
 
 ### Unity Smart Merge for scenes and prefabs

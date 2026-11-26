@@ -48,6 +48,7 @@ namespace Game50033
         private static readonly int IsWalkingId = Animator.StringToHash("IsWalking");
 
         private Animator _attackAnimator;
+        protected virtual bool PlayAttackAnimationOnStart => true;
 
         public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDead && !Attacks.IsAttacking;
         public bool CanTryAttacking => isActiveAndEnabled && Movement.InRange && !Health.IsDead && !Attacks.IsAttacking;
@@ -90,7 +91,7 @@ namespace Game50033
             // If no phase count was set, use the phases assigned to BossAttacks.
             if (BossTotalPhases <= 0) BossTotalPhases = Attacks.ConfiguredPhaseCount;
             if (BossTotalPhases <= 0) Debug.LogError("Boss has no configured attack phases.", this);
-            Health.Initialize(BossTotalPhases);
+            InitializeHealth();
             Health.HealthChanged += HandleHealthChange;
             Health.Dead += Die;
             Health.ChangePhase += HandleHealthPhase;
@@ -98,6 +99,8 @@ namespace Game50033
 
             _initialized = true;
         }
+
+        protected virtual void InitializeHealth() => Health.Initialize(BossTotalPhases);
 
         private void OnEnable()
         {
@@ -109,7 +112,7 @@ namespace Game50033
 
         private void HandleAttackStarted()
         {
-            if (_attackAnimator != null) _attackAnimator.SetTrigger(AttackId);
+            if (_attackAnimator != null && PlayAttackAnimationOnStart) _attackAnimator.SetTrigger(AttackId);
         }
 
         private void OnDisable()

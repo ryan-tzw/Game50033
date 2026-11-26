@@ -32,12 +32,14 @@ namespace Game50033
         private int _bossNextPhase;
         private int _bossTotalPhases;
         private int _bossCurrentPhase;
+        private float? _phaseThreshold;
 
-        internal void Initialize(int BossTotalPhases)
+        internal void Initialize(int BossTotalPhases, float? maximumHealth = null, float? phaseThreshold = null)
         {
             if (_initialized) return;
 
-            _bossHealthPoints = Mathf.Max(0.01f, _bossHealthPoints);
+            _bossHealthPoints = Mathf.Max(0.01f, maximumHealth ?? _bossHealthPoints);
+            _phaseThreshold = phaseThreshold;
             _bossCurrentHealth = _bossCurrentHealth < 0f
                 ? _bossHealthPoints
                 : Mathf.Clamp(_bossCurrentHealth, 0f, _bossHealthPoints);
@@ -73,7 +75,8 @@ namespace Game50033
             HealthChanged?.Invoke(CurrentHealth, MaxHealth);
             Damaged?.Invoke(hit, before - _bossCurrentHealth);
 
-            if (_bossCurrentHealth <= (MaxHealth / _bossTotalPhases * _bossCurrentPhase) && _bossNextPhase != _bossCurrentPhase)
+            var threshold = _phaseThreshold ?? MaxHealth / _bossTotalPhases * _bossCurrentPhase;
+            if (_bossCurrentHealth <= threshold && _bossNextPhase != _bossCurrentPhase)
             {
                 ChangePhase?.Invoke(_bossNextPhase);
             }
