@@ -70,6 +70,8 @@ The D-pad is not bound to anything yet.
 
 Press **F1** to open or close the mouse-operated debug panel. It is available in all builds. The game continues running; mouse attacks are suppressed only while the pointer is over the panel. Keyboard movement and other controllers remain active.
 
+Enable **Invisible walls** in F1 to see player-only wall boundaries in Game view or a build. The outlines stay visible when you close F1 and work independently of **Show hitboxes**.
+
 - **No cooldowns:** immediately clears current ability cooldowns and prevents new cooldowns. Attack phases, combo rules and other resource/action restrictions still apply. Disabling it restores normal cooldowns for future casts without restoring old timers.
 - **Invincibility:** prevents damage to all players without reviving downed players or changing other immunity timers.
 - **Infinite dodge:** allows dodging at zero charges without spending charges. Existing recharge continues; dodge timing, immunity and action restrictions remain unchanged.

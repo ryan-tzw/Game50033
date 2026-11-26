@@ -30,12 +30,14 @@ namespace Game50033
 
         private void Draw(MeshGenerationContext context)
         {
-            if (!_state.ShowHitboxes || _tuning == null || panel == null) return;
+            if (_tuning == null || panel == null) return;
             var camera = Camera.main;
             if (camera == null || !camera.orthographic) return;
 
             var painter = context.painter2D;
             painter.lineWidth = Mathf.Max(0f, _tuning.outlineWidth);
+            if (_state.ShowInvisibleWalls && painter.lineWidth > 0f) DrawInvisibleWalls(painter, camera);
+            if (!_state.ShowHitboxes) return;
 
             var hurtboxes = CombatHurtbox.Active;
             for (var i = 0; _state.ShowEnemyHurtboxes && i < hurtboxes.Count; i++)
@@ -369,13 +371,7 @@ namespace Game50033
             }
             else if (collider is BoxCollider box)
             {
-                var half = box.size * 0.5f;
-                for (var i = 0; i < 8; i++)
-                {
-                    var corner = new Vector3((i & 1) == 0 ? -half.x : half.x, (i & 2) == 0 ? -half.y : half.y,
-                        (i & 4) == 0 ? -half.z : half.z);
-                    _worldPoints[i] = volume.TransformPoint(box.center + corner);
-                }
+                SetBoxCorners(box);
                 DrawProjectedHull(painter, camera, 8, color, dashed: false);
             }
             else if (shape.MeshVertices is { Length: > 0 } vertices)
@@ -389,6 +385,54 @@ namespace Game50033
                 }
                 for (var i = 0; i < vertices.Length; i++) _worldPoints[i] = volume.TransformPoint(vertices[i]);
                 DrawProjectedHull(painter, camera, vertices.Length, color, dashed: false);
+            }
+        }
+
+        private void DrawInvisibleWalls(Painter2D painter, Camera camera)
+        {
+            painter.strokeColor = InvisibleWall.OutlineColor;
+            var walls = InvisibleWall.Active;
+            for (var wallIndex = 0; wallIndex < walls.Count; wallIndex++)
+            {
+                var box = walls[wallIndex].Volume;
+                if (box == null || !box.enabled || box.isTrigger) continue;
+
+                SetBoxCorners(box);
+                var nearest = float.PositiveInfinity;
+                var farthest = float.NegativeInfinity;
+                for (var corner = 0; corner < 8; corner++)
+                {
+                    var world = _worldPoints[corner];
+                    var depth = Vector3.Dot(world - camera.transform.position, camera.transform.forward);
+                    nearest = Mathf.Min(nearest, depth);
+                    farthest = Mathf.Max(farthest, depth);
+                    _projectedPoints[corner] = this.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(panel, world, camera));
+                }
+                if (farthest < camera.nearClipPlane || nearest > camera.farClipPlane) continue;
+
+                painter.BeginPath();
+                // corner bits encode x, y and z. changing one bit connects each box edge once.
+                for (var corner = 0; corner < 8; corner++)
+                {
+                    for (var axis = 1; axis <= 4; axis <<= 1)
+                    {
+                        if ((corner & axis) != 0) continue;
+                        painter.MoveTo(_projectedPoints[corner]);
+                        painter.LineTo(_projectedPoints[corner | axis]);
+                    }
+                }
+                painter.Stroke();
+            }
+        }
+
+        private void SetBoxCorners(BoxCollider box)
+        {
+            var half = box.size * 0.5f;
+            for (var corner = 0; corner < 8; corner++)
+            {
+                var offset = new Vector3((corner & 1) == 0 ? -half.x : half.x, (corner & 2) == 0 ? -half.y : half.y,
+                    (corner & 4) == 0 ? -half.z : half.z);
+                _worldPoints[corner] = box.transform.TransformPoint(box.center + offset);
             }
         }
 

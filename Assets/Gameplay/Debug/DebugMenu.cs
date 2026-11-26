@@ -90,6 +90,11 @@ namespace Game50033
             }
             _panel.Add(damageRow);
 
+            var invisibleWalls = new Toggle("Invisible walls") { name = "invisible-walls", focusable = false };
+            invisibleWalls.SetValueWithoutNotify(_session.Debug.ShowInvisibleWalls);
+            invisibleWalls.RegisterValueChangedCallback(evt => _session.Debug.ShowInvisibleWalls = evt.newValue);
+            _panel.Add(invisibleWalls);
+
             var hitboxHeading = new Label("Hitboxes");
             hitboxHeading.AddToClassList("debug-section");
             _panel.Add(hitboxHeading);
@@ -150,10 +155,10 @@ namespace Game50033
             if (_session == null || _hitboxOverlay == null) return;
             // expire even while hidden, so toggling the menu/filters cannot accumulate or replay old impacts.
             if (visualizationTuning != null) _session.Debug.ExpireAttackSnapshots(visualizationTuning.snapshotDuration);
-            var show = _session.Debug.ShowHitboxes && visualizationTuning != null
+            var show = visualizationTuning != null && (_session.Debug.ShowInvisibleWalls || _session.Debug.ShowHitboxes
                 && (_session.Debug.ShowPlayerHurtboxes || _session.Debug.ShowEnemyHurtboxes
                     || _session.Debug.ShowPlayerAttacks || _session.Debug.ShowBossAttacks
-                    || _session.Debug.ShowSpecialZones || _session.Debug.ShowReverberationAreas);
+                    || _session.Debug.ShowSpecialZones || _session.Debug.ShowReverberationAreas));
             _hitboxOverlay.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
             // sample after gameplay movement; no polling or path generation is needed while hidden.
             if (show) _hitboxOverlay.MarkDirtyRepaint();

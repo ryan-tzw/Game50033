@@ -36,6 +36,7 @@ namespace Game50033
         public bool Invincibility { get; set; }
         public bool InfiniteDodge { get; set; }
         public bool ShowHitboxes { get; set; }
+        public bool ShowInvisibleWalls { get; set; }
         public bool ShowEnemyHurtboxes { get; set; } = true;
         public bool ShowPlayerHurtboxes { get; set; } = true;
         public bool ShowPlayerAttacks { get; set; } = true;

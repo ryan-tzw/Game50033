@@ -99,6 +99,10 @@ Lobby.unity -> Cutscene1.unity -> TestScenes/BossOneScene.unity -> Cutscene2.uni
 
 ## 4. Shared gameplay and combat contracts
 
+### Player-only scene boundaries
+
+Place `Assets/Gameplay/Game/Prefabs/InvisibleWall.prefab` in a scene and use the Box Collider’s **Edit Collider** tool to size it. Its wireframe appears in Scene view with Gizmos enabled. The prefab has no renderer. In Game view or a build, **F1 → Invisible walls** independently projects enabled wall colliders into the debug overlay. The setting defaults off, stays on when the panel closes, and survives scene transitions for the session. The `PlayerMovementWall` physics layer pairs only with `Player`, so walking, dodge and ability displacement still stop through the shared CharacterController. Queries that use broad masks to find obstructions and do not check the collision matrix should exclude this layer through `InvisibleWall.ExcludeFrom`.
+
 ### Runtime debug tools
 
 `Assets/Gameplay/Debug/` owns `DebugMenu`, its UI Toolkit stylesheet/theme, `DebugPanelSettings` and `DebugMenu.prefab`. `GameSession` instantiates the serialized menu prefab once under the persistent session root. Session-owned plain `DebugState` holds global flags and uses the live read-only player roster for one-shot operations; it is neither a singleton nor a tuning asset. Scene transitions and menu visibility preserve state; a new session starts with cheats off. There is no development-build gate.
