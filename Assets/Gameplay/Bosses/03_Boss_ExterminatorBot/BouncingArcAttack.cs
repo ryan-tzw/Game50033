@@ -155,7 +155,7 @@ namespace Game50033
                         if ((bottom - contact).sqrMagnitude > reach * reach) continue;
 
                         _contacted.Add(player);
-                        player.Health.TryTakeDamage(_tuning.beamDamage, -motion);
+                        player.Health.TryTakeDamage(_tuning.beamDamage, -motion, boss);
                     }
                 }
                 _traversed = head;

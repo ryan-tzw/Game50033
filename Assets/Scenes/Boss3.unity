@@ -1781,19 +1781,40 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2938774935066585232, guid: d2dbfc2f6a43354ba8feafdc5eae3942, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6287137083579991106}
   m_SourcePrefab: {fileID: 100100000, guid: d2dbfc2f6a43354ba8feafdc5eae3942, type: 3}
 --- !u!114 &6287137083579991104 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4883418154620995921, guid: d2dbfc2f6a43354ba8feafdc5eae3942, type: 3}
   m_PrefabInstance: {fileID: 6287137083579991103}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 6287137083579991105}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d9ce3957bf4727b0bb0e47b08ecdb7b4, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.ExterminatorBotBoss
+--- !u!1 &6287137083579991105 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2938774935066585232, guid: d2dbfc2f6a43354ba8feafdc5eae3942, type: 3}
+  m_PrefabInstance: {fileID: 6287137083579991103}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6287137083579991106
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6287137083579991105}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 566ce6e17c8a24bb2b9c274c193d6df2, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.BossDiscordance
+  tuning: {fileID: 11400000, guid: 7449a87528a3ca71a9a6045c5b943c12, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -43,6 +43,7 @@ namespace Game50033
         [SerializeField] private Text[] readyLabels = System.Array.Empty<Text>();
 
         private readonly List<IEncounterBoss> _bosses = new();
+        private readonly List<BossDiscordance> _bossMeters = new();
         private GameSession _session;
         private readonly Dictionary<Player, float> _damage = new();
         private readonly Dictionary<Player, int> _lastHealth = new();
@@ -50,6 +51,7 @@ namespace Game50033
         private float _endedAt = -1f;
         private int _bossPhase = 1;
         private int _startingPlayers = 1;
+        private bool UsesLegacyDiscordance => discordance != null && _bossMeters.Count == 0;
 
         public IReadOnlyList<Player> LivingPlayers => _session != null ? _session.LivingPlayers : Array.Empty<Player>();
         private IReadOnlyList<Player> Players => _session != null ? _session.Players : Array.Empty<Player>();
@@ -78,7 +80,11 @@ namespace Game50033
 
             foreach (var behaviour in bosses)
             {
-                if (behaviour is IEncounterBoss boss) _bosses.Add(boss);
+                if (behaviour is IEncounterBoss boss)
+                {
+                    _bosses.Add(boss);
+                    if (behaviour.TryGetComponent(out BossDiscordance meter)) _bossMeters.Add(meter);
+                }
                 else if (behaviour != null) Debug.LogError($"{behaviour.name} does not implement {nameof(IEncounterBoss)}.", behaviour);
             }
 
@@ -89,7 +95,7 @@ namespace Game50033
                 return;
             }
 
-            if (discordance == null)
+            if (discordance == null && _bossMeters.Count == 0)
                 Debug.LogWarning($"{nameof(EncounterManager)} has no {nameof(DiscordanceTuning)}; the Discordance meter stays at 0.", this);
         }
 
@@ -98,7 +104,7 @@ namespace Game50033
             if (gameManager == null) return;
             gameManager.StateChanged += HandleStateChanged;
             gameManager.ReadyChanged += RefreshReadyLabels;
-            ResonanceResolver.Activated += HandleResonance;
+            if (UsesLegacyDiscordance) ResonanceResolver.Activated += HandleResonance;
             foreach (var boss in _bosses)
             {
                 boss.Defeated += HandleBossDefeated;
@@ -113,6 +119,8 @@ namespace Game50033
             gameManager.StateChanged -= HandleStateChanged;
             gameManager.ReadyChanged -= RefreshReadyLabels;
             ResonanceResolver.Activated -= HandleResonance;
+            foreach (var meter in _bossMeters)
+                if (meter) meter.StopEncounter();
             foreach (var boss in _bosses)
             {
                 boss.Defeated -= HandleBossDefeated;
@@ -150,13 +158,14 @@ namespace Game50033
                 players++;
                 if (player.Health.IsDowned) downed++;
 
+                if (!UsesLegacyDiscordance) continue;
                 // a boss hit costs one heart, so every heart lost since last frame is one hit.
                 var health = player.Health.CurrentHealth;
                 if (_lastHealth.TryGetValue(player, out var last) && health < last) heartsLost += last - health;
                 _lastHealth[player] = health;
             }
 
-            if (discordance != null)
+            if (UsesLegacyDiscordance)
                 AddDiscordance(discordance.RateForPhase(_bossPhase) * Time.deltaTime + heartsLost * discordance.gainPerHit);
 
             if (players > 0 && downed == players) gameManager.EndEncounter(victory: false);
@@ -190,13 +199,19 @@ namespace Game50033
 
         private void HandleStateChanged(GameState previous, GameState next)
         {
+            if (previous == GameState.Encounter && next != GameState.Encounter)
+                foreach (var meter in _bossMeters)
+                    if (meter) meter.StopEncounter();
+
             switch (next)
             {
                 case GameState.Encounter:
                     _damage.Clear();
                     _startedAt = Time.time;
                     _endedAt = -1f;
-                    StartDiscordance();
+                    if (UsesLegacyDiscordance) StartDiscordance();
+                    foreach (var meter in _bossMeters)
+                        if (meter) meter.StartEncounter(_session);
                     break;
 
                 case GameState.Victory:

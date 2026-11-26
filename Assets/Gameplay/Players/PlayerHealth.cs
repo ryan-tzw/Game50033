@@ -31,6 +31,7 @@ namespace Game50033
         public event Action<int, int> HealthChanged;
         public event Action HealthReset;
         public event Action<int> Damaged;
+        internal event Action<IEncounterBoss, int> DamagedByBoss;
         public event Action Downed;
         public event Action Revived;
         // Report real hit attempts rejected specifically by ability immunity.
@@ -90,7 +91,9 @@ namespace Game50033
         }
 
         // incomingFrom points toward the hit source; zero represents damage with no direction.
-        public bool TryTakeDamage(int damage, Vector3 incomingFrom)
+        public bool TryTakeDamage(int damage, Vector3 incomingFrom) => TryTakeDamage(damage, incomingFrom, null);
+
+        internal bool TryTakeDamage(int damage, Vector3 incomingFrom, IEncounterBoss bossSource)
         {
             Debug.Log($"TakeDamage: movement={(_movement != null)}, dodgeInvulnerable={(_movement != null && _movement.IsInvulnerable)}, healthInvulnerable={IsInvulnerable}", this);
             if (damage > 0 && !IsDowned && AbilityInvulnerabilityRemaining > 0f
@@ -120,6 +123,7 @@ namespace Game50033
             }
 
             Damaged?.Invoke(applied);
+            if (bossSource != null) DamagedByBoss?.Invoke(bossSource, applied);
 
             HealthChanged?.Invoke(CurrentHealth, MaxHealth);
             return true;
