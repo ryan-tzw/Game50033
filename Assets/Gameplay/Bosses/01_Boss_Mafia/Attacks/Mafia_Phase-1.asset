@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.AttackSet
   attacks:
   - attack: {fileID: 6827079397414142632, guid: bf317e2614acf8946a9a2c6de4494fd7, type: 3}
-    count: 3
+    count: 0
   - attack: {fileID: 6827079397414142632, guid: 39d765b9c8ebdba409d7925c3b341028, type: 3}
-    count: 3
+    count: 0
   - attack: {fileID: 6827079397414142632, guid: a7698bb55d5f5a746b9c6460f3feac23, type: 3}
     count: 2
   - attack: {fileID: 8657998892964492826, guid: b150b52507c2ffb4d84e660113959a47, type: 3}
-    count: 1
+    count: 0

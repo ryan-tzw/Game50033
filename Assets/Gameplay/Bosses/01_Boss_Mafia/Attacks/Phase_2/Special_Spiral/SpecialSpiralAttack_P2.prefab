@@ -69,7 +69,7 @@ MonoBehaviour:
   extendToWall: 0
   maxDistance: 30
   bossWindUpAnimationName: WindUp
-  bossAttackAnimationName: Throw
+  bossAttackAnimationName: Spin
   numberOfPoints: 4
   radius: 15
   rotating: 1
