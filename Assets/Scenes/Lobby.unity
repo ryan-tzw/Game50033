@@ -4852,7 +4852,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 4.1051e-41, y: 0.19999996, z: 0.19999996, w: 0.19999996}
+  m_BoundingSphereOverride: {x: 1.4664299e-19, y: 796.64014, z: 4.572e-41, w: 796.64014}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ForceVisible: 0
@@ -12024,6 +12024,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1933669125}
   - component: {fileID: 1933669124}
+  - component: {fileID: 1933669126}
   m_Layer: 11
   m_Name: Sprite
   m_TagString: Untagged
@@ -12105,6 +12106,28 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2011138026}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!95 &1933669126
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1933669123}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: cf76990fc05195eba9e2b1d1635210e4, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage:
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &1937577289
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12515,8 +12538,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.TrainingDummy
   visual: {fileID: 1933669124}
+  hitAnimator: {fileID: 1933669126}
   flashDuration: 0.15
-  shakeDistance: 0.08
+  shakeDistance: 0
   shakeDuration: 0.2
   onHit:
     m_PersistentCalls:
