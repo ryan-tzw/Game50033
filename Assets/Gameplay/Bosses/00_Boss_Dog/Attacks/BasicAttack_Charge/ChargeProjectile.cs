@@ -76,6 +76,18 @@ namespace Game50033
             _sr.flipX = _boss.Movement.FlipX;
         }
 
+        protected override void StrikePosition()
+        {
+            // Clamp the final step
+            Vector3 position = Vector3.MoveTowards(transform.position, _target,
+                _projectileSpeed * Time.deltaTime);
+            MoveTowards(position);
+            HideBoss();
+
+            if (position == _target || _elapsed >= _windUpDuration + _activeDuration + 0.1f)
+                DestroyProjectile();
+        }
+
         public override void DestroyProjectile()
         {
             if (_controlReleased) return;
