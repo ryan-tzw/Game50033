@@ -23,6 +23,17 @@ namespace Game50033
         private LineRenderer _flowTrack;
         private LineRenderer _flowFill;
         private LineRenderer _flowCost;
+
+        private LineRenderer _occludedFlowTrack;
+        private LineRenderer _occludedFlowFill;
+        private LineRenderer _occludedFlowCost;
+        private MaterialPropertyBlock _flowMeterProperties;
+        private static readonly int MeterCenterId = Shader.PropertyToID("_MeterCenter");
+        private static readonly int OpacityId = Shader.PropertyToID("_Opacity");
+        private static readonly int DashedId = Shader.PropertyToID("_Dashed");
+        private static readonly int DashCountId = Shader.PropertyToID("_DashCount");
+        private static readonly int DashCoverageId = Shader.PropertyToID("_DashCoverage");
+
         private LineRenderer _chargeRing;
         private LineRenderer _chargeProgress;
         private LineRenderer _evasionRing;
@@ -67,13 +78,15 @@ namespace Game50033
             _abilities = GetComponent<FluteAbilities>();
             _flow = GetComponent<FluteFlow>();
             if (tuning == null || tuning.visuals.material == null || tuning.visuals.weaponMaterial == null
-                || tuning.visuals.noteMaterial == null || _root == null || _weapon == null
+                || tuning.visuals.noteMaterial == null || tuning.flowMeter.visibleMaterial == null
+                || tuning.flowMeter.occludedMaterial == null || _root == null || _weapon == null
                 || _tube == null || _tube.sprite == null || _trail == null || abilityCue == null || flowNotes == null)
             {
                 Debug.LogError("FluteWeaponVisual requires Flute tuning and its authored weapon, trail, cue and note references.", this);
                 enabled = false;
                 return;
             }
+            _flowMeterProperties = new MaterialPropertyBlock();
             BuildVisuals();
         }
 
@@ -95,9 +108,16 @@ namespace Game50033
             _trail.shadowCastingMode = ShadowCastingMode.Off;
             _trail.emitting = false;
 
-            _flowTrack = CreateLine(abilityCue, "FLOW capacity", settings.material, 0.018f);
-            _flowFill = CreateLine(abilityCue, "FLOW", settings.material, 0.03f);
-            _flowCost = CreateLine(abilityCue, "Special cost", settings.material, 0.035f);
+            var meter = tuning.flowMeter;
+            _flowTrack = CreateLine(abilityCue, "FLOW capacity", meter.visibleMaterial, meter.capacityWidth);
+            _flowFill = CreateLine(abilityCue, "FLOW", meter.visibleMaterial, meter.fillWidth);
+            _flowCost = CreateLine(abilityCue, "Special cost", meter.visibleMaterial, meter.costWidth);
+            _occludedFlowTrack = CreateLine(abilityCue, "Occluded FLOW capacity", meter.occludedMaterial, meter.capacityWidth);
+            _occludedFlowFill = CreateLine(abilityCue, "Occluded FLOW", meter.occludedMaterial, meter.fillWidth);
+            _occludedFlowCost = CreateLine(abilityCue, "Occluded special cost", meter.occludedMaterial, meter.costWidth);
+            // These coplanar lines overlap; keep the fill above its track and the tick above both.
+            _flowFill.sortingOrder = _occludedFlowFill.sortingOrder = 1;
+            _flowCost.sortingOrder = _occludedFlowCost.sortingOrder = 2;
             _chargeRing = CreateLine(abilityCue, "Charge", settings.material, 0.035f);
             _chargeProgress = CreateLine(abilityCue, "Charge progress", settings.material, 0.02f);
             _evasionRing = CreateLine(abilityCue, "Evasive state", settings.material, 0.045f);
@@ -282,21 +302,43 @@ namespace Game50033
                 _previousFlow = _flow.Current;
             }
             _displayedFlow = Mathf.Lerp(_displayedFlow, _flow.Normalized, blend);
+            var meter = tuning.flowMeter;
             var ground = Quaternion.Euler(90f, 0f, 0f);
-            var center = transform.position + Vector3.up * 0.055f;
+            var center = transform.position + Vector3.up * meter.groundOffset;
+            // Flow height is independent of the existing evasion cue.
+            var evasionCenter = transform.position + Vector3.up * 0.055f;
             var success = Mathf.Clamp01(1f - (_player.Hitstop.ActionTime - _successAt) / 0.4f);
             var flowColor = _losingFlow ? settings.losingFlowColor : settings.color;
             var color = Color.Lerp(flowColor, settings.fullChargeColor, success);
-            DrawArc(_flowTrack, center, ground, settings.flowRadius, 1f, new Color(0.2f, 0.4f, 0.35f, 0.3f));
+            DrawArc(_flowTrack, center, ground, settings.flowRadius, 1f, meter.capacityColor);
+            DrawArc(_occludedFlowTrack, center, ground, settings.flowRadius, 1f, meter.capacityColor);
             DrawArc(_flowFill, center, ground, settings.flowRadius, _displayedFlow, color);
+            DrawArc(_occludedFlowFill, center, ground, settings.flowRadius, _displayedFlow, color);
             var cost = Mathf.Clamp01(_abilities.SpecialFlowCost / _flow.Maximum);
             var radial = ground * new Vector3(Mathf.Sin(cost * Mathf.PI * 2f), Mathf.Cos(cost * Mathf.PI * 2f), 0f);
-            _flowCost.positionCount = 2;
-            _flowCost.SetPosition(0, center + radial * (settings.flowRadius - 0.04f));
-            _flowCost.SetPosition(1, center + radial * (settings.flowRadius + 0.04f));
+            _flowCost.positionCount = _occludedFlowCost.positionCount = 2;
+            var costInner = center + radial * (settings.flowRadius - meter.costHalfLength);
+            var costOuter = center + radial * (settings.flowRadius + meter.costHalfLength);
+            _flowCost.SetPosition(0, costInner);
+            _flowCost.SetPosition(1, costOuter);
+            _occludedFlowCost.SetPosition(0, costInner);
+            _occludedFlowCost.SetPosition(1, costOuter);
             var costColor = _flow.Current >= _abilities.SpecialFlowCost ? settings.fullChargeColor : settings.losingFlowColor;
             _flowCost.startColor = costColor;
             _flowCost.endColor = costColor;
+            _occludedFlowCost.startColor = _occludedFlowCost.endColor = costColor;
+
+            _flowMeterProperties.Clear();
+            _flowMeterProperties.SetVector(MeterCenterId, center);
+            _flowMeterProperties.SetFloat(OpacityId, Mathf.Clamp01(meter.occludedOpacity));
+            _flowMeterProperties.SetFloat(DashCountId, Mathf.Clamp(meter.occludedDashCount, 4, 64));
+            _flowMeterProperties.SetFloat(DashCoverageId, Mathf.Clamp(meter.occludedDashCoverage, 0.1f, 0.9f));
+            _flowMeterProperties.SetFloat(DashedId, 1f);
+            _occludedFlowTrack.SetPropertyBlock(_flowMeterProperties);
+            _occludedFlowFill.SetPropertyBlock(_flowMeterProperties);
+            // Keep the short cost tick readable even when it falls in a dash gap.
+            _flowMeterProperties.SetFloat(DashedId, 0f);
+            _occludedFlowCost.SetPropertyBlock(_flowMeterProperties);
 
             var releasing = _abilities.CurrentAction == FluteAbilities.Action.Release;
             var chargeCenter = transform.position + camera.transform.right * settings.chargeIndicatorOffset.x
@@ -349,7 +391,7 @@ namespace Game50033
                     / Mathf.Max(0.01f, tuning.defensive.invulnerabilityDuration));
                 var evadeColor = _abilities.EvasionSucceeded ? settings.fullChargeColor : settings.color;
                 evadeColor.a = Mathf.Lerp(1f, 0.55f, progress);
-                DrawArc(_evasionRing, center, ground, Mathf.Lerp(0.25f, 0.7f, progress), 1f, evadeColor);
+                DrawArc(_evasionRing, evasionCenter, ground, Mathf.Lerp(0.25f, 0.7f, progress), 1f, evadeColor);
             }
         }
 
