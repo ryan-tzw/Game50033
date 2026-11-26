@@ -24,6 +24,7 @@ namespace Game50033
             }
 
             IsRunning = true;
+            FindFirstObjectByType<LobbyAudio>()?.PlayStartGame();
             gameManager.StartRun();
         }
     }

@@ -11,6 +11,18 @@ namespace Game50033
         Stack<GameObject> bossAttackStack = new Stack<GameObject>();
         List<AttackEntry> bossAttackList = new List<AttackEntry>();
 
+        // Enough attempts to finish the current stack and check one fresh shuffle.
+        public int SelectionAttemptLimit
+        {
+            get
+            {
+                int count = bossAttackStack.Count;
+                foreach (var entry in bossAttackList)
+                    if (entry.attack != null) count += Mathf.Max(0, entry.count);
+                return count;
+            }
+        }
+
         public void RegisterAttacks(List<AttackEntry> attacks) // list format -> attackList[basicAttackOne, basicAttackTwo, secondaryAttack, specialAttack]
         {
             bossAttackList = attacks ?? new List<AttackEntry>();

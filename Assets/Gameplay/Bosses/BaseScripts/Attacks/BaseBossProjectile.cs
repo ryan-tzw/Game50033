@@ -30,6 +30,12 @@ namespace Game50033
         protected TrailRenderer _trail;
         private bool _destroying;
 
+        public virtual bool ControlsBoss => false;
+        public virtual void InterruptBossControl() { }
+        public virtual bool CanLaunch(Vector3 position, Vector3 direction) => true;
+
+        protected static Vector3 GetLaunchPosition(Vector3 origin) => origin + Vector3.up * 0.15f;
+
         private static readonly int HitStateId = Animator.StringToHash("Hit");
 
         private void Start()
@@ -69,16 +75,16 @@ namespace Game50033
         protected void Initialize(Vector3 target)
         {
 
-            _target = target + new Vector3(0f, 0.15f, 0f);
+            _target = GetLaunchPosition(target);
 
             float dropHeight = _targetedBossAttack.projectileHomingHeight;
-            if(dropHeight > 0f)
+            if (dropHeight > 0f)
             {
                 _start = _target + Vector3.up * dropHeight;
             }
             else
             {
-                _start = transform.position + new Vector3(0f, 0.15f, 0f);
+                _start = GetLaunchPosition(transform.position);
             }
 
             transform.position = _start;
@@ -192,7 +198,7 @@ namespace Game50033
 
         protected virtual void HideBoss() { } //Mainly for Charge
 
-        protected virtual void DestroyProjectile()
+        public virtual void DestroyProjectile()
         {
             if (_destroying) return;
             _destroying = true;
@@ -219,8 +225,8 @@ namespace Game50033
             _animator.Play(HitStateId);
             yield return null;
             if (_animator)
-                try {yield return new WaitUntil(() => _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f);}
-                finally {}
+                try { yield return new WaitUntil(() => _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f); }
+                finally { }
             CheckLingeringEffect();
             Destroy(gameObject);
         }

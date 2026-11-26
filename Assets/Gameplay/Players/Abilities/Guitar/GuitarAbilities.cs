@@ -27,6 +27,13 @@ namespace Game50033
         [SerializeField] private GuitarTuning tuning;
         [SerializeField] private ResonatingAttack smashResonance;
 
+        [Header("Audio")]
+        [SerializeField] private AudioSource sfxSource;
+        [SerializeField] private AudioClip primarySound;
+        [SerializeField] private AudioClip secondarySound;
+        [SerializeField] private AudioClip defensiveSound;
+        [SerializeField] private AudioClip specialSound;
+
         private readonly HashSet<IHittable> _hitThisSwing = new();
         private readonly List<CombatHurtbox> _hurtboxBuffer = new();
         private Collider[] _hitBuffer = new Collider[32];
@@ -142,6 +149,11 @@ namespace Game50033
                 enabled = false;
                 return;
             }
+        }
+
+        private void PlaySound(AudioClip clip)
+        {
+            if (sfxSource != null && sfxSource.isActiveAndEnabled && clip != null) sfxSource.PlayOneShot(clip);
         }
 
         public override bool TryUsePrimary()
@@ -266,6 +278,8 @@ namespace Game50033
             if (!_impactResolved && elapsed >= _swing.windup + _swing.active * Mathf.Clamp01(impactFraction))
             {
                 _impactResolved = true;
+                if (IsDefending) PlaySound(defensiveSound);
+                else PlaySound(primarySound);
                 var hitstopDuration = 0f;
                 _impactOrigin = origin;
                 var camera = Camera.main;
@@ -457,6 +471,7 @@ namespace Game50033
                 var position = transform.position + Vector3.up * attack.attackHeight + _direction * secondary.spawnOffset;
                 var wave = Instantiate(secondary.wavePrefab, position, Quaternion.identity);
                 wave.Initialize(Player, _direction, tuning, vfx);
+                PlaySound(secondarySound);
                 // launching grants one pending boost, regardless of whether the wave hits anything.
                 HasEmpoweredAttack = true;
                 _empowerMultiplier = Mathf.Max(1f, secondary.empowermentMultiplier);
@@ -490,6 +505,7 @@ namespace Game50033
             if (!_impactResolved && elapsed >= _specialWindup + _specialActive * _specialImpactFraction)
             {
                 _impactResolved = true;
+                PlaySound(specialSound);
                 _impactOrigin = centre;
                 Player.Session?.Debug.RecordAttack(new DebugAttackSnapshot(centre, _direction, 0f, _specialRadius,
                     360f, Vector3.forward, 1f, _specialSweetSpotRadius, sweetSpotInside: true));

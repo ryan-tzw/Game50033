@@ -343,6 +343,10 @@ The existing implementation already has useful contracts; preserve and build on 
 
 ### Bosses
 
+Dog attacks live under `Bosses/00_Boss_Dog`; Mafia attacks live under `Bosses/01_Boss_Mafia`. Mafia's circular, spiral and terrain-blockage scripts share `Attacks/_Shared/CircularAttacks`, with their existing script GUIDs preserved during the move. `BaseBossProjectile.DestroyProjectile()` is public virtual so attack controllers can end their projectiles; overrides must retain their own cleanup. The dog's `ChargeProjectile` retains exclusive boss control until its release path restores visibility, position and movement and notifies `TargetedBossAttack`, including interruption and disable.
+
+The shared `Rendering/Custom2DSpriteShader/2DSpriteMat.mat` keeps the custom lit sprite shader and queue 2450, and `Settings/PC_Renderer.asset` keeps its existing rendering mode. Boss-specific presentation fixes must not replace those shared settings as a side effect.
+
 `BaseBoss` is currently a checkoff prototype; it combines targeting, health, visuals and a bone-projectile attack. **That is not the long-term shared boss API.** When implementing the next substantive boss feature:
 
 1. Move Bone-specific attacks/graphics into a `Bone` boss feature directory.

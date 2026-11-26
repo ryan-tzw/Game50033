@@ -112,7 +112,7 @@ namespace Game50033
         [Serializable]
         public sealed class SoundSettings
         {
-            [Tooltip("Optional mixer group. The project has no Audio Mixer yet.")]
+            [Tooltip("Optional mixer group for impact sounds.")]
             public AudioMixerGroup output;
             public SoundStyle normal = new() { volume = 0.8f, pitch = new Vector2(0.95f, 1.05f) };
             public SoundStyle big = new() { volume = 1f, pitch = new Vector2(0.95f, 1.05f) };

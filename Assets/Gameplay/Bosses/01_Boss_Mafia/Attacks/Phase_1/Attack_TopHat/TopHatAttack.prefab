@@ -59,10 +59,13 @@ MonoBehaviour:
   blockedByObstacles: 0
   lingeringEffect: 0
   piercing: 1
-  projectileSpeed: 15
+  projectileSpeed: 10
+  projectileSpeedMultiplier: 1
   projectileHomingHeight: 0
   spreadAngle: 0
   spreadRadius: 0
   telegraphPrefab: {fileID: 0}
   extendToWall: 0
   maxDistance: 30
+  bossWindUpAnimationName: 
+  bossAttackAnimationName: Throw

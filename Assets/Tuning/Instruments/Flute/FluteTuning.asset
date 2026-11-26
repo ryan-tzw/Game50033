@@ -95,6 +95,18 @@ MonoBehaviour:
     maximumTurnRate: 120
     minimumMovementSpeed: 0.1
     teleportDistance: 3
+  flowMeter:
+    visibleMaterial: {fileID: 2100000, guid: e8009c3b10bda4102bca716a926f351a, type: 2}
+    occludedMaterial: {fileID: 2100000, guid: dc6165f4e5b864d83b7b6ac03aa8f89c, type: 2}
+    groundOffset: 0.055
+    capacityColor: {r: 0.2, g: 0.4, b: 0.35, a: 0.3}
+    capacityWidth: 0.018
+    fillWidth: 0.03
+    costWidth: 0.035
+    costHalfLength: 0.04
+    occludedOpacity: 0.25
+    occludedDashCount: 24
+    occludedDashCoverage: 0.55
   visuals:
     material: {fileID: 2100000, guid: be231f34421341ec82ef7138acf1acd6, type: 2}
     weaponMaterial: {fileID: 2100000, guid: 867c07a219da42019999ba2628ae3ac6, type: 2}

@@ -12,6 +12,7 @@ namespace Game50033
         public DefensiveSettings defensive = new();
         public MovementSettings movement = new();
         public FlowSettings flow = new();
+        public FlowMeterSettings flowMeter = new();
         public VisualSettings visuals = new();
         public MelodySettings melody = new();
 
@@ -132,6 +133,25 @@ namespace Game50033
             public AnimationCurve gestureCurve = new(
                 new Keyframe(0f, 0f), new Keyframe(0.12f, -0.12f),
                 new Keyframe(0.4f, 1f), new Keyframe(0.75f, -0.08f), new Keyframe(1f, 0f));
+        }
+
+        [Serializable]
+        public sealed class FlowMeterSettings
+        {
+            public Material visibleMaterial;
+            public Material occludedMaterial;
+
+            [Min(0f)] public float groundOffset = 0.055f;
+            public Color capacityColor = new(0.2f, 0.4f, 0.35f, 0.3f);
+            [Min(0.001f)] public float capacityWidth = 0.018f;
+            [Min(0.001f)] public float fillWidth = 0.03f;
+            [Min(0.001f)] public float costWidth = 0.035f;
+            [Min(0.001f)] public float costHalfLength = 0.04f;
+
+            [Tooltip("Multiplier on the original meter opacity when hidden by scenery.")]
+            [Range(0f, 1f)] public float occludedOpacity = 0.25f;
+            [Range(4, 64)] public int occludedDashCount = 24;
+            [Range(0.1f, 0.9f)] public float occludedDashCoverage = 0.55f;
         }
 
         [Serializable]

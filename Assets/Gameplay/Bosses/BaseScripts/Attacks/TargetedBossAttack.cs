@@ -29,16 +29,43 @@ namespace Game50033
         [SerializeField] protected float maxDistance = 30f;
         [SerializeField] private string bossWindUpAnimationName;
         [SerializeField] private string bossAttackAnimationName;
-        private int bossWindUpAnimationId;
-        private int bossAttackAnimationId;
+        protected int bossWindUpAnimationId;
+        protected int bossAttackAnimationId;
 
         private int projectileCount;
+
+        private readonly List<BaseBossProjectile> _controlledProjectiles = new();
+        private readonly List<BaseTelegraph> _controlTelegraphs = new();
+        private int _pendingControlShots;
+        private bool _controlReleased;
+        private bool _controlStarted;
+
+        public override bool ControlsBoss => _projectile != null && _projectile.ControlsBoss;
+        public override bool CanStart => !ControlsBoss || _targetedPlayers.Count > 0;
+
+        public override float BossControlTimeout
+        {
+            get
+            {
+                // Charge normally ends when its projectile releases the boss
+                // this the boss recover if the charge doesn't reach a wall
+                float speed = projectileSpeed * projectileSpeedMultiplier;
+
+                float travel = speed > 0f ? Mathf.Max(0f, maxDistance) / speed : 0f;
+
+                if (float.IsNaN(travel) || float.
+
+                IsInfinity(travel)) travel = 0f;
+
+                return Mathf.Max(0f, windUpTime) + travel + Time.maximumDeltaTime;
+            }
+        }
 
         protected override void Awake()
         {
             base.Awake();
-            if(bossWindUpAnimationName != null) bossWindUpAnimationId = Animator.StringToHash(bossWindUpAnimationName);
-            if(bossAttackAnimationName != null) bossAttackAnimationId = Animator.StringToHash(bossAttackAnimationName);
+            if (bossWindUpAnimationName != null) bossWindUpAnimationId = Animator.StringToHash(bossWindUpAnimationName);
+            if (bossAttackAnimationName != null) bossAttackAnimationId = Animator.StringToHash(bossAttackAnimationName);
 
         }
 
@@ -59,7 +86,16 @@ namespace Game50033
             for (var i = 0; i < count; i++)
             {
                 var target = targets[i];
-                if (target != null) _targetCandidates.Add(target);
+                if (target == null) continue;
+                if (ControlsBoss)
+                {
+                    var from = boss.transform.position;
+                    var end = GetTelegraphEnd(from, RetrievePlayerPosition(target));
+
+                    // Exclude blocked targets
+                    if (!_projectile.CanLaunch(from, (end - from).normalized)) continue;
+                }
+                _targetCandidates.Add(target);
             }
             if (_targetCandidates.Count == 0) return;
 
@@ -87,11 +123,36 @@ namespace Game50033
         public override void Cancel()
         {
             CancelInvoke();
+            if (!ControlsBoss) return;
+
+            StopAllCoroutines();
+            _pendingControlShots = 0;
+            foreach (var telegraph in _controlTelegraphs)
+                if (telegraph != null) Destroy(telegraph.gameObject);
+            _controlTelegraphs.Clear();
+
+            while (_controlledProjectiles.Count > 0)
+            {
+                int last = _controlledProjectiles.Count - 1;
+                var projectile = _controlledProjectiles[last];
+                _controlledProjectiles.RemoveAt(last);
+                if (projectile != null) projectile.InterruptBossControl();
+            }
+            TryReleaseBossControl();
         }
 
         public override void Attack()
         {
+
+            if (ControlsBoss && _controlStarted) return;
             base.Attack();
+
+            if (ControlsBoss)
+            {
+                _controlStarted = true;
+                foreach (var player in _targetedPlayers)
+                    if (player != null) _pendingControlShots += Mathf.Max(0, _numberOfProjectiles);
+            }
 
             var facingSet = false;
             foreach (Player player in _targetedPlayers)
@@ -109,6 +170,20 @@ namespace Game50033
                 }
                 projectileCount = 1;
             }
+            if (ControlsBoss) TryReleaseBossControl();
+        }
+
+        internal void ReleaseBossControl(BaseBossProjectile projectile)
+        {
+            if (!_controlledProjectiles.Remove(projectile)) return;
+            TryReleaseBossControl();
+        }
+
+        private void TryReleaseBossControl()
+        {
+            if (_controlReleased || _pendingControlShots > 0 || _controlledProjectiles.Count > 0) return;
+            _controlReleased = true;
+            NotifyBossControlReleased();
         }
 
         protected Vector3 CalculateBulletSpread(Vector3 currentPosition)
@@ -153,6 +228,7 @@ namespace Game50033
             {
                 telegraph = Instantiate(telegraphPrefab);
                 telegraph.Begin(from, end, windUpTime);
+                if (ControlsBoss) _controlTelegraphs.Add(telegraph);
             }
 
             if (bossWindUpAnimationId != 0 & windUpTime > 0f)
@@ -175,10 +251,19 @@ namespace Game50033
             }
 
 
-            if (telegraph != null) Destroy(telegraph.gameObject);
+            if (telegraph != null)
+            {
+                _controlTelegraphs.Remove(telegraph);
+                Destroy(telegraph.gameObject);
+            }
 
-            if(bossAttackAnimationId != 0) boss.PlayAnimationTrigger(bossAttackAnimationId);
+            if (bossAttackAnimationId != 0) boss.PlayAnimationTrigger(bossAttackAnimationId);
             var projectile = Instantiate(_projectile, transform.position, Quaternion.identity);
+            if (ControlsBoss)
+            {
+                _controlledProjectiles.Add(projectile);
+                _pendingControlShots--;
+            }
             projectile.InitializeProjectile(player, boss, end, this);
         }
 
@@ -198,6 +283,10 @@ namespace Game50033
             Vector3 direction = target - from;
             direction.y = 0f;
             direction.Normalize();
+
+            // If the player overlaps the boss, charge in the direction the boss is already facing, to prevent it being zero direction and cancelling the charge
+            if (direction == Vector3.zero)
+                direction = boss.Movement.FlipX ? Vector3.right : Vector3.left;
 
             float closest = maxDistance;
             foreach (var hit in Physics.RaycastAll(from, direction, maxDistance))

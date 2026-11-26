@@ -21,7 +21,6 @@ namespace Game50033
         [SerializeField] private AttackSet phase3;
 
         public bool IsAttacking { get; private set; }
-        [SerializeField] private int _currentAttackIdx;
         public event Action StartedAttack;
 
         // [SerializeField] private float attackDuration = 1f;
@@ -31,11 +30,19 @@ namespace Game50033
 
         private float projectileSpeedMultiplier = 1f;
 
+        private BaseBossAttack _controlledAttack;
+        private float _controlDeadline;
+        private float _controlRecoveryTime;
+        private float _recoveryDeadline;
+        private bool _recoveringFromControl;
+        private readonly HashSet<GameObject> _triedAttacks = new();
+
+        public int ConfiguredPhaseCount => phase3 != null ? 3 : phase2 != null ? 2 : phase1 != null ? 1 : 0;
+
 
         internal void Initialize()
         {
             if (_initialized) return;
-            _currentAttackIdx = 0;
             _boss = GetComponent<BaseBoss>();
             _stack = GetComponent<BossAttackStack>();
             StartedAttack += () => { IsAttacking = true; };
@@ -46,48 +53,104 @@ namespace Game50033
         protected void Update()
         {
             if (bossAttackIntervalTimer > 0f) bossAttackIntervalTimer -= Time.deltaTime;
+
+            if (ReferenceEquals(_controlledAttack, null)) return;
+
+            if (!_recoveringFromControl && (_controlledAttack == null || Time.time >= _controlDeadline))
+            {
+                // If Charge never finishes, stop it and let the boss recover.
+                BeginControlRecovery();
+                if (_controlledAttack != null) _controlledAttack.Cancel();
+            }
+
+            if (_recoveringFromControl && Time.time >= _recoveryDeadline)
+            {
+                ClearControlledAttack();
+                EndAttack();
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (ReferenceEquals(_controlledAttack, null)) return;
+            ClearControlledAttack();
+            IsAttacking = false;
+            if (_boss != null && _boss.Movement != null) _boss.Movement.StopMovement();
         }
 
         public void TryAttacking()
         {
-            //if (bossAttackIntervalTimer <= 0f)
-            //{
-            //    StartedAttack?.Invoke();
-            //    GameObject currentAttack = Instantiate(p1Attacks[_currentAttackIdx], transform.position, Quaternion.identity);
-            //    var attack = currentAttack.GetComponent<BaseBossAttack>();
-            //    attack.Setup(_boss);
-            //    attack.Attack();
-            //    _currentAttackIdx++;
-            //    if (_currentAttackIdx >= p1Attacks.Count) _currentAttackIdx = 0;
-            //    bossAttackIntervalTimer = BossAttackInterval;
-            //    float recovery = attack.windUpTime + attack.recoveryTime;
-            //    Invoke(nameof(EndAttack), recovery);
-            //    Destroy(currentAttack, recovery);
-            //}
-            if (IsAttacking || bossAttackIntervalTimer > 0f) return;
-            GameObject nextAttack = _stack.GetNext();
-
-            if (nextAttack == null) return;
-
-            StartedAttack?.Invoke();
-            GameObject currentAttack = Instantiate(nextAttack, transform.position, Quaternion.identity);
-            var attack = currentAttack.GetComponent<BaseBossAttack>();
-            if(attack is TargetedBossAttack targeted)
+            if (!isActiveAndEnabled || !_boss.isActiveAndEnabled || _boss.Health.IsDead
+                || IsAttacking || bossAttackIntervalTimer > 0f) return;
+            _triedAttacks.Clear();
+            int attempts = _stack.SelectionAttemptLimit;
+            while (attempts-- > 0)
             {
-                targeted.SetProjectileSpeedMultiplier(projectileSpeedMultiplier);
+                GameObject nextAttack = _stack.GetNext();
+                if (nextAttack == null) return;
+                if (!_triedAttacks.Add(nextAttack)) continue;
+
+                GameObject currentAttack = Instantiate(nextAttack, transform.position, Quaternion.identity);
+                var attack = currentAttack.GetComponent<BaseBossAttack>();
+                if (attack is TargetedBossAttack targeted)
+                    targeted.SetProjectileSpeedMultiplier(projectileSpeedMultiplier);
+                attack.Setup(_boss);
+                if (!attack.CanStart)
+                {
+                    Destroy(currentAttack);
+                    continue;
+                }
+
+                // Only announce an attack after it has found a usable target and path.
+                StartedAttack?.Invoke();
+                if (attack.ControlsBoss)
+                {
+                    _controlledAttack = attack;
+                    _controlRecoveryTime = Mathf.Max(0f, attack.recoveryTime);
+                    _recoveringFromControl = false;
+                    _controlDeadline = Time.time + attack.BossControlTimeout;
+                    attack.BossControlReleased += HandleBossControlReleased;
+                    bossAttackIntervalTimer = BossAttackInterval;
+                    attack.Attack();
+                    return;
+                }
+
+                attack.Attack();
+                bossAttackIntervalTimer = BossAttackInterval;
+                float recovery = attack.windUpTime + attack.recoveryTime;
+                Invoke(nameof(EndAttack), recovery);
+                Destroy(currentAttack, recovery);
+                return;
             }
-            attack.Setup(_boss);
-            attack.Attack();
-            bossAttackIntervalTimer = BossAttackInterval;
-            float recovery = attack.windUpTime + attack.recoveryTime;
-            Invoke(nameof(EndAttack), recovery);
-            Destroy(currentAttack, recovery);
+        }
+
+        private void HandleBossControlReleased(BaseBossAttack attack)
+        {
+            if (attack != _controlledAttack || _recoveringFromControl) return;
+            BeginControlRecovery();
+        }
+
+        private void BeginControlRecovery()
+        {
+            _recoveringFromControl = true;
+            _recoveryDeadline = Time.time + _controlRecoveryTime;
+        }
+
+        private void ClearControlledAttack()
+        {
+            var attack = _controlledAttack;
+            _controlledAttack = null;
+            _recoveringFromControl = false;
+            if (attack == null) return;
+            attack.BossControlReleased -= HandleBossControlReleased;
+            attack.Cancel();
+            Destroy(attack.gameObject);
         }
 
         protected void EndAttack()
         {
             IsAttacking = false;
-            if (_boss.Movement.movingToCenter) 
+            if (_boss.Movement.movingToCenter)
             {
                 _boss.Movement.movingToCenter = false;
                 _boss.Movement.StopMovement(false);
@@ -108,7 +171,7 @@ namespace Game50033
 
         public void SetProjectileSpeed(float value)
         {
-            projectileSpeedMultiplier = value; 
+            projectileSpeedMultiplier = value;
         }
 
         private List<AttackEntry> GetPhaseAttacks()

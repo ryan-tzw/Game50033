@@ -122,6 +122,7 @@ namespace Game50033
 
             _players.Add(player);
             player.BeginSelection(this);
+            GetComponent<LobbyAudio>()?.PlayJoin();
         }
 
         private void HandlePlayerLeft(PlayerInput playerInput)
@@ -135,6 +136,7 @@ namespace Game50033
 
             _players.Remove(player);
             Release(player);
+            GetComponent<LobbyAudio>()?.PlayLeave();
         }
 
         internal bool TrySpawnSelectedCharacter(PlayerCharacterSelect source, CharacterDefinition character)

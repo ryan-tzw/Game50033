@@ -11,6 +11,15 @@ namespace Game50033
         protected BaseBoss boss;
 
         public bool IsChanneling { get; protected set; }
+        public virtual bool CanStart => true;
+
+        // Prevent boss from starting another attack while Charge is still moving it (for Tutorial boss)
+
+        public virtual bool ControlsBoss => false;
+        public virtual float BossControlTimeout => 0f;
+        public event System.Action<BaseBossAttack> BossControlReleased;
+
+        protected void NotifyBossControlReleased() => BossControlReleased?.Invoke(this);
 
         protected virtual void Awake() { startTime = Time.time; }
 

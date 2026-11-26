@@ -86,7 +86,7 @@ namespace Game50033
             {
                 Debug.Log("Adding Player as follow target!");
                 _followTarget = targets[Random.Range(0, targetCount)];
-                StopMovement(false);
+                StopMovement(!_boss.CanMove);
             }
             FollowPlayer();
         }

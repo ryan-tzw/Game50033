@@ -57,7 +57,7 @@ namespace Game50033
                 transform.position = Vector3.MoveTowards(transform.position, _endPosition, MovementSpeed * Time.deltaTime);
             }
         }
-        
+
         protected override IEnumerator FireAfterWindUp(Player player)
         {
             _animator.SetTrigger(AttackId);
@@ -73,8 +73,9 @@ namespace Game50033
 
             for (int i = 0; i < 3; i++)
             {
+                yield return new WaitForSeconds(windUpTime / 6);
                 SetLRColor(_translucent);
-                yield return new WaitForSeconds(windUpTime / 3);
+                yield return new WaitForSeconds(windUpTime / 6);
                 SetLRColor(_opaque);
             }
 

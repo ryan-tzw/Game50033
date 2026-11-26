@@ -15,39 +15,68 @@ namespace Game50033
         [SerializeField] private Reverberation specialReverberationPrefab;
         [SerializeField] private TromboneCommandZone commandZonePrefab;
 
+        [Header("Audio")]
+        [SerializeField] private AudioSource sfxSource;
+        [SerializeField] private AudioClip primarySound;
+        [SerializeField] private AudioClip secondarySound;
+        [SerializeField] private AudioClip defensiveSound;
+        [SerializeField] private AudioClip specialSound;
+
         private TromboneCommandZone _commandZone;
         private TromboneWeaponVisual _weaponVisual;
+
         private float _primaryReadyAt;
         private float _primaryCooldownDuration;
         private float _secondaryReadyAt;
         private float _defensiveReadyAt;
         private float _specialReadyAt;
+
         private float _activeUntil;
         private float _guardUntil;
         private float _pressure;
         private bool _primaryResonates;
+
+        private bool _specialPending;
+        private float _specialReleaseAt;
+        private float _specialWindupDuration;
+        private float _specialRecoveryDuration;
+        private float _specialDamage;
+        private float _specialPressure;
+        private Vector3 _specialDirection;
+
         private Vector3 _previousPosition;
         private bool _skipMovementSample;
 
         private float ActionTime => Player.Hitstop.ActionTime;
+
         private Vector3 ProjectilePosition => projectileOrigin != null
             ? projectileOrigin.position : transform.position + Vector3.up * 0.25f;
+
         private bool HasControl => Player.isActiveAndEnabled && Player.HasActiveInput && !Player.Health.IsDowned;
+
         private bool CanActivate => isActiveAndEnabled && HasControl && !Player.Movement.IsDodging
-            && !Player.Hitstop.IsStopped && !BlocksAbilities;
+            && !Player.IsHitStunned && !Player.Hitstop.IsStopped && !BlocksAbilities;
 
         public float Pressure => _pressure;
-        public float PressureNormalized => tuning != null
-            ? Mathf.Clamp01(_pressure / Mathf.Max(0.01f, tuning.pressure.maximum)) : 0f;
+        public float PressureNormalized => _pressure / tuning.pressure.maximum;
+
         public bool IsInCommandZone => _commandZone != null && _commandZone.IsOwnerInside;
         public bool IsGuarding => _guardUntil > ActionTime;
         public bool PrimaryResonates => _primaryResonates;
+
+        public bool IsPrimaryReady => CanActivate && CooldownReady(_primaryReadyAt);
+
+        public bool IsPreparingSpecial => _specialPending;
+        public float SpecialWindupProgress => _specialPending
+            ? 1f - Mathf.Clamp01((_specialReleaseAt - ActionTime) / _specialWindupDuration) : 0f;
+
         public override float MovementSpeedMultiplier => IsGuarding ? tuning.defensive.movementSpeedMultiplier : 1f;
         public override bool BlocksDefensive => IsGuarding;
         internal override bool CanInterruptAttack => _activeUntil > 0f && !IsGuarding;
 
         internal override void InterruptAttack()
         {
+            _specialPending = false;
             EndAction();
             if (_weaponVisual != null) _weaponVisual.Cancel();
         }
@@ -56,16 +85,11 @@ namespace Game50033
         {
             Player.Initialize();
             _weaponVisual = GetComponent<TromboneWeaponVisual>();
-            if (tuning == null)
-            {
-                Debug.LogError("TromboneAbilities requires Trombone tuning.", this);
-                enabled = false;
-                return;
-            }
 
             Player.Health.AbilityHitAvoided += HandleGuardedHit;
             SceneManager.activeSceneChanged += HandleSceneChanged;
-            _primaryCooldownDuration = Mathf.Max(0.01f, tuning.primary.cooldown);
+
+            _primaryCooldownDuration = tuning.primary.cooldown;
             ResetMovementTracking();
         }
 
@@ -87,7 +111,7 @@ namespace Game50033
                 return;
             }
 
-            // Completing the short cast must not cancel an independently active guard.
+            if (_specialPending && ActionTime >= _specialReleaseAt) ReleaseSpecial();
             if (_activeUntil > 0f && ActionTime >= _activeUntil) EndAction();
             if (_guardUntil > 0f && !IsGuarding) EndGuard();
         }
@@ -104,6 +128,7 @@ namespace Game50033
             var movement = transform.position - _previousPosition;
             movement.y = 0f;
             _previousPosition = transform.position;
+
             if (_skipMovementSample)
             {
                 _skipMovementSample = false;
@@ -112,15 +137,26 @@ namespace Game50033
 
             var settings = tuning.pressure;
             var deltaTime = Player.Hitstop.ActionDeltaTime;
+
             if (Player.Hitstop.IsStopped || deltaTime <= 0f
                 || movement.sqrMagnitude > settings.teleportDistance * settings.teleportDistance) return;
 
             var moving = Player.Movement.IsDodging
                 || movement.magnitude / deltaTime >= settings.minimumMovementSpeed;
             var inZone = IsInCommandZone;
-            var rate = moving
-                ? -settings.decayPerSecond * (inZone ? tuning.commandZone.pressureDecayMultiplier : 1f)
-                : settings.stationaryGainPerSecond * (inZone ? tuning.commandZone.pressureAccumulationMultiplier : 1f);
+            var decayScale = inZone ? tuning.commandZone.pressureDecayMultiplier : 1f;
+
+            float rate;
+            if (moving)
+            {
+                rate = -settings.decayPerSecond * decayScale;
+            }
+            else
+            {
+                var gainScale = inZone ? tuning.commandZone.pressureAccumulationMultiplier : 1f;
+                rate = settings.stationaryGainPerSecond * gainScale - settings.idleDecayPerSecond * decayScale;
+            }
+
             _pressure = Mathf.Clamp(_pressure + rate * deltaTime, 0f, settings.maximum);
         }
 
@@ -130,24 +166,35 @@ namespace Game50033
             _skipMovementSample = true;
         }
 
+        private void PlaySound(AudioClip clip)
+        {
+            if (sfxSource != null && clip != null) sfxSource.PlayOneShot(clip);
+        }
+
+        // This gives each accepted shot a fixed power/interval pair even as Pressure changes afterward.
         public override bool TryUsePrimary()
         {
-            if (!CanActivate || primaryProjectilePrefab == null || !primaryProjectilePrefab.IsConfigured
-                || !CooldownReady(_primaryReadyAt)) return false;
+            if (!IsPrimaryReady) return false;
 
             var pressure = PressureNormalized;
             var direction = GetDirection(primaryProjectilePrefab);
             var resonates = _primaryResonates;
             var projectile = Instantiate(primaryProjectilePrefab, ProjectilePosition, Quaternion.LookRotation(direction));
             var damage = Mathf.Lerp(tuning.primary.minimumDamage, tuning.primary.maximumDamage, pressure);
-            projectile.InitializePrimary(Player, direction, damage, _primaryResonates, primaryProjectilePrefab);
+
+            projectile.InitializePrimary(Player, direction, damage, resonates, primaryProjectilePrefab, pressure);
+            PlaySound(primarySound);
+
             _primaryResonates = false;
             var cooldown = Mathf.Lerp(tuning.primary.cooldown,
                 Mathf.Min(tuning.primary.cooldown, tuning.primary.maximumPressureCooldown), pressure);
             _primaryCooldownDuration = Mathf.Max(0.01f, cooldown);
             BeginAction(ref _primaryReadyAt, _primaryCooldownDuration, blockMovement: true);
             AccumulatePressure();
-            if (_weaponVisual != null) _weaponVisual.PlayShot(direction, ProjectilePosition, special: false, resonates: resonates, interval: cooldown);
+
+            if (_weaponVisual != null) _weaponVisual.PlayShot(direction, ProjectilePosition, special: false,
+                resonates: resonates, interval: _primaryCooldownDuration, pressure: pressure);
+
             return true;
         }
 
@@ -160,8 +207,10 @@ namespace Game50033
             _commandZone = Instantiate(commandZonePrefab, transform.position, Quaternion.identity);
             _commandZone.Ended += HandleCommandZoneEnded;
             _commandZone.Initialize(Player);
+            PlaySound(secondarySound);
             BeginAction(blockMovement: false);
             if (_weaponVisual != null) _weaponVisual.PlayZone(Player.AimDirection);
+
             return true;
         }
 
@@ -169,30 +218,62 @@ namespace Game50033
         {
             if (!Player.CanUseDefensive || !CooldownReady(_defensiveReadyAt)) return false;
 
-            _guardUntil = ActionTime + Mathf.Max(0.01f, tuning.defensive.guardLifespan);
+            _guardUntil = ActionTime + tuning.defensive.guardLifespan;
+            PlaySound(defensiveSound);
+
             Player.Health.GrantAbilityInvulnerability(tuning.defensive.guardLifespan);
-            BeginAction(ref _defensiveReadyAt, tuning.defensive.cooldown, blockMovement: false);
+            BeginAction(ref _defensiveReadyAt, tuning.defensive.cooldown, blockMovement: false, blockDodge: true);
+
             if (_weaponVisual != null) _weaponVisual.PlayGuard(Player.AimDirection);
+
             return true;
         }
 
+        // Lock in Special's aim and damage, start its cooldown, then wind up before firing.
+        // An interruption during windup cancels the shot and keeps the spent cooldown.
         public override bool TryUseSpecial()
         {
-            if (!CanActivate || !CooldownReady(_specialReadyAt)
-                || specialProjectilePrefab == null || !specialProjectilePrefab.IsConfigured
-                || specialReverberationPrefab == null || !specialReverberationPrefab.enabled
-                || !specialReverberationPrefab.gameObject.activeSelf || specialReverberationPrefab.Effect == null) return false;
+            if (!CanActivate || !CooldownReady(_specialReadyAt)) return false;
 
-            var direction = GetDirection(specialProjectilePrefab);
-            var projectile = Instantiate(specialProjectilePrefab, ProjectilePosition, Quaternion.LookRotation(direction));
-            var damage = Mathf.Lerp(tuning.special.minimumDamage, tuning.special.maximumDamage, PressureNormalized);
-            projectile.InitializeSpecial(Player, direction, damage, specialReverberationPrefab,
-                Mathf.Max(0.01f, damage * tuning.specialReverberationStrengthMultiplier), specialProjectilePrefab);
-            if (_commandZone != null) _commandZone.ConsumeZone();
-            BeginAction(ref _specialReadyAt, tuning.special.cooldown, blockMovement: true);
-            AccumulatePressure();
-            if (_weaponVisual != null) _weaponVisual.PlayShot(direction, ProjectilePosition, special: true, resonates: false, interval: tuning.special.cooldown);
+            EndGuard();
+
+            _specialDirection = GetDirection(specialProjectilePrefab);
+            _specialPressure = PressureNormalized;
+            _specialDamage = Mathf.Lerp(tuning.special.minimumDamage, tuning.special.maximumDamage, _specialPressure);
+            _specialWindupDuration = tuning.special.windup;
+            _specialRecoveryDuration = tuning.special.recovery;
+            _specialReleaseAt = ActionTime + _specialWindupDuration;
+            _specialPending = true;
+
+            BeginAction(ref _specialReadyAt, tuning.special.cooldown, blockMovement: true, blockDodge: true);
+            _activeUntil = _specialReleaseAt + _specialRecoveryDuration;
+
+            if (_weaponVisual != null) _weaponVisual.PlaySpecialWindup(_specialDirection);
+
             return true;
+        }
+
+        private void ReleaseSpecial()
+        {
+            _specialPending = false;
+
+            var projectile = Instantiate(specialProjectilePrefab, ProjectilePosition, Quaternion.LookRotation(_specialDirection));
+            projectile.InitializeSpecial(Player, _specialDirection, _specialDamage, specialReverberationPrefab,
+                _specialDamage * tuning.specialReverberationStrengthMultiplier, specialProjectilePrefab, _specialPressure);
+
+            PlaySound(specialSound);
+
+            var consumedZone = IsInCommandZone;
+            if (consumedZone)
+            {
+                _commandZone.ConsumeZone();
+                _commandZone = null;
+            }
+
+            if (_weaponVisual != null) _weaponVisual.PlayShot(_specialDirection, ProjectilePosition, special: true,
+                resonates: false, interval: _specialRecoveryDuration,
+                pressure: _specialPressure,
+                consumedZone: consumedZone);
         }
 
         private Vector3 GetDirection(TromboneProjectile prefab) => Player.GetAttackDirection(
@@ -200,17 +281,17 @@ namespace Game50033
 
         private bool CooldownReady(float readyAt) => IgnoreCooldowns || Time.time >= readyAt;
 
-        private void BeginAction(ref float readyAt, float cooldown, bool blockMovement)
+        private void BeginAction(ref float readyAt, float cooldown, bool blockMovement, bool blockDodge = false)
         {
             readyAt = IgnoreCooldowns ? 0f : Time.time + cooldown;
-            BeginAction(blockMovement);
+            BeginAction(blockMovement, blockDodge);
         }
 
-        private void BeginAction(bool blockMovement)
+        private void BeginAction(bool blockMovement, bool blockDodge = false)
         {
             _activeUntil = ActionTime + Mathf.Max(0.01f, tuning.actionDuration);
             BlocksMovement = blockMovement;
-            BlocksDodge = IsGuarding;
+            BlocksDodge = blockDodge || IsGuarding;
             BlocksAbilities = true;
         }
 
@@ -223,8 +304,11 @@ namespace Game50033
         private void HandleGuardedHit()
         {
             if (!IsGuarding) return;
+
             if (IsInCommandZone) _primaryResonates = true;
+
             if (_weaponVisual != null) _weaponVisual.PlayGuardImpact(IsInCommandZone);
+
             EndGuard();
         }
 
@@ -257,10 +341,14 @@ namespace Game50033
 
         public override void Cancel()
         {
+            // Interruption releases the active action while preserving combat momentum and spent cooldowns.
+            // Downing also clears encounter resources, to make sure revival starts with new Pressure and zone state.
             if (_weaponVisual != null) _weaponVisual.Cancel();
+            _specialPending = false;
             EndAction();
             EndGuard();
             _primaryResonates = false;
+
             if (Player.Health.IsDowned)
             {
                 _pressure = 0f;
@@ -296,15 +384,13 @@ namespace Game50033
 
         public override PlayerAbilityState GetAbilityState(PlayerAbility ability) => ability switch
         {
-            PlayerAbility.Primary when tuning != null && primaryProjectilePrefab != null && primaryProjectilePrefab.IsConfigured
+            PlayerAbility.Primary
                 => new PlayerAbilityState(_primaryReadyAt - Time.time, _primaryCooldownDuration),
-            PlayerAbility.Secondary when tuning != null && commandZonePrefab != null && commandZonePrefab.IsConfigured
+            PlayerAbility.Secondary
                 => new PlayerAbilityState(_secondaryReadyAt - Time.time, tuning.commandZone.cooldown),
-            PlayerAbility.Defensive when tuning != null
+            PlayerAbility.Defensive
                 => new PlayerAbilityState(_defensiveReadyAt - Time.time, tuning.defensive.cooldown),
-            PlayerAbility.Special when tuning != null && specialProjectilePrefab != null && specialProjectilePrefab.IsConfigured
-                && specialReverberationPrefab != null && specialReverberationPrefab.enabled
-                && specialReverberationPrefab.gameObject.activeSelf && specialReverberationPrefab.Effect != null
+            PlayerAbility.Special
                 => new PlayerAbilityState(_specialReadyAt - Time.time, tuning.special.cooldown),
             _ => default
         };

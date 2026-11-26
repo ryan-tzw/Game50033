@@ -11,19 +11,19 @@ namespace Game50033
         [SerializeField] private LineRenderer core;
         [SerializeField] private LineRenderer halo;
         [SerializeField] private TrailRenderer trail;
+
         private ResonatingAttack _resonating;
+        private TromboneProjectile _projectile;
         private Vector3 _origin;
 
-        private void Awake() => _resonating = GetComponent<ResonatingAttack>();
+        private void Awake()
+        {
+            _resonating = GetComponent<ResonatingAttack>();
+            _projectile = GetComponent<TromboneProjectile>();
+        }
 
         private void OnEnable()
         {
-            if (tuning == null || core == null || halo == null || trail == null || tuning.presentation.effectMaterial == null)
-            {
-                Debug.LogError("TromboneProjectileVisual requires tuning and its authored core, halo and trail.", this);
-                enabled = false;
-                return;
-            }
             var settings = tuning.presentation;
             _origin = transform.position;
             core.sharedMaterial = halo.sharedMaterial = trail.sharedMaterial = settings.effectMaterial;
@@ -41,11 +41,14 @@ namespace Game50033
         private void Draw()
         {
             var settings = tuning.presentation;
-            var color = !special && _resonating != null && _resonating.enabled ? settings.resonatingColor : settings.gold;
+            var color = !special && _resonating.enabled ? settings.resonatingColor : settings.gold;
             var width = special ? settings.specialShotWidth : settings.primaryShotWidth;
-            // Never draw ahead of the real projectile; the streak only grows through travelled space.
+
+            width *= 1f + (special ? 0.8f : 0.5f) * _projectile.ShotPressureNormalized;
+
             var distance = Vector3.Distance(_origin, transform.position);
             var length = Mathf.Min(distance, special ? settings.specialShotLength : settings.primaryShotLength);
+
             DrawLine(core, length, width, Color.Lerp(color, Color.white, 0.85f));
             color.a *= special ? 0.5f : 0.35f;
             DrawLine(halo, length, width * 2.4f, color);
@@ -67,7 +70,6 @@ namespace Game50033
 
         private void OnDisable()
         {
-            if (trail == null) return;
             trail.emitting = false;
             trail.Clear();
         }
