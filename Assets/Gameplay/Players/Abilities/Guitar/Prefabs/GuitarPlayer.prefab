@@ -190,7 +190,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1490190280533302842}
   - component: {fileID: 1030246312269351953}
-  m_Layer: 13
+  m_Layer: 16
   m_Name: GuitarSprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -459,7 +459,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 75c3bc28147d4299b0503053b66bd307, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.ResonatingAttack
   hitVolume: {fileID: 0}
   compatibleEffects:

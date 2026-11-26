@@ -52,6 +52,7 @@ namespace Game50033
         public Color PlayerColor { get; private set; } = Color.white;
         public CharacterDefinition Character { get; private set; }
         public Vector3 AimDirection { get; private set; } = Vector3.forward;
+        public bool IsManualAiming { get; private set; }
         public Behaviour AutoTarget { get; private set; }
         public event Action<Player, Behaviour> AutoTargetChanged;
         public bool HasActiveInput =>
@@ -63,7 +64,10 @@ namespace Game50033
         public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDowned && !IsHitStunned && !Hitstop.IsStopped
             && (Abilities == null || !Abilities.isActiveAndEnabled || !Abilities.BlocksMovement);
         public bool CanDodge => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !IsHitStunned && !Hitstop.IsStopped
-            && Movement.CanDodge && (Abilities == null || !Abilities.isActiveAndEnabled || !Abilities.BlocksDodge);
+            && Movement.CanDodgeIgnoringDisplacement
+            && (CanCancelAttackForDodge || (!Movement.IsDisplacing
+                && (Abilities == null || !Abilities.isActiveAndEnabled || !Abilities.BlocksDodge)));
+        private bool CanCancelAttackForDodge => Abilities != null && Abilities.isActiveAndEnabled && Abilities.CanInterruptAttack;
         public bool CanUseAbilities => isActiveAndEnabled && _playerInput.inputIsActive && !Health.IsDowned && !IsHitStunned && !Hitstop.IsStopped
             && !Movement.IsDodging && Abilities != null && Abilities.isActiveAndEnabled && !Abilities.BlocksAbilities;
 
@@ -148,7 +152,15 @@ namespace Game50033
                     _manualMouseAim = !_manualMouseAim;
 
                 // dodge is press-only; ability activation is retried while held.
-                if (_dodgeAction.WasPressedThisFrame()) Movement.TryDodge(CanDodge);
+                if (_dodgeAction.WasPressedThisFrame() && CanDodge)
+                {
+                    if (CanCancelAttackForDodge)
+                    {
+                        Abilities.InterruptAttack();
+                        Movement.CancelDisplacement();
+                    }
+                    Movement.TryDodge(true);
+                }
 
                 var blockMouseCombat = Session != null && Session.Debug.BlocksMouseCombat;
 
@@ -176,7 +188,8 @@ namespace Game50033
             Behaviour autoTarget = null;
             var aimOrigin = transform.position + Vector3.up * 0.25f;
             AimDirection = Movement.FacingDirection;
-            if (TryGetManualAimDirection(aimOrigin, out var manualDirection))
+            IsManualAiming = TryGetManualAimDirection(aimOrigin, out var manualDirection);
+            if (IsManualAiming)
             {
                 AimDirection = manualDirection;
             }
@@ -302,6 +315,7 @@ namespace Game50033
 
         private void OnDisable()
         {
+            IsManualAiming = false;
             PublishAutoTarget(null);
             _autoFacingTarget = null;
             _autoFacingRefreshAt = 0f;

@@ -119,7 +119,7 @@ namespace Game50033
             return false;
         }
 
-        private readonly struct FootprintStrip
+        internal readonly struct FootprintStrip
         {
             private readonly Vector3[] _edges;
             private readonly int _first;

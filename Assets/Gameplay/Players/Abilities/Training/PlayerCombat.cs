@@ -66,6 +66,7 @@ namespace Game50033
         private void Attack(Vector3 facing)
         {
             var centre = transform.position + Vector3.up * attackHeight + facing * attackReach;
+            Player.Session?.Debug.RecordAttack(DebugAttackSnapshot.Capsule(centre, centre, attackRadius));
             var count = Physics.OverlapSphereNonAlloc(centre, attackRadius, HitBuffer, hitMask, QueryTriggerInteraction.Ignore);
 
             _hitThisSwing.Clear();

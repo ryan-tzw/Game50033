@@ -79,7 +79,11 @@ namespace Game50033
                 SetLRColor(_opaque);
             }
 
-            if (Physics.Linecast(_lockedPosition, rayEndPosition, out _hitInfo, layerMask))
+            var hit = Physics.Linecast(_lockedPosition, rayEndPosition, out _hitInfo, layerMask);
+            var session = player != null ? player.Session : FindAnyObjectByType<GameSession>();
+            if (session?.Debug is { ShowHitboxes: true, ShowBossAttacks: true } debug)
+                debug.RecordAttack(DebugAttackSnapshot.BossLine(_lockedPosition, hit ? _hitInfo.point : rayEndPosition));
+            if (hit)
             {
                 var hitPlayer = _hitInfo.collider.GetComponentInParent<Player>();
                 if (hitPlayer != null && hitPlayer.Health.TryTakeDamage(1, _lockedPosition - hitPlayer.transform.position))

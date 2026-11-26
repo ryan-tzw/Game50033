@@ -88,6 +88,7 @@ namespace Game50033
 
         private void CreateCollisions()
         {
+            var debug = _rotating ? FindAnyObjectByType<GameSession>()?.Debug : null;
             float cumulativeDistance = 0f;
             float[] distances = new float[_lr.positionCount];
             float totalDistance = 0f;
@@ -134,6 +135,7 @@ namespace Game50033
                         worldPos = new Vector3(sectionedCenter.x, 0f, sectionedCenter.z);
                         sectionedBox.transform.position = worldPos;
                         sectionedBox.transform.SetParent(transform, true);
+                        debug?.RegisterBossCollider(this, sectionedBoxCol);
                     }
                 }
 
@@ -155,6 +157,7 @@ namespace Game50033
                 worldPos = new Vector3(centerPoint.x, 0f, centerPoint.z);
                 boxColObject.transform.position = worldPos;
                 boxColObject.transform.SetParent(transform, true);
+                debug?.RegisterBossCollider(this, boxCollider);
             }
         }
 

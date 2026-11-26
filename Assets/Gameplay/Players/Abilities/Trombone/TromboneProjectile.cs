@@ -38,6 +38,7 @@ namespace Game50033
         private TromboneProjectile _replayPrefab;
         private Vector3 _stepOrigin;
         private bool _finished;
+        private DebugProjectileTrace _debugTrace;
 
         internal float ShotPressureNormalized { get; private set; }
 
@@ -109,6 +110,9 @@ namespace Game50033
             var scale = transform.lossyScale;
             var radius = _hitVolume.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
 
+            var distance = Mathf.Min(speed * Time.fixedDeltaTime, maximumDistance - _distanceTravelled);
+            _sourcePlayer.Session?.Debug.BeginSphereSweep(this, ref _debugTrace, start, radius, _flightDirection * distance);
+
             // Resolve REV contacts before damage so Amp affects the hit.
             _resonatingAttack.ActivateAlongSweep(start, start, radius);
 
@@ -122,7 +126,7 @@ namespace Game50033
                 }
             }
 
-            var distance = Mathf.Min(speed * Time.fixedDeltaTime, maximumDistance - _distanceTravelled);
+            // test the projected sweep separately, stopping at the first blocking 3d hit.
             var hits = Physics.SphereCastAll(
                 start,
                 radius,
@@ -141,6 +145,7 @@ namespace Game50033
                 }
 
                 _resonatingAttack.ActivateAlongSweep(start, start + _flightDirection * hit.distance, radius);
+                _debugTrace?.CompleteFrame(distance > 0f ? hit.distance / distance : 0f);
                 SetPosition(start + _flightDirection * Mathf.Min(distance, hit.distance + HitOverlapDistance));
                 HandleContact(hit.collider);
 
@@ -151,6 +156,7 @@ namespace Game50033
             }
 
             _resonatingAttack.ActivateAlongSweep(start, start + _flightDirection * distance, radius);
+            _debugTrace?.CompleteFrame(1f);
             SetPosition(start + _flightDirection * distance);
             _distanceTravelled += distance;
 
@@ -231,6 +237,7 @@ namespace Game50033
             }
 
             _finished = true;
+            _debugTrace?.Finish();
             _hitVolume.enabled = false;
             _resonatingAttack.enabled = false;
 

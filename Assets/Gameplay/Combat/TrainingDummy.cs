@@ -4,13 +4,15 @@ namespace Game50033
     using UnityEngine.Events;
 
     /// <summary>
-    /// A target that never dies. Flashes and wobbles when hit so players can try their attacks.
+    /// A target that never dies. Plays visual feedback when hit so players can try their attacks.
     /// </summary>
     public sealed class TrainingDummy : MonoBehaviour, IHittable
     {
         private static readonly int FlashAmountId = Shader.PropertyToID("_FlashAmount");
+        private static readonly int HitState = Animator.StringToHash("Base Layer.Hit");
 
         [SerializeField] private Renderer visual;
+        [SerializeField] private Animator hitAnimator;
         [SerializeField, Min(0.01f)] private float flashDuration = 0.15f;
         [SerializeField, Min(0f)] private float shakeDistance = 0.08f;
         [SerializeField, Min(0.01f)] private float shakeDuration = 0.2f;
@@ -34,6 +36,7 @@ namespace Game50033
             HitCount++;
             _hitTime = Time.time;
             _shakeDirection = transform.InverseTransformDirection(hit.Direction);
+            if (hitAnimator) hitAnimator.Play(HitState, 0, 0f);
             onHit.Invoke(HitCount);
         }
 

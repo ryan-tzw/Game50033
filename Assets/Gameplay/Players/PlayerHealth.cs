@@ -29,6 +29,7 @@ namespace Game50033
             || (_movement != null && _movement.IsInvulnerable);
 
         public event Action<int, int> HealthChanged;
+        public event Action HealthReset;
         public event Action<int> Damaged;
         public event Action Downed;
         public event Action Revived;
@@ -136,6 +137,7 @@ namespace Game50033
             ClearPostHitInvulnerability();
             _abilityImmuneUntil = 0f;
             HealthChanged?.Invoke(CurrentHealth, MaxHealth);
+            HealthReset?.Invoke();
             if (wasDowned) Revived?.Invoke();
         }
 

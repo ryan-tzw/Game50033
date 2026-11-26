@@ -71,6 +71,15 @@ namespace Game50033
             ? 1f - Mathf.Clamp01((_specialReleaseAt - ActionTime) / _specialWindupDuration) : 0f;
 
         public override float MovementSpeedMultiplier => IsGuarding ? tuning.defensive.movementSpeedMultiplier : 1f;
+        public override bool BlocksDefensive => IsGuarding;
+        internal override bool CanInterruptAttack => _activeUntil > 0f && !IsGuarding;
+
+        internal override void InterruptAttack()
+        {
+            _specialPending = false;
+            EndAction();
+            if (_weaponVisual != null) _weaponVisual.Cancel();
+        }
 
         private void OnEnable()
         {
@@ -177,10 +186,10 @@ namespace Game50033
             PlaySound(primarySound);
 
             _primaryResonates = false;
-
-            _primaryCooldownDuration = Mathf.Lerp(tuning.primary.cooldown, tuning.primary.maximumPressureCooldown, pressure);
-
-            BeginAction(ref _primaryReadyAt, _primaryCooldownDuration, blockMovement: true, blockDodge: false);
+            var cooldown = Mathf.Lerp(tuning.primary.cooldown,
+                Mathf.Min(tuning.primary.cooldown, tuning.primary.maximumPressureCooldown), pressure);
+            _primaryCooldownDuration = Mathf.Max(0.01f, cooldown);
+            BeginAction(ref _primaryReadyAt, _primaryCooldownDuration, blockMovement: true);
             AccumulatePressure();
 
             if (_weaponVisual != null) _weaponVisual.PlayShot(direction, ProjectilePosition, special: false,
@@ -192,15 +201,14 @@ namespace Game50033
         public override bool TryUseSecondary()
         {
             if (!CanActivate || !CooldownReady(_secondaryReadyAt)
-                || (_commandZone != null && _commandZone.IsActive)) return false;
+                || _commandZone != null
+                || commandZonePrefab == null || !commandZonePrefab.IsConfigured) return false;
 
             _commandZone = Instantiate(commandZonePrefab, transform.position, Quaternion.identity);
-
+            _commandZone.Ended += HandleCommandZoneEnded;
             _commandZone.Initialize(Player);
-
             PlaySound(secondarySound);
-            BeginAction(ref _secondaryReadyAt, tuning.commandZone.cooldown, blockMovement: false, blockDodge: false);
-
+            BeginAction(blockMovement: false);
             if (_weaponVisual != null) _weaponVisual.PlayZone(Player.AimDirection);
 
             return true;
@@ -208,7 +216,7 @@ namespace Game50033
 
         public override bool TryUseDefensive()
         {
-            if (!CanActivate || IsGuarding || !CooldownReady(_defensiveReadyAt)) return false;
+            if (!Player.CanUseDefensive || !CooldownReady(_defensiveReadyAt)) return false;
 
             _guardUntil = ActionTime + tuning.defensive.guardLifespan;
             PlaySound(defensiveSound);
@@ -236,7 +244,6 @@ namespace Game50033
             _specialRecoveryDuration = tuning.special.recovery;
             _specialReleaseAt = ActionTime + _specialWindupDuration;
             _specialPending = true;
-
 
             BeginAction(ref _specialReadyAt, tuning.special.cooldown, blockMovement: true, blockDodge: true);
             _activeUntil = _specialReleaseAt + _specialRecoveryDuration;
@@ -274,12 +281,17 @@ namespace Game50033
 
         private bool CooldownReady(float readyAt) => IgnoreCooldowns || Time.time >= readyAt;
 
-        private void BeginAction(ref float readyAt, float cooldown, bool blockMovement, bool blockDodge)
+        private void BeginAction(ref float readyAt, float cooldown, bool blockMovement, bool blockDodge = false)
         {
             readyAt = IgnoreCooldowns ? 0f : Time.time + cooldown;
-            _activeUntil = ActionTime + tuning.actionDuration;
+            BeginAction(blockMovement, blockDodge);
+        }
+
+        private void BeginAction(bool blockMovement, bool blockDodge = false)
+        {
+            _activeUntil = ActionTime + Mathf.Max(0.01f, tuning.actionDuration);
             BlocksMovement = blockMovement;
-            BlocksDodge = blockDodge;
+            BlocksDodge = blockDodge || IsGuarding;
             BlocksAbilities = true;
         }
 
@@ -303,6 +315,7 @@ namespace Game50033
         private void EndGuard()
         {
             _guardUntil = 0f;
+            BlocksDodge = false;
             Player.Health.ClearAbilityInvulnerability();
         }
 
@@ -310,14 +323,20 @@ namespace Game50033
         {
             _activeUntil = 0f;
             BlocksMovement = false;
-            BlocksDodge = false;
+            BlocksDodge = IsGuarding;
             BlocksAbilities = false;
         }
 
         private void ClearCommandZone()
         {
             if (_commandZone != null) _commandZone.CancelZone();
+        }
+
+        private void HandleCommandZoneEnded(TromboneCommandZone zone)
+        {
+            zone.Ended -= HandleCommandZoneEnded;
             _commandZone = null;
+            _secondaryReadyAt = IgnoreCooldowns ? 0f : Time.time + tuning.commandZone.cooldown;
         }
 
         public override void Cancel()
@@ -337,18 +356,28 @@ namespace Game50033
             }
         }
 
+        public override AbilityInteraction GetReadyInteractions(PlayerAbility ability) =>
+            ability == PlayerAbility.Primary && PrimaryResonates ? AbilityInteraction.Resonance : AbilityInteraction.None;
+
         public override PlayerAbilityStats GetAbilityStats(PlayerAbility ability)
         {
+            if (tuning == null || !GetAbilityState(ability).Supported) return default;
+            if (ability == PlayerAbility.Primary)
+            {
+                var slowest = Mathf.Max(0.01f, tuning.primary.cooldown);
+                var fastest = Mathf.Clamp(tuning.primary.maximumPressureCooldown, 0.01f, slowest);
+                return new PlayerAbilityStats(
+                    ("DMG", Range(tuning.primary.minimumDamage, tuning.primary.maximumDamage)),
+                    ("Fire rate", Range(1f / slowest, 1f / fastest) + "/s"));
+            }
+
             return ability switch
             {
-                PlayerAbility.Primary => new(("Damage by Pressure", Range(tuning.primary.minimumDamage, tuning.primary.maximumDamage)),
-                    ("Cooldown by Pressure", Range(tuning.primary.maximumPressureCooldown, tuning.primary.cooldown) + " s")),
-                PlayerAbility.Secondary => new(("Zone radius", Number(tuning.commandZone.radius)),
-                    ("Cooldown", Seconds(tuning.commandZone.cooldown))),
-                PlayerAbility.Special => new(("Damage by Pressure", Range(tuning.special.minimumDamage, tuning.special.maximumDamage)),
-                    ("Cooldown", Seconds(tuning.special.cooldown))),
+                PlayerAbility.Secondary => new(Cooldown(tuning.commandZone.cooldown)),
+                PlayerAbility.Special => new(("DMG", Range(tuning.special.minimumDamage, tuning.special.maximumDamage)),
+                    Cooldown(tuning.special.cooldown)),
                 PlayerAbility.Defensive => new(("Guard duration", Seconds(tuning.defensive.guardLifespan)),
-                    ("Cooldown", Seconds(tuning.defensive.cooldown))),
+                    Cooldown(tuning.defensive.cooldown)),
                 _ => default
             };
         }
@@ -373,8 +402,8 @@ namespace Game50033
 
         public override void ResetForEncounter()
         {
-            base.ResetForEncounter();
             ClearCommandZone();
+            base.ResetForEncounter();
             _pressure = 0f;
             ResetMovementTracking();
         }

@@ -14,8 +14,7 @@ namespace Game50033
     {
         [SerializeField] private PlayerInputManager playerInputManager;
         [SerializeField] private CharacterRoster roster;
-        [Tooltip("Where each player appears after picking a character, indexed by PlayerInput.playerIndex.")]
-        [SerializeField] private Transform[] spawnPoints = Array.Empty<Transform>();
+        [SerializeField] private LobbySpawnZone spawnZone;
 
         private readonly List<PlayerCharacterSelect> _players = new();
         private readonly Dictionary<CharacterDefinition, PlayerCharacterSelect> _claims = new();
@@ -252,11 +251,9 @@ namespace Game50033
             }
         }
 
-        /// <summary>The player's fixed lobby spawn point, or the fallback when none is assigned.</summary>
+        /// <summary>The player's fixed lobby slot, or the fallback when no slot is available.</summary>
         public Vector3 GetSpawnPosition(int playerIndex, Vector3 fallback) =>
-            playerIndex >= 0 && playerIndex < spawnPoints.Length && spawnPoints[playerIndex] != null
-                ? spawnPoints[playerIndex].position
-                : fallback;
+            spawnZone != null && spawnZone.TryGetSpawnPosition(playerIndex, out var position) ? position : fallback;
 
         public bool IsClaimedByOther(CharacterDefinition character, PlayerCharacterSelect player) =>
             _claims.TryGetValue(character, out var owner) && owner != null && owner != player;

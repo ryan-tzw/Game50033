@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Flute
+  m_Shader: {fileID: -6465566751694194690, guid: dae7d7c005e16175085bcdd31edd01f2, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _PaletteLayer: 0
+    m_Colors:
+    - _BackgroundDarkMidtones: {r: 0.07947, g: 0.05914334, b: 0.09978333, a: 1}
+    - _BackgroundHighlights: {r: 0.16625118, g: 0.1228751, b: 0.19830099, a: 1}
+    - _BackgroundLightMidtones: {r: 0.12286059, g: 0.091009215, b: 0.14904216, a: 1}
+    - _BackgroundShadows: {r: 0.03607941, g: 0.027277453, b: 0.05052451, a: 1}
+    - _BorderDarkMidtones: {r: 0.40764707, g: 0.29980394, b: 0.46803924, a: 1}
+    - _BorderHighlights: {r: 0.92235297, g: 0.86352944, b: 0.95529413, a: 1}
+    - _BorderLightMidtones: {r: 0.78000003, g: 0.61333334, b: 0.87333333, a: 1}
+    - _BorderShadows: {r: 0.045, g: 0.035, b: 0.065, a: 1}
+    - _DarkMidtones: {r: 0.24335295, g: 0.18102942, b: 0.28329414, a: 1}
+    - _Highlights: {r: 0.95341176, g: 0.91811764, b: 0.9731765, a: 1}
+    - _LightMidtones: {r: 0.7411765, g: 0.54509807, b: 0.8509804, a: 1}
+    - _Shadows: {r: 0.018, g: 0.016, b: 0.027, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

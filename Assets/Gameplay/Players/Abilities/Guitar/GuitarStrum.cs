@@ -63,7 +63,7 @@ namespace Game50033
             _thickness = Mathf.Max(0.01f, settings.hitThickness);
             _range = Mathf.Max(0.01f, settings.range);
             _damage = Mathf.Max(0f, settings.damage);
-            _mask = settings.collisionMask;
+            _mask = InvisibleWall.ExcludeFrom(settings.collisionMask);
             _initialized = true;
 
             // the supplied spawn point is the front tip, so close targets are not skipped by a hollow arc.

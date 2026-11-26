@@ -14,16 +14,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.CharacterDefinition
   displayName: Guitar
   sprite: {fileID: 5395042229362328217, guid: f4aa2dc303f9da7669b91fe830b83084, type: 3}
-  tint: {r: 0.35, g: 0.8, b: 0.85, a: 1}
+  tint: {r: 0.9137255, g: 0.7411765, b: 0.39215687, a: 1}
   playerPrefab: {fileID: 9019545368423628371, guid: 37531a99c5eee3496ac27af004e69c68, type: 3}
+  abilityPalette: {fileID: 2100000, guid: eb4e025a01024e9bd85b155619199fdb, type: 2}
+  abilityBackground: {fileID: 2800000, guid: 395bd3b9ea926b7b6a17e9aa300705a2, type: 3}
+  portrait: {fileID: 2800000, guid: 47cd276d3350ee571817f4c427246afa, type: 3}
   abilityPreviews:
   - name: Sweeping Combo
+    icon: {fileID: 2800000, guid: 28a47b716946440e2af0ca8fbcf7c184, type: 3}
     description: A three-hit sweeping combo. The outer edge rewards precise spacing.
   - name: Strum
+    icon: {fileID: 2800000, guid: 01fc255e8f761f62b9baebeb06977f51, type: 3}
     description: Send out a ranged wave and empower your next Primary or Special.
   - name: Backstep Sweep
-    description: Backstep and sweep with brief invulnerability. Keeps your Primary
-      combo.
+    icon: {fileID: 2800000, guid: a4cbbbd8ac872c4ebbf5b0243d7feb74, type: 3}
+    interactions: 1
+    conditionalInteractions: 0
+    description: Backstep and sweep with brief invulnerability. The sweep leaves an Encore REV and keeps your Primary combo.
   - name: Overhead Smash
-    description: A committed overhead strike. Position the target near the centre
-      for bonus damage.
+    icon: {fileID: 2800000, guid: 18e1ea66b0b7dcbca95f2608f40a0fe2, type: 3}
+    interactions: 3
+    conditionalInteractions: 0
+    description: Smash down to resonate with nearby REVs and leave a Reprise REV. Hit near the centre for bonus damage.

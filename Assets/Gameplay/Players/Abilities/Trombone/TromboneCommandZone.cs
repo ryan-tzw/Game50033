@@ -1,5 +1,6 @@
 namespace Game50033
 {
+    using System;
     using UnityEngine;
     using UnityEngine.SceneManagement;
 
@@ -8,7 +9,7 @@ namespace Game50033
     public class TromboneCommandZone : MonoBehaviour
     {
         [SerializeField] private TromboneTuning tuning;
-        private float Radius => tuning.commandZone.radius;
+        private float Radius => tuning != null ? tuning.commandZone.radius : 0f;
         [SerializeField] private Reverberation sustainReverberationPrefab;
         [Tooltip("Optional child GameObject displaying the Command Zone area.")]
         [SerializeField] private GameObject visualRoot;
@@ -18,8 +19,15 @@ namespace Game50033
         private bool _ended;
 
         internal Player PresentationOwner => _owner;
+        internal event Action<TromboneCommandZone> Ended;
 
-        public bool IsActive => !_ended && isActiveAndEnabled;
+        // Keep destroyed owners marked as initialized so they still reach cleanup.
+        public bool IsActive => !ReferenceEquals(_owner, null) && !_ended && isActiveAndEnabled;
+        public bool IsConfigured => tuning != null && enabled && gameObject.activeSelf
+            && sustainReverberationPrefab != null && sustainReverberationPrefab.enabled
+            && sustainReverberationPrefab.gameObject.activeSelf
+            && sustainReverberationPrefab.Effect is SustainEffect sustain && sustain.IsConfigured
+            && GetComponentInChildren<Reverberation>(true) == null;
 
         public bool IsOwnerInside
         {
@@ -78,6 +86,8 @@ namespace Game50033
             // Check for exit directly because zones always spawn around their owner.
             if (IsOwnerInside)
             {
+                _owner.Session?.Debug.RecordAttack(new DebugAttackSnapshot(transform.position, Vector3.forward, 0f,
+                    Radius, 360f, Vector3.zero, 1f, live: true));
                 return;
             }
 
@@ -102,8 +112,7 @@ namespace Game50033
 
         public void CancelZone()
         {
-            _ended = true;
-            SetVisualActive(false);
+            EndZone();
 
             // Queue cleanup before spawning REV; Unity defers destruction until later this frame.
             Destroy(gameObject);
@@ -112,8 +121,15 @@ namespace Game50033
         private void OnDisable()
         {
             GetComponent<AudioSource>()?.Stop();
+            EndZone();
+        }
+
+        private void EndZone()
+        {
+            if (_ended || ReferenceEquals(_owner, null)) return;
             _ended = true;
             SetVisualActive(false);
+            Ended?.Invoke(this);
         }
 
         private void SetVisualActive(bool active)

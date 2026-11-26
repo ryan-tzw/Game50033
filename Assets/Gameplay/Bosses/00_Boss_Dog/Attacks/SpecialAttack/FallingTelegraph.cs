@@ -218,7 +218,8 @@ public class FallingTelegraph : BaseTelegraph
     private static Vector3 SnapToGround(Vector3 point)
     {
         Vector3 rayStart = point + Vector3.up * 5f;
-        if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, 20f, ~0, QueryTriggerInteraction.Ignore))
+        if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, 20f,
+            InvisibleWall.ExcludeFrom(Physics.AllLayers), QueryTriggerInteraction.Ignore))
             return hit.point;
         return point;
     }

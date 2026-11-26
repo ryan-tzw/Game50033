@@ -34,6 +34,7 @@ namespace Game50033
         private static readonly int SpriteFlatDepthId = Shader.PropertyToID("_SpriteFlatDepth");
         private static readonly int SpriteRotationId = Shader.PropertyToID("_SpriteRotation");
         private static readonly int SpritePivotId = Shader.PropertyToID("_SpritePivot");
+        private static readonly int SpriteDepthPlaneId = Shader.PropertyToID("_SpriteDepthPlane");
 
         private void Awake()
         {
@@ -231,7 +232,7 @@ namespace Game50033
             weaponSprite.transform.localScale = Vector3.one * scale;
             weaponSprite.transform.localPosition = -(Vector3)_gripPoint * scale;
             weaponSprite.transform.localRotation = Quaternion.identity;
-            var material = _posing && !(_smashing && _smashPhase == PlayerAttackPhase.Windup) ? attackMaterial : restingMaterial;
+            var material = _posing ? attackMaterial : restingMaterial;
             if (weaponSprite.sharedMaterial != material) weaponSprite.sharedMaterial = material;
 
             // tilt the backward direction by a fixed screen-space angle, mirrored when facing left.
@@ -246,7 +247,7 @@ namespace Game50033
             // keep shake separate from the smoothed pose so offsets cannot accumulate or leak into the downstroke.
             var displayedAngle = _visualAngle + windupShake;
 
-            // the original flat geometry still supplies shadow casting; an upright depth plane handles obstacle occlusion.
+            // the original flat geometry still supplies shadow casting.
             var worldDirection = _posing ? radial : -facing;
             if ((!_posing || _smashing || _strumming) && Mathf.Abs(_camera.transform.forward.y) > 0.001f)
             {
@@ -266,6 +267,10 @@ namespace Game50033
             _properties.SetFloat(SpriteFlatDepthId, 2f);
             _properties.SetFloat(SpriteRotationId, displayedAngle);
             _properties.SetVector(SpritePivotId, new Vector4(_gripPoint.x, _gripPoint.y, 0f, 0f));
+            // the avatar's unrotated sprite sits on the player's local XY plane.
+            var normal = transform.forward;
+            _properties.SetVector(SpriteDepthPlaneId, new Vector4(normal.x, normal.y, normal.z,
+                Vector3.Dot(normal, transform.position)));
             weaponSprite.SetPropertyBlock(_properties);
             _placed = true;
         }

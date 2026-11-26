@@ -38,6 +38,17 @@ namespace Game50033
 
         private static readonly int HitStateId = Animator.StringToHash("Hit");
 
+        private void Start()
+        {
+            var session = _targetedPlayer != null ? _targetedPlayer.Session : null;
+            if (session == null) session = FindAnyObjectByType<GameSession>();
+            if (session == null) return;
+
+            // lingering effects and projectile variants use their authored collider on this object.
+            foreach (var volume in GetComponents<Collider>())
+                session.Debug.RegisterBossCollider(this, volume);
+        }
+
         public void InitializeProjectile(Player player, BaseBoss boss, Vector3 target, TargetedBossAttack targetedBossAttack)
         {
             _targetedPlayer = player;

@@ -76,7 +76,8 @@ namespace Game50033
         [Serializable]
         public sealed class CommandZoneSettings
         {
-            [Min(0.01f)] public float cooldown = 1f;
+            [Tooltip("Cooldown starts when the Command Zone ends.")]
+            [Min(0.01f)] public float cooldown = 10f;
             [Min(0.01f)] public float radius = 1f;
             [Min(1f)] public float pressureAccumulationMultiplier = 1.5f;
             [Range(0f, 1f)] public float pressureDecayMultiplier = 0.5f;
