@@ -46,8 +46,9 @@ namespace Game50033
 
         private static readonly int AttackId = Animator.StringToHash("Attack");
         private static readonly int IsWalkingId = Animator.StringToHash("IsWalking");
+        protected static readonly int PhaseChangeId = Animator.StringToHash("ChangingPhase");
 
-        private Animator _attackAnimator;
+        protected Animator _attackAnimator;
 
         public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDead && !Attacks.IsAttacking && fightStarted;
         public bool CanTryAttacking => isActiveAndEnabled && Movement.InRange && !Health.IsDead && !Attacks.IsAttacking && fightStarted;
@@ -174,6 +175,9 @@ namespace Game50033
             Attacks.SetPhase(phaseNumber);
             Attacks.SetAttackIntervalTime(2);
             Attacks.SetProjectileSpeed(1.5f);
+
+            try { StartCoroutine(PlayAnimationInPlace(PhaseChangeId)); }
+            catch { Debug.LogWarning("Animator does not include Phase Change Animation"); }
         }
 
         public void SetVisibility(bool visibility)
@@ -185,6 +189,17 @@ namespace Game50033
         {
             if (_rb != null) _rb.position = position;
             transform.position = position;
+        }
+
+        public virtual System.Collections.IEnumerator PlayAnimationInPlace(int animationId)
+        {
+            Debug.Log("Playing Phase Changing Animation");
+            Attacks.enabled = false;
+            yield return null;
+            _attackAnimator.SetTrigger(animationId);
+            yield return null;
+            yield return new WaitUntil(() => _attackAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f);
+            Attacks.enabled = true;
         }
     }
 }
