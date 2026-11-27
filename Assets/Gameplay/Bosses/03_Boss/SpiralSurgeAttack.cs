@@ -12,7 +12,7 @@ namespace Game50033
         [SerializeField] private SpiralSurgeProjectile projectilePrefab;
         [SerializeField] private Material lightningMaterial;
 
-        private ExterminatorBotBoss _bot;
+        private Boss3Controller _bot;
         private LineRenderer _initialLane;
         private LineRenderer _rotationCue;
         private LineRenderer _arrow;
@@ -32,7 +32,7 @@ namespace Game50033
         public override void Setup(BaseBoss owner)
         {
             base.Setup(owner);
-            _bot = owner as ExterminatorBotBoss;
+            _bot = owner as Boss3Controller;
             if (_bot == null || !_bot.ArenaFloor || !_bot.Tuning || !projectilePrefab || !lightningMaterial) return;
 
             var tuning = _bot.Tuning;

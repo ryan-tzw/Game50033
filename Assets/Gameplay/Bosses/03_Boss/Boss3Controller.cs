@@ -4,7 +4,7 @@ namespace Game50033
     using UnityEngine;
     using UnityEngine.Pool;
 
-    public sealed class ExterminatorBotBoss : BaseBoss
+    public sealed class Boss3Controller : BaseBoss
     {
         [SerializeField] private Boss3Tuning tuning;
         [SerializeField] private BoxCollider arenaFloor;

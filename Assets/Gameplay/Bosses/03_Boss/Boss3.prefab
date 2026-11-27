@@ -17,7 +17,7 @@ GameObject:
   - component: {fileID: 7945929726521504531}
   - component: {fileID: 4883418154620995921}
   m_Layer: 13
-  m_Name: ExterminatorBot
+  m_Name: Boss3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -161,7 +161,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d9ce3957bf4727b0bb0e47b08ecdb7b4, type: 3}
   m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::Game50033.ExterminatorBotBoss
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.Boss3Controller
   BossTotalPhases: 0
   BossNextPhase: 2
   _bossName: Exterminator Bot

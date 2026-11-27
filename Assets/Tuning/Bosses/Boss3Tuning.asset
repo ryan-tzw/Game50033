@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 896a28d7d2d29495082d4cc30595f798, type: 3}
-  m_Name: ExterminatorBot
+  m_Name: Boss3Tuning
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.Boss3Tuning
   maxHealth: 30000
   phaseTwoHealth: 20000

@@ -2,7 +2,7 @@ namespace Game50033
 {
     using UnityEngine;
 
-    [CreateAssetMenu(menuName = "Game50033/Tuning/Boss 3", fileName = "ExterminatorBot")]
+    [CreateAssetMenu(menuName = "Game50033/Tuning/Boss 3", fileName = "Boss3Tuning")]
     public sealed class Boss3Tuning : ScriptableObject
     {
         [Header("Encounter")]

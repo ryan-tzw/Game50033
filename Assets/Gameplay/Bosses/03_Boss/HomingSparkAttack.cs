@@ -14,7 +14,7 @@ namespace Game50033
         [SerializeField] private Material lightningMaterial;
 
         private readonly List<Player> _targets = new(4);
-        private ExterminatorBotBoss _bot;
+        private Boss3Controller _bot;
         private LineRenderer[] _warnings;
         private LineRenderer _chargeRing;
         private float _speed;
@@ -28,7 +28,7 @@ namespace Game50033
         public override void Setup(BaseBoss owner)
         {
             base.Setup(owner);
-            _bot = owner as ExterminatorBotBoss;
+            _bot = owner as Boss3Controller;
             if (_bot == null || !_bot.ArenaFloor || !_bot.Tuning || !projectilePrefab || !lightningMaterial) return;
 
             var tuning = _bot.Tuning;

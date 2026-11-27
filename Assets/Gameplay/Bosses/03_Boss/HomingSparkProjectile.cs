@@ -21,7 +21,7 @@ namespace Game50033
         private readonly HashSet<Player> _contacted = new();
         private MeshRenderer _orbRenderer;
         private MaterialPropertyBlock _orbProperties;
-        private ExterminatorBotBoss _owner;
+        private Boss3Controller _owner;
         private Player _target;
         private Vector3 _direction;
         private Bounds _arena;
@@ -39,7 +39,7 @@ namespace Game50033
         internal static bool CanTrack(Player player) =>
             player != null && player.isActiveAndEnabled && player.Session != null && !player.Health.IsDowned;
 
-        internal void Launch(ExterminatorBotBoss owner, Player target, Vector3 position, float speed)
+        internal void Launch(Boss3Controller owner, Player target, Vector3 position, float speed)
         {
             _owner = owner;
             _target = target;

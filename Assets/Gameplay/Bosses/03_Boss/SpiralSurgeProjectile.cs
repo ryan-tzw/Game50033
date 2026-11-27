@@ -16,7 +16,7 @@ namespace Game50033
         [SerializeField] private LineRenderer[] branches;
 
         private readonly HashSet<Player> _contacted = new();
-        private ExterminatorBotBoss _owner;
+        private Boss3Controller _owner;
         private MaterialPropertyBlock _properties;
         private Bounds _arena;
         private Vector3 _direction;
@@ -34,7 +34,7 @@ namespace Game50033
         private int _visualFrame;
         private uint _visualSeed;
 
-        internal void Launch(ExterminatorBotBoss owner, Vector3 center, Vector3 direction, float speed)
+        internal void Launch(Boss3Controller owner, Vector3 center, Vector3 direction, float speed)
         {
             _owner = owner;
             _direction = direction;

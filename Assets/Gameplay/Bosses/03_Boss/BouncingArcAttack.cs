@@ -15,7 +15,7 @@ namespace Game50033
         private readonly List<float> _distances = new(14);
         private readonly HashSet<Player> _contacted = new();
 
-        private ExterminatorBotBoss _bot;
+        private Boss3Controller _bot;
         private Boss3Tuning _tuning;
         private LineRenderer _line;
         private MaterialPropertyBlock _properties;
@@ -42,7 +42,7 @@ namespace Game50033
         public override void Setup(BaseBoss owner)
         {
             base.Setup(owner);
-            _bot = owner as ExterminatorBotBoss;
+            _bot = owner as Boss3Controller;
             if (_bot == null || !_bot.ArenaFloor || !_bot.Tuning) return;
 
             var target = Vector3.zero;
