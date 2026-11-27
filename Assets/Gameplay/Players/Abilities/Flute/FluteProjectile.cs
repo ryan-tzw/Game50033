@@ -128,6 +128,8 @@ namespace Game50033
                 _noteHead.sprite = tuning.melody.noteSprite;
                 _noteHead.sharedMaterial = visual.noteMaterial;
                 _noteHead.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                _noteHead.enabled = kind == Kind.Primary
+                    ? tuning.melody.showPrimaryNoteHead : tuning.melody.showSpecialNoteHead;
                 var size = kind == Kind.Primary ? tuning.melody.primaryNoteSize : tuning.melody.chargedNoteSize;
                 _visualScale = Vector3.one * (size / Mathf.Max(0.001f, _noteHead.sprite.bounds.size.y));
                 visualRoot.localScale = _visualScale;

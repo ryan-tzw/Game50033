@@ -153,6 +153,8 @@ MonoBehaviour:
     scatterCount: 3
     goldThreshold: 0.7
     spiralRadius: 0.45
+    showPrimaryNoteHead: 0
+    showSpecialNoteHead: 0
     primaryNoteSize: 0.3
     chargedNoteSize: 0.26
     primaryVisualOffset: 0.045

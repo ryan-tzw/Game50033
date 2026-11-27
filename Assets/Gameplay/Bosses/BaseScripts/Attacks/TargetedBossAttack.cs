@@ -11,6 +11,11 @@ namespace Game50033
         [SerializeField] private int _numberOfProjectiles;
         [SerializeField] private int _numberOfTargets;
 
+        [Header("Audio")]
+        [SerializeField] private BossAttackAudioTuning audioTuning;
+        private AudioSource _sfxSource;
+        private bool _releaseSoundPlayed;
+
         public bool TriggerAttack;
         private readonly List<Player> _targetCandidates = new(4);
 
@@ -72,6 +77,7 @@ namespace Game50033
         public override void Setup(BaseBoss owner)
         {
             base.Setup(owner);
+            _sfxSource = owner.GetComponent<AudioSource>();
             CalculateTargets();
         }
 
@@ -146,6 +152,8 @@ namespace Game50033
 
             if (ControlsBoss && _controlStarted) return;
             base.Attack();
+            _releaseSoundPlayed = false;
+            if (audioTuning != null) PlaySound(audioTuning.windUpSound);
 
             if (ControlsBoss)
             {
@@ -257,6 +265,11 @@ namespace Game50033
                 Destroy(telegraph.gameObject);
             }
 
+            if (!_releaseSoundPlayed)
+            {
+                _releaseSoundPlayed = true;
+                if (audioTuning != null) PlaySound(audioTuning.releaseSound);
+            }
             if (bossAttackAnimationId != 0) boss.PlayAnimationTrigger(bossAttackAnimationId);
             var projectile = Instantiate(_projectile, transform.position, Quaternion.identity);
             if (ControlsBoss)
@@ -265,6 +278,13 @@ namespace Game50033
                 _pendingControlShots--;
             }
             projectile.InitializeProjectile(player, boss, end, this);
+        }
+
+        private void PlaySound(AudioClip clip)
+        {
+            // The boss owns the source so attack cleanup does not cut off the sound.
+            if (_sfxSource != null && _sfxSource.isActiveAndEnabled && clip != null)
+                _sfxSource.PlayOneShot(clip, audioTuning.volume);
         }
 
         public Vector3 RetrievePlayerPosition(Player player)

@@ -50,6 +50,7 @@ MonoBehaviour:
   _projectile: {fileID: 621992513559929403, guid: 8d124fd84649e2e4081f441d448f6fdf, type: 3}
   _numberOfProjectiles: 1
   _numberOfTargets: 0
+  audioTuning: {fileID: 11400000, guid: 72aafe1d12f0e4ac7b3ca4a3aef18fe7, type: 2}
   TriggerAttack: 0
   _targetedPlayers: []
   lingeringObject: {fileID: 0}

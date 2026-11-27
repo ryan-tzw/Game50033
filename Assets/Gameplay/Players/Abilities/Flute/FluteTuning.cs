@@ -123,6 +123,8 @@ namespace Game50033
             [Range(0, 4)] public int scatterCount = 3;
             [Range(0f, 1f)] public float goldThreshold = 0.7f;
             [Min(0.01f)] public float spiralRadius = 0.45f;
+            public bool showPrimaryNoteHead = true;
+            public bool showSpecialNoteHead = true;
             [Min(0.01f)] public float primaryNoteSize = 0.3f;
             [Min(0.01f)] public float chargedNoteSize = 0.26f;
             [Min(0f)] public float primaryVisualOffset = 0.045f;
