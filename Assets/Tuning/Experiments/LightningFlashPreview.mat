@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: LightningFlashPreview
+  m_Shader: {fileID: 4800000, guid: 659a1806efe3f12e9a575d365a14a491, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _INSTANT_FLASH
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties:
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _ChannelSpread: 0.83
+    - _Displacement: 0.56
+    - _Emission: 2.8
+    - _InstantFlash: 1
+    - _Seed: 3
+    - _StrandWidth: 0.04
+    - _Throttle: 0.83
+    m_Colors:
+    - _CoreColor: {r: 0.68, g: 0.9, b: 1.28, a: 1}
+    - _CycleRange: {r: 0.095, g: 0.18, b: 0, a: 0}
+    - _FlashDurationRange: {r: 0.025, g: 0.055, b: 0, a: 0}
+    - _LengthRange: {r: 0.065, g: 0.3, b: 0, a: 0}
+    - _StrandColor: {r: 0.12, g: 0.45, b: 1.12, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
