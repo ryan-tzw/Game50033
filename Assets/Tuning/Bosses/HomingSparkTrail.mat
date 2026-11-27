@@ -35,7 +35,8 @@ Material:
     - _Trail: 1
     - _TrailBranchIntensity: 0.62
     - _TrailJitter: 0.75
-    - _TrailWidth: 0.13
+    - _TrailWidth: 0.19
+    - _TrailVisibility: 1.7
     m_Colors:
     - _CoreColor: {r: 0.82, g: 1.2, b: 1.65, a: 1}
     - _RimColor: {r: 0.018, g: 0.33, b: 1.35, a: 1}

@@ -93,15 +93,15 @@ TrailRenderer:
         time: 0
         value: 1
         inSlope: 0
-        outSlope: -0.88
+        outSlope: -0.54
         tangentMode: 0
         weightedMode: 0
         inWeight: 0
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.12
-        inSlope: -0.88
+        value: 0.46
+        inSlope: -0.54
         outSlope: 0
         tangentMode: 0
         weightedMode: 0

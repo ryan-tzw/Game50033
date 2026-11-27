@@ -14,6 +14,7 @@ namespace Game50033
         private readonly List<Vector3> _points = new(14);
         private readonly List<float> _distances = new(14);
         private readonly HashSet<Player> _contacted = new();
+        private readonly LineRenderer[] _sideFlashes = new LineRenderer[3];
 
         private Boss3Controller _bot;
         private Boss3Tuning _tuning;
@@ -185,6 +186,51 @@ namespace Game50033
             _properties.SetFloat(TelegraphId, telegraph ? 1f : 0f);
             _properties.SetFloat(FadeId, opacity);
             _line.SetPropertyBlock(_properties);
+            if (telegraph) return;
+
+            // keep each side strike fixed until it switches off. only decorate the portion already traversed.
+            var interval = Mathf.Max(0.05f, _tuning.lightningFlashInterval);
+            for (var i = 0; i < _sideFlashes.Length; i++)
+            {
+                var clock = (Time.time - _startedAt - windUpTime) / interval + i * 0.37f;
+                var cycle = Mathf.FloorToInt(clock);
+                var seed = Mathf.Repeat(GetInstanceID() * 0.03125f, 89f) + cycle * 17.3f + i * 53.1f;
+                var sample = Mathf.Repeat(Mathf.Sin(seed * 11.31f) * 4731.83f, 1f);
+                var duration = Mathf.Lerp(_tuning.lightningFlashDuration.x, _tuning.lightningFlashDuration.y, sample);
+                var distance = (i + Mathf.Lerp(0.18f, 0.84f, sample)) / _sideFlashes.Length * _beamLength;
+                var flash = _sideFlashes[i];
+                if (_tuning.beamSideFlashReach <= 0f || (clock - cycle) * interval >= duration || distance > length)
+                {
+                    if (flash) flash.enabled = false;
+                    continue;
+                }
+
+                if (flash == null)
+                {
+                    var effect = new GameObject("Arc Side Flash") { layer = gameObject.layer };
+                    effect.transform.SetParent(transform, false);
+                    flash = _sideFlashes[i] = effect.AddComponent<LineRenderer>();
+                    flash.sharedMaterial = _line.sharedMaterial;
+                    flash.alignment = LineAlignment.TransformZ;
+                    flash.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    flash.receiveShadows = false;
+                    flash.positionCount = 4;
+                    flash.widthMultiplier = 0.10f;
+                }
+
+                var leg = 1;
+                while (leg < _points.Count - 1 && _distances[leg] < distance) leg++;
+                var forward = (_points[leg] - _points[leg - 1]).normalized;
+                var side = Vector3.Cross(Vector3.up, forward) * (sample < 0.5f ? -1f : 1f);
+                var origin = _points[leg - 1] + forward * (distance - _distances[leg - 1]);
+                var reach = _tuning.beamSideFlashReach * Mathf.Lerp(0.55f, 1f, sample);
+                flash.SetPosition(0, origin);
+                flash.SetPosition(1, origin + reach * (side * 0.32f + forward * 0.24f));
+                flash.SetPosition(2, origin + reach * (side * 0.62f + forward * 0.06f));
+                flash.SetPosition(3, origin + reach * (side + forward * 0.32f));
+                flash.SetPropertyBlock(_properties);
+                flash.enabled = true;
+            }
         }
 
         public override void Cancel()
@@ -192,6 +238,8 @@ namespace Game50033
             if (!_running) return;
             _running = false;
             _line.enabled = false;
+            foreach (var flash in _sideFlashes)
+                if (flash) flash.enabled = false;
             if (_bot && _bot.ActiveArc == this) _bot.ActiveArc = null;
             NotifyBossControlReleased();
         }

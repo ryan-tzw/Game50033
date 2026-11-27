@@ -15,8 +15,9 @@ namespace Game50033
         private static readonly int CoreColorId = Shader.PropertyToID("_CoreColor");
         private static readonly int GlowColorId = Shader.PropertyToID("_GlowColor");
         private static readonly int RimColorId = Shader.PropertyToID("_RimColor");
+        private static readonly int TrailIntensityId = Shader.PropertyToID("_TrailIntensity");
         // match the outer sphere radius in HomingSparkOrb.shader.
-        private const float OrbMeshPadding = 1.75f;
+        private const float OrbMeshPadding = 2.25f;
 
         private readonly HashSet<Player> _contacted = new();
         private MeshRenderer _orbRenderer;
@@ -75,8 +76,11 @@ namespace Game50033
                 _orbProperties.SetVector(RimColorId, lightningPalette.GetVector(GlowColorId));
             }
             _orbRenderer.SetPropertyBlock(_orbProperties);
+            _orbProperties.SetFloat(TrailIntensityId, tuning.sparkTrailIntensity);
             trail.SetPropertyBlock(_orbProperties);
-            trail.widthMultiplier = _radius * 2.0f;
+            _orbProperties.SetFloat(TrailIntensityId, 1f);
+            trail.time = tuning.sparkTrailDuration;
+            trail.widthMultiplier = tuning.sparkTrailWidth;
             trail.emitting = false;
             gameObject.SetActive(true);
             trail.Clear();

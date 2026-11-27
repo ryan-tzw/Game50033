@@ -22,6 +22,9 @@ MonoBehaviour:
   telegraphDuration: 0.8
   dissipationDuration: 0.16
   recoveryDuration: 0.5
+  lightningFlashDuration: {x: 0.025, y: 0.055}
+  lightningFlashInterval: 0.095
+  beamSideFlashReach: 0.75
   sparkDamage: 1
   sparkRadius: 0.2
   sparkSpeed: 5
@@ -29,21 +32,24 @@ MonoBehaviour:
   sparkLifetime: 3
   sparkTelegraphDuration: 0.6
   sparkRecoveryDuration: 0.55
+  sparkTrailDuration: 0.3
+  sparkTrailWidth: 0.68
+  sparkTrailIntensity: 0.8
   sparkImpactDuration: 0.22
   sparkImpactSizeMultiplier: 2.4
   sparkFizzleDuration: 0.28
   spiralShotCount: 14
   spiralDamage: 1
   spiralRadius: 0.16
-  spiralSpeed: 5.75
+  spiralSpeed: 7.72
   spiralLifetime: 3
   spiralShotInterval: 0.14
   spiralDegreesPerShot: 32
   spiralTelegraphDuration: 1
   spiralRecoveryDuration: 0.65
-  spiralBoltLength: 0.74
-  spiralBoltWidth: 0.12
-  spiralBoltBend: 0.14
-  spiralBoltFlickerRate: 24
+  spiralBoltLength: 0.86
+  spiralBoltWidth: 0.16
   spiralImpactDuration: 0.2
-  spiralImpactReach: 0.58
+  spiralImpactReach: 0.66
+  spiralTrailDuration: 0.25
+  spiralTrailWidth: 0.56
