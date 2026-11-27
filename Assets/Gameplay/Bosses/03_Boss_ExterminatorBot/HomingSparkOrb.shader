@@ -14,6 +14,7 @@ Shader "Game50033/Bosses/HomingSparkOrb"
         _TrailBranchIntensity("Trail Branch Intensity", Range(0, 1)) = 0.62
         [Toggle(_SPARK_TRAIL)] _Trail("Trail Mode", Float) = 0
         [Enum(UnityEngine.Rendering.CullMode)] _Cull("Cull Mode", Float) = 2
+        [HideInInspector] _SparkEnding("Spark Ending", Vector) = (0, 0, 0, 0)
     }
     SubShader
     {
@@ -36,6 +37,7 @@ Shader "Game50033/Bosses/HomingSparkOrb"
                 half4 _CoreColor, _RimColor;
                 float _CoreTurbulence, _FlowSpeed, _ArcWidth, _ArcOpacity, _BranchIntensity;
                 float _TrailWidth, _TrailJitter, _TrailBranchIntensity;
+                float4 _SparkEnding;
             CBUFFER_END
 
             struct Attributes
@@ -131,6 +133,50 @@ Shader "Game50033/Bosses/HomingSparkOrb"
                     float3 rayDir = -TransformWorldToObjectDir(GetWorldSpaceViewDir(world));
                     float3 rayCenter = rayStart - rayDir * dot(rayStart, rayDir);
                     float radiusSq = dot(rayCenter, rayCenter);
+
+                    if (_SparkEnding.x > 0.5)
+                    {
+                        bool impact = _SparkEnding.x < 1.5;
+                        float progress = _SparkEnding.y;
+                        float fade = 1.0 - progress;
+                        float spread = 1.0 - fade * fade;
+                        float seed = _SparkEnding.z;
+                        float distance = sqrt(radiusSq);
+                        float coreRadius = impact ? lerp(0.28, 0.59, spread) : fade * fade;
+                        float flash = (1.0 - smoothstep(coreRadius * 0.62, coreRadius + 0.025, distance))
+                            * (impact ? fade * fade * fade : fade);
+                        float glow = (1.0 - smoothstep(coreRadius * 0.85, coreRadius * 1.36 + 0.07, distance))
+                            * fade * (impact ? 0.42 : 0.58);
+
+                        // separate the bright central flash from short 3D arcs and sparks.
+                        float sparks = 0.0;
+                        [unroll]
+                        for (int i = 0; i < 5; i++)
+                        {
+                            float azimuth = i * (TWO_PI / 5.0) + seed;
+                            float y = Hash(i + seed) * 1.2 - 0.6;
+                            float radial = sqrt(1.0 - y * y);
+                            float3 direction = float3(cos(azimuth) * radial, y, sin(azimuth) * radial);
+                            float3 side = normalize(cross(direction, float3(0.0, 1.0, 0.0)));
+                            float reach = impact ? lerp(0.44, 1.51, spread) : lerp(1.17, 0.25, progress);
+                            reach *= lerp(0.72, 1.0, Hash(i * 2.1 + seed));
+                            float width = lerp(0.075, 0.034, progress);
+                            float3 middle = direction * reach * 0.72 + side * reach * 0.16;
+                            float3 tip = direction * reach - side * reach * 0.10;
+                            float3 basePoint = direction * reach * (0.18 + progress * 0.46);
+                            float arc = max(Branch(rayStart, rayDir, basePoint, middle, width),
+                                Branch(rayStart, rayDir, middle, tip, width * 0.80));
+                            float3 fork = direction * reach * 0.91 + side * reach * 0.31;
+                            float branch = Branch(rayStart, rayDir, middle, fork, width * 0.65);
+                            sparks = max(sparks, max(arc, branch * 0.72) * lerp(0.5, 1.0, Hash(i * 4.3 + seed)));
+                        }
+                        sparks *= fade * (impact ? 1.0 : 0.85) * _ArcOpacity;
+                        float blue = max(glow, sparks);
+                        float white = max(flash, sparks * (impact ? 0.78 : 0.38));
+                        return half4(_CoreColor.rgb * white + _RimColor.rgb * blue * (1.0 - white),
+                            max(white, blue));
+                    }
+
                     float energy = 0.0;
                     half3 color = 0;
                     float alpha = 0.0;

@@ -29,3 +29,6 @@ MonoBehaviour:
   sparkLifetime: 3
   sparkTelegraphDuration: 0.6
   sparkRecoveryDuration: 0.55
+  sparkImpactDuration: 0.22
+  sparkImpactSizeMultiplier: 2.4
+  sparkFizzleDuration: 0.28

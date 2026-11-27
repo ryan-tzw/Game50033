@@ -5,13 +5,18 @@ namespace Game50033
 
     public sealed class HomingSparkProjectile : MonoBehaviour
     {
+        private enum Ending { None, Impact, Fizzle }
+
         [SerializeField] private Transform orb;
         [SerializeField] private TrailRenderer trail;
 
+        private static readonly int EndingId = Shader.PropertyToID("_SparkEnding");
         // match the outer sphere radius in HomingSparkOrb.shader.
         private const float OrbMeshPadding = 1.75f;
 
         private readonly HashSet<Player> _contacted = new();
+        private MeshRenderer _orbRenderer;
+        private MaterialPropertyBlock _orbProperties;
         private ExterminatorBotBoss _owner;
         private Player _target;
         private Vector3 _direction;
@@ -21,6 +26,9 @@ namespace Game50033
         private float _radius;
         private float _turnRate;
         private int _damage;
+        private Ending _ending;
+        private float _endingStartedAt;
+        private float _endingDuration;
 
         internal static bool CanTrack(Player player) =>
             player != null && player.isActiveAndEnabled && player.Session != null && !player.Health.IsDowned;
@@ -45,7 +53,11 @@ namespace Game50033
             _direction = _direction.sqrMagnitude > 0.0001f ? _direction.normalized : Vector3.forward;
             transform.SetPositionAndRotation(position, Quaternion.LookRotation(_direction));
             // the inner sphere uses the collision diameter. the outer mesh leaves room for lightning.
+            orb.localPosition = Vector3.zero;
             orb.localScale = Vector3.one * (_radius * 2f * OrbMeshPadding);
+            if (_orbRenderer == null) _orbRenderer = orb.GetComponent<MeshRenderer>();
+            _orbProperties ??= new MaterialPropertyBlock();
+            _orbRenderer.SetPropertyBlock(null);
             trail.widthMultiplier = _radius * 2.0f;
             trail.emitting = false;
             gameObject.SetActive(true);
@@ -61,12 +73,52 @@ namespace Game50033
                 trail.Clear();
             }
             _target = null;
+            _ending = Ending.None;
+        }
+
+        private void BeginEnding(Ending ending, Vector3 position)
+        {
+            if (!isActiveAndEnabled) return;
+
+            _ending = ending;
+            _endingStartedAt = Time.time;
+            var tuning = _owner.Tuning;
+            _endingDuration = Mathf.Max(0.01f, ending == Ending.Impact ? tuning.sparkImpactDuration : tuning.sparkFizzleDuration);
+            trail.emitting = false;
+            _target = null;
+
+            // move just the effect so the old trail ends at the last flight position.
+            orb.position = position;
+            if (ending == Ending.Impact)
+                orb.localScale *= tuning.sparkImpactSizeMultiplier;
+            Update();
+        }
+
+        private void Update()
+        {
+            if (_ending == Ending.None) return;
+
+            var elapsed = Time.time - _endingStartedAt;
+            var progress = elapsed / _endingDuration;
+            if (!_owner.isActiveAndEnabled || _owner.IsDefeated || elapsed >= Mathf.Max(_endingDuration, trail.time))
+            {
+                _owner.ReturnSpark(this);
+                return;
+            }
+
+            // the flight root stays at expiry while the fading orb carries its last velocity.
+            if (_ending == Ending.Fizzle)
+                orb.position = transform.position + _direction * (_speed * Mathf.Min(elapsed, _endingDuration));
+
+            _orbProperties.SetVector(EndingId, new Vector4((float)_ending, Mathf.Clamp01(progress),
+                (GetInstanceID() & 255) * 0.23f, 0f));
+            _orbRenderer.SetPropertyBlock(_orbProperties);
         }
 
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
-            if (!Application.isPlaying || !isActiveAndEnabled || _radius <= 0f) return;
+            if (!Application.isPlaying || !isActiveAndEnabled || _ending != Ending.None || _radius <= 0f) return;
 
             Gizmos.color = Color.yellow;
             var center = transform.position;
@@ -83,10 +135,15 @@ namespace Game50033
 
         private void FixedUpdate()
         {
-            if (!_owner) return;
-            if (!_owner.isActiveAndEnabled || _owner.IsDefeated || !CanTrack(_target) || Time.time >= _expiresAt)
+            if (!_owner || _ending != Ending.None) return;
+            if (!_owner.isActiveAndEnabled || _owner.IsDefeated || !CanTrack(_target))
             {
                 _owner.ReturnSpark(this);
+                return;
+            }
+            if (Time.time >= _expiresAt)
+            {
+                BeginEnding(Ending.Fizzle, orb.position);
                 return;
             }
 
@@ -110,6 +167,7 @@ namespace Game50033
             {
                 Player first = null;
                 var firstDistance = float.PositiveInfinity;
+                var firstCenter = Vector3.zero;
                 for (var i = 0; i < targets.Count; i++)
                 {
                     var player = targets[i];
@@ -126,17 +184,25 @@ namespace Game50033
                     if (along + halfChord < 0f || entry > distance || entry >= firstDistance) continue;
                     first = player;
                     firstDistance = entry;
+                    firstCenter = bottom;
                 }
 
                 if (first == null) break;
                 _contacted.Add(first);
                 if (!first.Health.TryTakeDamage(_damage, -_direction, _owner)) continue;
-                _owner.ReturnSpark(this);
+                var sparkCenter = start + _direction * firstDistance;
+                BeginEnding(Ending.Impact, Vector3.MoveTowards(sparkCenter, firstCenter, _radius));
                 return;
             }
 
             transform.SetPositionAndRotation(start + _direction * distance, Quaternion.LookRotation(_direction));
-            if (toWall <= step) _owner.ReturnSpark(this);
+            if (toWall <= step)
+            {
+                var contact = transform.position;
+                if (toXWall <= toZWall + 0.0001f) contact.x = _direction.x > 0f ? _arena.max.x : _arena.min.x;
+                if (toZWall <= toXWall + 0.0001f) contact.z = _direction.z > 0f ? _arena.max.z : _arena.min.z;
+                BeginEnding(Ending.Impact, contact);
+            }
         }
     }
 }

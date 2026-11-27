@@ -27,5 +27,10 @@ namespace Game50033
         [Min(0.01f)] public float sparkLifetime = 3f;
         [Min(0.01f)] public float sparkTelegraphDuration = 0.6f;
         [Min(0f)] public float sparkRecoveryDuration = 0.55f;
+
+        [Header("Homing Spark End Effects")]
+        [Min(0.01f)] public float sparkImpactDuration = 0.22f;
+        [Min(0.1f)] public float sparkImpactSizeMultiplier = 2.4f;
+        [Min(0.01f)] public float sparkFizzleDuration = 0.28f;
     }
 }
