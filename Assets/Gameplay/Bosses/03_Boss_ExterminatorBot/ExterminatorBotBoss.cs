@@ -11,11 +11,14 @@ namespace Game50033
 
         private readonly List<HomingSparkProjectile> _activeSparks = new(8);
         private ObjectPool<HomingSparkProjectile> _sparkPool;
+        private readonly List<SpiralSurgeProjectile> _activeSpiralBolts = new(24);
+        private ObjectPool<SpiralSurgeProjectile> _spiralPool;
 
         internal Boss3Tuning Tuning => tuning;
         internal BoxCollider ArenaFloor => arenaFloor;
         internal BouncingArcAttack ActiveArc { get; set; }
         internal HomingSparkAttack ActiveSparkAttack { get; set; }
+        internal SpiralSurgeAttack ActiveSpiralSurge { get; set; }
         protected override bool PlayAttackAnimationOnStart => false;
 
         protected override void InitializeHealth()
@@ -40,7 +43,9 @@ namespace Game50033
         {
             if (ActiveArc != null) ActiveArc.Cancel();
             if (ActiveSparkAttack != null) ActiveSparkAttack.Cancel();
+            if (ActiveSpiralSurge != null) ActiveSpiralSurge.Cancel();
             ClearSparks();
+            ClearSpiralBolts();
             Attacks.SetPhase(phaseNumber);
         }
 
@@ -75,13 +80,51 @@ namespace Game50033
                 ReturnSpark(_activeSparks[i]);
         }
 
-        private void HandleDefeat(IEncounterBoss boss) => ClearSparks();
+        internal void LaunchSpiralBolt(SpiralSurgeProjectile prefab, Vector3 center, Vector3 direction, float speed)
+        {
+            _spiralPool ??= new ObjectPool<SpiralSurgeProjectile>(
+                () => Instantiate(prefab, transform),
+                actionOnRelease: bolt =>
+                {
+                    bolt.gameObject.SetActive(false);
+                    bolt.transform.SetParent(transform, false);
+                },
+                actionOnDestroy: bolt => { if (bolt != null) Destroy(bolt.gameObject); },
+                defaultCapacity: 24,
+                maxSize: 48);
+
+            var launched = _spiralPool.Get();
+            _activeSpiralBolts.Add(launched);
+            launched.transform.SetParent(null, true);
+            launched.Launch(this, center, direction, speed);
+        }
+
+        internal void ReturnSpiralBolt(SpiralSurgeProjectile bolt)
+        {
+            if (_activeSpiralBolts.Remove(bolt))
+                _spiralPool.Release(bolt);
+        }
+
+        private void ClearSpiralBolts()
+        {
+            for (var i = _activeSpiralBolts.Count - 1; i >= 0; i--)
+                ReturnSpiralBolt(_activeSpiralBolts[i]);
+        }
+
+        private void HandleDefeat(IEncounterBoss boss)
+        {
+            ClearSparks();
+            ClearSpiralBolts();
+        }
 
         private void OnDestroy()
         {
             foreach (var spark in _activeSparks)
                 if (spark != null) Destroy(spark.gameObject);
             _sparkPool?.Clear();
+            foreach (var bolt in _activeSpiralBolts)
+                if (bolt != null) Destroy(bolt.gameObject);
+            _spiralPool?.Clear();
         }
     }
 }

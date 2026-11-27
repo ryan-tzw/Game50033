@@ -39,6 +39,9 @@ namespace Game50033
         private readonly HashSet<GameObject> _triedAttacks = new();
 
         public int ConfiguredPhaseCount => phase3 != null ? 3 : phase2 != null ? 2 : phase1 != null ? 1 : 0;
+        internal IReadOnlyList<AttackEntry> DebugAttackOptions => GetPhaseAttacks();
+        internal GameObject DebugQueuedAttack { get; private set; }
+        internal GameObject DebugRepeatedAttack { get; private set; }
 
 
         internal void Initialize()
@@ -79,10 +82,30 @@ namespace Game50033
 
         private void OnDisable()
         {
+            DebugQueuedAttack = null;
+            DebugRepeatedAttack = null;
             if (ReferenceEquals(_controlledAttack, null)) return;
             ClearControlledAttack();
             IsAttacking = false;
             if (_boss != null && _boss.Movement != null) _boss.Movement.StopMovement();
+        }
+
+        internal void QueueDebugAttack(GameObject prefab)
+        {
+            if (IsInCurrentDeck(prefab)) DebugQueuedAttack = prefab;
+        }
+
+        internal void SetDebugRepeat(GameObject prefab)
+        {
+            DebugRepeatedAttack = IsInCurrentDeck(prefab) ? prefab : null;
+        }
+
+        private bool IsInCurrentDeck(GameObject prefab)
+        {
+            if (prefab == null) return false;
+            foreach (var entry in GetPhaseAttacks())
+                if (entry.attack == prefab && entry.count > 0) return true;
+            return false;
         }
 
         public void TryAttacking()
@@ -90,10 +113,15 @@ namespace Game50033
             if (!isActiveAndEnabled || !_boss.isActiveAndEnabled || _boss.Health.IsDead
                 || IsAttacking || bossAttackIntervalTimer > 0f) return;
             _triedAttacks.Clear();
-            int attempts = _stack.SelectionAttemptLimit;
+            // requests go through normal setup and never consume a card from the authored stack.
+            var queued = DebugQueuedAttack;
+            var repeat = DebugRepeatedAttack;
+            DebugQueuedAttack = null;
+            int attempts = _stack.SelectionAttemptLimit + (queued != null ? 1 : 0) + (repeat != null ? 1 : 0);
             while (attempts-- > 0)
             {
-                GameObject nextAttack = _stack.GetNext();
+                var nextAttack = queued != null ? queued : repeat != null ? repeat : _stack.GetNext();
+                queued = null;
                 if (nextAttack == null) return;
                 if (!_triedAttacks.Add(nextAttack)) continue;
 
@@ -105,6 +133,12 @@ namespace Game50033
                 if (!attack.CanStart)
                 {
                     Destroy(currentAttack);
+                    if (nextAttack == repeat)
+                    {
+                        // wait for the selected attack's prerequisites without creating a prefab every frame.
+                        bossAttackIntervalTimer = 0.25f;
+                        return;
+                    }
                     continue;
                 }
 
@@ -169,6 +203,8 @@ namespace Game50033
             if (CurrentPhase == phase) return;
             CurrentPhase = phase;
             _stack.RegisterAttacks(GetPhaseAttacks());
+            if (!IsInCurrentDeck(DebugQueuedAttack)) DebugQueuedAttack = null;
+            if (!IsInCurrentDeck(DebugRepeatedAttack)) DebugRepeatedAttack = null;
         }
 
         public void SetAttackIntervalTime(float intervalTime)

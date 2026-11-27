@@ -9,8 +9,12 @@ namespace Game50033
 
         [SerializeField] private Transform orb;
         [SerializeField] private TrailRenderer trail;
+        [SerializeField] private Material lightningPalette;
 
         private static readonly int EndingId = Shader.PropertyToID("_SparkEnding");
+        private static readonly int CoreColorId = Shader.PropertyToID("_CoreColor");
+        private static readonly int GlowColorId = Shader.PropertyToID("_GlowColor");
+        private static readonly int RimColorId = Shader.PropertyToID("_RimColor");
         // match the outer sphere radius in HomingSparkOrb.shader.
         private const float OrbMeshPadding = 1.75f;
 
@@ -29,6 +33,8 @@ namespace Game50033
         private Ending _ending;
         private float _endingStartedAt;
         private float _endingDuration;
+        private uint _visualSequence;
+        private float _visualSeed;
 
         internal static bool CanTrack(Player player) =>
             player != null && player.isActiveAndEnabled && player.Session != null && !player.Health.IsDowned;
@@ -57,7 +63,19 @@ namespace Game50033
             orb.localScale = Vector3.one * (_radius * 2f * OrbMeshPadding);
             if (_orbRenderer == null) _orbRenderer = orb.GetComponent<MeshRenderer>();
             _orbProperties ??= new MaterialPropertyBlock();
-            _orbRenderer.SetPropertyBlock(null);
+            // use a new visual seed even when the same pooled orb is relaunched.
+            var bits = (uint)GetInstanceID() ^ (++_visualSequence * 2654435761u);
+            bits = (bits ^ (bits >> 16)) * 2246822519u;
+            _visualSeed = 1f + ((bits ^ (bits >> 13)) & 65535u) * (63f / 65535f);
+            _orbProperties.SetVector(EndingId, new Vector4(0f, 0f, _visualSeed, 0f));
+            // copy the stored HDR shader values directly, avoiding a second colour-space conversion.
+            if (lightningPalette != null)
+            {
+                _orbProperties.SetVector(CoreColorId, lightningPalette.GetVector(CoreColorId));
+                _orbProperties.SetVector(RimColorId, lightningPalette.GetVector(GlowColorId));
+            }
+            _orbRenderer.SetPropertyBlock(_orbProperties);
+            trail.SetPropertyBlock(_orbProperties);
             trail.widthMultiplier = _radius * 2.0f;
             trail.emitting = false;
             gameObject.SetActive(true);
@@ -83,14 +101,15 @@ namespace Game50033
             _ending = ending;
             _endingStartedAt = Time.time;
             var tuning = _owner.Tuning;
-            _endingDuration = Mathf.Max(0.01f, ending == Ending.Impact ? tuning.sparkImpactDuration : tuning.sparkFizzleDuration);
+            var duration = ending == Ending.Impact ? tuning.sparkImpactDuration : tuning.sparkFizzleDuration;
+            _endingDuration = Mathf.Max(0.01f, duration * Mathf.Lerp(0.84f, 1.16f, Mathf.Repeat(_visualSeed * 0.731f, 1f)));
             trail.emitting = false;
             _target = null;
 
             // move just the effect so the old trail ends at the last flight position.
             orb.position = position;
             if (ending == Ending.Impact)
-                orb.localScale *= tuning.sparkImpactSizeMultiplier;
+                orb.localScale *= tuning.sparkImpactSizeMultiplier * Mathf.Lerp(0.86f, 1.14f, Mathf.Repeat(_visualSeed * 0.479f, 1f));
             Update();
         }
 
@@ -110,8 +129,7 @@ namespace Game50033
             if (_ending == Ending.Fizzle)
                 orb.position = transform.position + _direction * (_speed * Mathf.Min(elapsed, _endingDuration));
 
-            _orbProperties.SetVector(EndingId, new Vector4((float)_ending, Mathf.Clamp01(progress),
-                (GetInstanceID() & 255) * 0.23f, 0f));
+            _orbProperties.SetVector(EndingId, new Vector4((float)_ending, Mathf.Clamp01(progress), _visualSeed, 0f));
             _orbRenderer.SetPropertyBlock(_orbProperties);
         }
 

@@ -1,7 +1,10 @@
 namespace Game50033
 {
+    using System.Collections.Generic;
+    using System.Text.RegularExpressions;
     using UnityEngine;
     using UnityEngine.InputSystem;
+    using UnityEngine.SceneManagement;
     using UnityEngine.UIElements;
 
     [DefaultExecutionOrder(-1100)]
@@ -16,6 +19,22 @@ namespace Game50033
         private VisualElement _panel;
         private HitboxDebugOverlay _hitboxOverlay;
         private readonly Button[] _damageButtons = new Button[4];
+
+        private readonly List<BaseBoss> _bosses = new();
+        private readonly List<GameObject> _attackPrefabs = new();
+        private VisualElement _bossControls;
+        private DropdownField _bossChoice;
+        private DropdownField _attackChoice;
+        private Button _queueAttack;
+        private Toggle _repeatAttack;
+        private Label _queuedAttack;
+        private Scene _bossScene;
+        private int _shownAttackPhase;
+
+        private BaseBoss SelectedBoss => _bossChoice.index >= 0 && _bossChoice.index < _bosses.Count
+            ? _bosses[_bossChoice.index] : null;
+        private GameObject SelectedAttack => _attackChoice.index >= 0 && _attackChoice.index < _attackPrefabs.Count
+            ? _attackPrefabs[_attackChoice.index] : null;
 
         public bool IsOpen { get; private set; }
 
@@ -44,30 +63,35 @@ namespace Game50033
             _panel = new VisualElement { name = "debug-panel", pickingMode = PickingMode.Position };
             _panel.AddToClassList("debug-panel");
             root.Add(_panel);
+            _panel.style.maxHeight = new Length(96f, LengthUnit.Percent);
+            var content = new ScrollView { horizontalScrollerVisibility = ScrollerVisibility.Hidden };
+            content.style.flexShrink = 1f;
+            _panel.Add(content);
+            _bossScene = default;
             var title = new Label("Debug / Cheats");
             title.AddToClassList("debug-title");
-            _panel.Add(title);
-            var hint = new Label("F1 to close · toggles apply to all players");
+            content.Add(title);
+            var hint = new Label("F1 to close · game keeps running");
             hint.AddToClassList("debug-hint");
-            _panel.Add(hint);
+            content.Add(hint);
             var heading = new Label("Players");
             heading.AddToClassList("debug-section");
-            _panel.Add(heading);
+            content.Add(heading);
 
             // controls write session data; closing the panel never restores or disables cheats.
             var cooldowns = new Toggle("No cooldowns") { name = "no-cooldowns", focusable = false };
             cooldowns.SetValueWithoutNotify(_session.Debug.NoCooldowns);
             cooldowns.RegisterValueChangedCallback(evt => _session.Debug.SetNoCooldowns(evt.newValue));
-            _panel.Add(cooldowns);
+            content.Add(cooldowns);
             var invincibility = new Toggle("Invincibility") { name = "invincibility", focusable = false };
             invincibility.SetValueWithoutNotify(_session.Debug.Invincibility);
             invincibility.RegisterValueChangedCallback(evt => _session.Debug.Invincibility = evt.newValue);
-            _panel.Add(invincibility);
+            content.Add(invincibility);
             var dodge = new Toggle("Infinite dodge") { name = "infinite-dodge", focusable = false };
             dodge.SetValueWithoutNotify(_session.Debug.InfiniteDodge);
             dodge.RegisterValueChangedCallback(evt => _session.Debug.InfiniteDodge = evt.newValue);
-            _panel.Add(dodge);
-            _panel.Add(new Button(() => _session.Debug.HealToFull())
+            content.Add(dodge);
+            content.Add(new Button(() => _session.Debug.HealToFull())
             {
                 name = "heal-to-full", text = "Heal living players to full", focusable = false
             });
@@ -88,21 +112,59 @@ namespace Game50033
                 _damageButtons[i] = button;
                 damageRow.Add(button);
             }
-            _panel.Add(damageRow);
+            content.Add(damageRow);
+
+            _bossControls = new VisualElement { name = "debug-boss-controls" };
+            _bossControls.style.display = DisplayStyle.None;
+            var bossHeading = new Label("Boss attack controls");
+            bossHeading.AddToClassList("debug-section");
+            _bossControls.Add(bossHeading);
+
+            _bossChoice = new DropdownField("Boss") { name = "debug-boss-choice" };
+            _bossChoice.RegisterValueChangedCallback(_ => RefreshAttackPicker());
+            _bossControls.Add(_bossChoice);
+            _attackChoice = new DropdownField("Attack") { name = "debug-attack-choice" };
+            _attackChoice.RegisterValueChangedCallback(_ =>
+            {
+                var boss = SelectedBoss;
+                if (boss != null && _repeatAttack.value) boss.Attacks.SetDebugRepeat(SelectedAttack);
+            });
+            _bossControls.Add(_attackChoice);
+            _queueAttack = new Button(() =>
+            {
+                var boss = SelectedBoss;
+                if (boss != null) boss.Attacks.QueueDebugAttack(SelectedAttack);
+            })
+            {
+                name = "queue-boss-attack", text = "Queue next", focusable = false,
+                tooltip = "Use this attack at the next legal cast, after the current cast, recovery and cooldown."
+            };
+            _bossControls.Add(_queueAttack);
+            _repeatAttack = new Toggle("Repeat selected") { name = "repeat-boss-attack", focusable = false };
+            _repeatAttack.RegisterValueChangedCallback(evt =>
+            {
+                var boss = SelectedBoss;
+                if (boss != null) boss.Attacks.SetDebugRepeat(evt.newValue ? SelectedAttack : null);
+            });
+            _bossControls.Add(_repeatAttack);
+            _queuedAttack = new Label { name = "queued-boss-attack" };
+            _queuedAttack.AddToClassList("debug-hint");
+            _bossControls.Add(_queuedAttack);
+            content.Add(_bossControls);
 
             var invisibleWalls = new Toggle("Invisible walls") { name = "invisible-walls", focusable = false };
             invisibleWalls.SetValueWithoutNotify(_session.Debug.ShowInvisibleWalls);
             invisibleWalls.RegisterValueChangedCallback(evt => _session.Debug.ShowInvisibleWalls = evt.newValue);
-            _panel.Add(invisibleWalls);
+            content.Add(invisibleWalls);
 
             var hitboxHeading = new Label("Hitboxes");
             hitboxHeading.AddToClassList("debug-section");
-            _panel.Add(hitboxHeading);
+            content.Add(hitboxHeading);
             var showHitboxes = new Toggle("Show hitboxes") { name = "show-hitboxes", focusable = false };
             showHitboxes.SetEnabled(visualizationTuning != null);
             showHitboxes.SetValueWithoutNotify(_session.Debug.ShowHitboxes);
             showHitboxes.RegisterValueChangedCallback(evt => _session.Debug.ShowHitboxes = evt.newValue);
-            _panel.Add(showHitboxes);
+            content.Add(showHitboxes);
             var playerHurtboxes = new Toggle("Player hurtboxes")
             {
                 name = "player-hurtboxes", focusable = false,
@@ -110,33 +172,87 @@ namespace Game50033
             };
             playerHurtboxes.SetValueWithoutNotify(_session.Debug.ShowPlayerHurtboxes);
             playerHurtboxes.RegisterValueChangedCallback(evt => _session.Debug.ShowPlayerHurtboxes = evt.newValue);
-            _panel.Add(playerHurtboxes);
+            content.Add(playerHurtboxes);
             var enemyHurtboxes = new Toggle("Enemy / dummy hurtboxes") { name = "enemy-hurtboxes", focusable = false };
             enemyHurtboxes.SetValueWithoutNotify(_session.Debug.ShowEnemyHurtboxes);
             enemyHurtboxes.RegisterValueChangedCallback(evt => _session.Debug.ShowEnemyHurtboxes = evt.newValue);
-            _panel.Add(enemyHurtboxes);
+            content.Add(enemyHurtboxes);
             var playerAttacks = new Toggle("Player attacks") { name = "player-attacks", focusable = false };
             playerAttacks.SetValueWithoutNotify(_session.Debug.ShowPlayerAttacks);
             playerAttacks.RegisterValueChangedCallback(evt => _session.Debug.ShowPlayerAttacks = evt.newValue);
-            _panel.Add(playerAttacks);
+            content.Add(playerAttacks);
             var bossAttacks = new Toggle("Boss attacks") { name = "boss-attacks", focusable = false };
             bossAttacks.SetValueWithoutNotify(_session.Debug.ShowBossAttacks);
             bossAttacks.RegisterValueChangedCallback(evt => _session.Debug.ShowBossAttacks = evt.newValue);
-            _panel.Add(bossAttacks);
+            content.Add(bossAttacks);
             var reverberationAreas = new Toggle("REV/RES areas") { name = "reverberation-areas", focusable = false };
             reverberationAreas.SetValueWithoutNotify(_session.Debug.ShowReverberationAreas);
             reverberationAreas.RegisterValueChangedCallback(evt => _session.Debug.ShowReverberationAreas = evt.newValue);
-            _panel.Add(reverberationAreas);
+            content.Add(reverberationAreas);
             var specialZones = new Toggle("Special zones") { name = "special-zones", focusable = false };
             specialZones.SetValueWithoutNotify(_session.Debug.ShowSpecialZones);
             specialZones.RegisterValueChangedCallback(evt => _session.Debug.ShowSpecialZones = evt.newValue);
-            _panel.Add(specialZones);
+            content.Add(specialZones);
             var snapshotHint = new Label("Dashed areas show past impacts, not active damage.");
             snapshotHint.AddToClassList("debug-hint");
             snapshotHint.style.whiteSpace = WhiteSpace.Normal;
-            _panel.Add(snapshotHint);
+            content.Add(snapshotHint);
             _panel.style.display = IsOpen ? DisplayStyle.Flex : DisplayStyle.None;
         }
+
+        private void RefreshBossPicker()
+        {
+            var previous = SelectedBoss;
+            _bossScene = SceneManager.GetActiveScene();
+            _bosses.Clear();
+            var names = new List<string>();
+            foreach (var boss in FindObjectsByType<BaseBoss>(FindObjectsSortMode.InstanceID))
+            {
+                if (boss.gameObject.scene != _bossScene || !boss.isActiveAndEnabled || boss.IsDefeated
+                    || boss.Attacks == null || !boss.Attacks.isActiveAndEnabled) continue;
+                _bosses.Add(boss);
+                names.Add($"{_bosses.Count}. {boss.DisplayName}");
+            }
+            _bossChoice.choices = names;
+            _bossChoice.style.display = _bosses.Count > 1 ? DisplayStyle.Flex : DisplayStyle.None;
+            var index = _bosses.IndexOf(previous);
+            _bossChoice.index = _bosses.Count == 0 ? -1 : Mathf.Max(0, index);
+            _bossControls.style.display = _bosses.Count == 0 ? DisplayStyle.None : DisplayStyle.Flex;
+            RefreshAttackPicker();
+        }
+
+        private void RefreshAttackPicker()
+        {
+            var previous = SelectedAttack;
+            var boss = SelectedBoss;
+            var attacks = boss != null ? boss.Attacks : null;
+            _shownAttackPhase = attacks != null ? attacks.CurrentPhase : 0;
+            _attackPrefabs.Clear();
+            var labels = new List<string>();
+            if (attacks != null)
+            {
+                foreach (var entry in attacks.DebugAttackOptions)
+                {
+                    if (entry.attack == null || entry.count <= 0 || _attackPrefabs.Contains(entry.attack)) continue;
+                    _attackPrefabs.Add(entry.attack);
+                    var label = AttackLabel(entry.attack);
+                    labels.Add(labels.Contains(label) ? $"{label} ({labels.Count + 1})" : label);
+                }
+            }
+
+            _attackChoice.choices = labels;
+            var selected = attacks == null ? null : attacks.DebugRepeatedAttack ?? attacks.DebugQueuedAttack ?? previous;
+            var index = _attackPrefabs.IndexOf(selected);
+            // changing bosses or phase must not edit a repeat request as a dropdown side effect.
+            _attackChoice.SetValueWithoutNotify(labels.Count == 0 ? string.Empty : labels[Mathf.Max(0, index)]);
+            _repeatAttack.SetValueWithoutNotify(attacks != null && attacks.DebugRepeatedAttack != null);
+            _attackChoice.SetEnabled(labels.Count > 0);
+            _queueAttack.SetEnabled(labels.Count > 0);
+            _repeatAttack.SetEnabled(labels.Count > 0);
+        }
+
+        private static string AttackLabel(GameObject prefab) =>
+            Regex.Replace(prefab.name.Replace('_', ' '), "(?<=[a-z0-9])(?=[A-Z])", " ");
 
         private Player GetDamageTarget(int playerIndex)
         {
@@ -177,6 +293,21 @@ namespace Game50033
 
             if (IsOpen)
             {
+                var boss = SelectedBoss;
+                if (openedThisFrame || SceneManager.GetActiveScene() != _bossScene || _bossChoice.index >= 0
+                    && (boss == null || !boss.isActiveAndEnabled || boss.IsDefeated || !boss.Attacks || !boss.Attacks.isActiveAndEnabled))
+                {
+                    RefreshBossPicker();
+                    boss = SelectedBoss;
+                }
+                if (boss != null)
+                {
+                    if (boss.Attacks.CurrentPhase != _shownAttackPhase) RefreshAttackPicker();
+                    var queued = boss.Attacks.DebugQueuedAttack;
+                    var status = queued == null ? string.Empty : $"Queued: {AttackLabel(queued)}";
+                    if (_queuedAttack.text != status) _queuedAttack.text = status;
+                }
+
                 for (var i = 0; i < _damageButtons.Length; i++)
                 {
                     var target = GetDamageTarget(i);

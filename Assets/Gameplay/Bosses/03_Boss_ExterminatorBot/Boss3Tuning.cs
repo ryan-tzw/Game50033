@@ -32,5 +32,24 @@ namespace Game50033
         [Min(0.01f)] public float sparkImpactDuration = 0.22f;
         [Min(0.1f)] public float sparkImpactSizeMultiplier = 2.4f;
         [Min(0.01f)] public float sparkFizzleDuration = 0.28f;
+
+        [Header("Spiral Surge")]
+        [Range(1, 48)] public int spiralShotCount = 14;
+        [Min(1)] public int spiralDamage = 1;
+        [Min(0.01f)] public float spiralRadius = 0.16f;
+        [Min(0.01f)] public float spiralSpeed = 5.75f;
+        [Min(0.05f)] public float spiralLifetime = 3f;
+        [Min(0.05f)] public float spiralShotInterval = 0.14f;
+        [Range(1f, 180f)] public float spiralDegreesPerShot = 32f;
+        [Min(0.05f)] public float spiralTelegraphDuration = 1f;
+        [Min(0f)] public float spiralRecoveryDuration = 0.65f;
+
+        [Header("Spiral Surge VFX")]
+        [Min(0.01f)] public float spiralBoltLength = 0.74f;
+        [Min(0.01f)] public float spiralBoltWidth = 0.12f;
+        [Min(0f)] public float spiralBoltBend = 0.14f;
+        [Min(1f)] public float spiralBoltFlickerRate = 24f;
+        [Min(0.01f)] public float spiralImpactDuration = 0.2f;
+        [Min(0.01f)] public float spiralImpactReach = 0.58f;
     }
 }

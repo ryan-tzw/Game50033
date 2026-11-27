@@ -14,7 +14,7 @@ A music-themed, 2D top-down boss rush for 2–4 players in local co-op. See `50.
 
 ---
 
-**Boss 3 development scene.** Open `Assets/Scenes/Boss3.unity` and enter Play Mode. Press **E** on keyboard or the bottom face button on each controller to join as Guitar. The top HUD shows boss HP, the Phase 2 break, Discordance, and the active Discordance buffs. The shared attack stack includes Bouncing Arc and Homing Spark. The arc shows its full route in red before the blue beam fires. Homing Spark marks each living player in red and fires one blue orb toward each. At maximum Discordance, the orbs travel faster. Tune both attacks and the phase break in `Assets/Tuning/Bosses/ExterminatorBot.asset`, and the lightning colours in `Boss3Lightning.mat` beside it.
+**Boss 3 development scene.** Open `Assets/Scenes/Boss3.unity` and enter Play Mode. Press **E** on keyboard or the bottom face button on each controller to join as Guitar. The top HUD shows boss HP, the Phase 2 break, Discordance, and the active Discordance buffs. The shared attack stack includes Bouncing Arc, Homing Spark and Spiral Surge. The arc shows its full route in red before the blue beam fires. Homing Spark marks each living player in red and fires one blue orb toward each. At maximum Discordance, the orbs travel faster. Spiral Surge marks the first shot in red, then rotates through a volley of blue bolts. Tune the attacks and the phase break in `Assets/Tuning/Bosses/ExterminatorBot.asset`, and the lightning colours in `Boss3Lightning.mat` beside it.
 
 ## 1. One-time setup on each machine
 
@@ -71,6 +71,8 @@ The D-pad is not bound to anything yet.
 ### Runtime debug menu
 
 Press **F1** to open or close the mouse-operated debug panel. It is available in all builds. The game continues running; mouse attacks are suppressed only while the pointer is over the panel. Keyboard movement and other controllers remain active.
+
+**Boss attack controls** appears when an active boss is present. Select a current-phase attack and choose **Queue next** for one cast or **Repeat selected** to keep using it. Turn repeat off to resume the regular deck. The controls respect normal targeting, windup, and recovery.
 
 Enable **Invisible walls** in F1 to see player-only wall boundaries in Game view or a build. The outlines stay visible when you close F1 and work independently of **Show hitboxes**.
 

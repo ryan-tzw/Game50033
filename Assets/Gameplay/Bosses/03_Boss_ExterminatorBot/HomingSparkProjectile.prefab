@@ -199,6 +199,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.HomingSparkProjectile
   orb: {fileID: 649285992118512857}
   trail: {fileID: 6127699100420385501}
+  lightningPalette: {fileID: 2100000, guid: ae7fe051eb660ac9e908c3df2203f1be, type: 2}
 --- !u!1 &8788579313001340019
 GameObject:
   m_ObjectHideFlags: 0

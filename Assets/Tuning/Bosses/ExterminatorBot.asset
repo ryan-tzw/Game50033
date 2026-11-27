@@ -32,3 +32,18 @@ MonoBehaviour:
   sparkImpactDuration: 0.22
   sparkImpactSizeMultiplier: 2.4
   sparkFizzleDuration: 0.28
+  spiralShotCount: 14
+  spiralDamage: 1
+  spiralRadius: 0.16
+  spiralSpeed: 5.75
+  spiralLifetime: 3
+  spiralShotInterval: 0.14
+  spiralDegreesPerShot: 32
+  spiralTelegraphDuration: 1
+  spiralRecoveryDuration: 0.65
+  spiralBoltLength: 0.74
+  spiralBoltWidth: 0.12
+  spiralBoltBend: 0.14
+  spiralBoltFlickerRate: 24
+  spiralImpactDuration: 0.2
+  spiralImpactReach: 0.58
