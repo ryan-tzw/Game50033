@@ -100,7 +100,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Hurt_0
+      name: Mafia_Hurt_0
       rect:
         serializedVersion: 2
         x: 0
@@ -108,21 +108,21 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.465, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 6437b001e623193e0800000000000000
-      internalID: -2048800907179887802
+      spriteID: 136b972fef66ad645b677298e310fe58
+      internalID: -1190708780
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Hurt_1
+      name: Mafia_Hurt_1
       rect:
         serializedVersion: 2
         x: 128
@@ -130,21 +130,21 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.465, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 60f056323cff3d147b55a26e7ab1c5b4
-      internalID: 1866930465
+      spriteID: 7d8956023ec52744d8edcdb27a243886
+      internalID: -644623610
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Hurt_2
+      name: Mafia_Hurt_2
       rect:
         serializedVersion: 2
         x: 256
@@ -152,21 +152,21 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.465, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: a73eb7023b3d7ad48a5771bb05d61154
-      internalID: -1679286095
+      spriteID: f77f7891e7ce101479f93023eab3c86b
+      internalID: 1156857224
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Hurt_3
+      name: Mafia_Hurt_3
       rect:
         serializedVersion: 2
         x: 384
@@ -174,21 +174,21 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.465, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 7e9228fd354882a43827c50706c12df2
-      internalID: 1607398575
+      spriteID: 1344d8312dec50742b8f757fa1f77015
+      internalID: 1072441735
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Hurt_4
+      name: Mafia_Hurt_4
       rect:
         serializedVersion: 2
         x: 512
@@ -196,15 +196,15 @@ TextureImporter:
         width: 128
         height: 128
       alignment: 9
-      pivot: {x: 0.465, y: 0}
+      pivot: {x: 0.525, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 0458ba55f20fd1042b092dbc034fad1d
-      internalID: 685716717
+      spriteID: ec25bee7b50047442bdde26d59f6adfb
+      internalID: -173328854
       vertices: []
       indices: 
       edges: []
@@ -223,13 +223,13 @@ TextureImporter:
     spriteCustomMetadata:
       entries:
       - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":128.0,"y":128.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.4650000035762787,"y":0.0},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":9,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":128.0,"y":128.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5249999761581421,"y":0.0},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":9,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      Hurt_0: -2048800907179887802
-      Hurt_1: 1866930465
-      Hurt_2: -1679286095
-      Hurt_3: 1607398575
-      Hurt_4: 685716717
+      Mafia_Hurt_0: -1190708780
+      Mafia_Hurt_1: -644623610
+      Mafia_Hurt_2: 1156857224
+      Mafia_Hurt_3: 1072441735
+      Mafia_Hurt_4: -173328854
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

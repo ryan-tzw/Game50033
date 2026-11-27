@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ad6ccacdaa437b50968dc84c9f4f357, type: 3}
+  m_Name: PlayerFacingIndicatorTuning
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerFacingIndicatorTuning
+  radius: 0.15
+  manualAimRadius: 0.4
+  groundHeight: 0.025
+  movementColor: {r: 1, g: 1, b: 1, a: 1}
+  movementMultiplyWithPlayerColor: 0
+  movingRadius: 0.3
+  movementAngle: 70
+  movementLength: 0.15
+  movementOpacity: 0.3
+  stationaryOpacity: 0.1
+  aimColor: {r: 1, g: 1, b: 1, a: 1}
+  aimMultiplyWithPlayerColor: 1
+  aimAngle: 15
+  aimLength: 0.28
+  autoAimOpacity: 0
+  manualAimOpacity: 0.45
+  transitionDuration: 0.12

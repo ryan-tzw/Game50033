@@ -111,9 +111,13 @@ namespace Game50033
 
             var attacker = SourcePlayer.gameObject;
             _hitThisTick.Clear();
+            var centre = transform.position;
+            var damageRadius = radius * _strength;
+            SourcePlayer.Session?.Debug.RecordAttack(
+                DebugAttackSnapshot.Capsule(centre, centre, damageRadius, reverberation: true));
             var hits = Physics.OverlapSphere(
-                transform.position,
-                radius * _strength,
+                centre,
+                damageRadius,
                 hitMask,
                 QueryTriggerInteraction.Ignore);
 

@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.TargetedBossAttack
   windUpTime: 0
-  activeTime: 0.1
+  activeTime: 0.05
   recoveryTime: 0.2
   _projectile: {fileID: 3230519977743985606, guid: 531c1a69f7c97f3468a04c1696da44fd, type: 3}
   _numberOfProjectiles: 3
@@ -58,7 +58,14 @@ MonoBehaviour:
   bouncy: 0
   blockedByObstacles: 0
   lingeringEffect: 0
-  projectileSpeed: 12
+  piercing: 0
+  projectileSpeed: 10
+  projectileSpeedMultiplier: 1
   projectileHomingHeight: 0
-  spreadAngle: 0.5
+  spreadAngle: 90
   spreadRadius: 1.5
+  telegraphPrefab: {fileID: 0}
+  extendToWall: 0
+  maxDistance: 30
+  bossWindUpAnimationName: 
+  bossAttackAnimationName: Shoot

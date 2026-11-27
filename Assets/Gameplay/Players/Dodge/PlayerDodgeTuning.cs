@@ -20,6 +20,11 @@ namespace Game50033
         public bool hitstopEnabled = true;
         [Min(0f)] public float hitstopDuration = 0.05f;
 
+        [Header("Invulnerability Flash")]
+        [Range(0f, 1f)] public float invulnerabilityFlashIntensity = 1f;
+        public AnimationCurve invulnerabilityFlashDecay = new(
+            new Keyframe(0f, 1f, 0f, 0f), new Keyframe(1f, 0f, -3f, -3f));
+
         [Header("Directional Flash")]
         public bool flashEnabled = true;
         public GameObject flashPrefab;

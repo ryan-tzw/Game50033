@@ -18,9 +18,12 @@ namespace Game50033
             }
 
             var attacker = activation.Resonator.gameObject;
+            var damageRadius = radius * activation.Strength;
+            activation.Resonator.Session?.Debug.RecordAttack(
+                DebugAttackSnapshot.Capsule(activation.Position, activation.Position, damageRadius, reverberation: true));
             var hits = Physics.OverlapSphere(
                 activation.Position,
-                radius * activation.Strength,
+                damageRadius,
                 hitMask,
                 QueryTriggerInteraction.Ignore);
             var targets = new HashSet<IHittable>();

@@ -14,16 +14,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.CharacterDefinition
   displayName: Cymbals
   sprite: {fileID: 5395042229362328217, guid: f4aa2dc303f9da7669b91fe830b83084, type: 3}
-  tint: {r: 0.95, g: 0.4, b: 0.35, a: 1}
+  tint: {r: 0.4392157, g: 0.7882353, b: 0.6117647, a: 1}
   playerPrefab: {fileID: 8404843420213471496, guid: e524efb39ba21944eb75ec627cd5e6ac, type: 3}
+  abilityPalette: {fileID: 2100000, guid: 22d6cab60c2755320938552457dc20db, type: 2}
+  abilityBackground: {fileID: 2800000, guid: 3f44ba4bc483e1b949fefd1958170bd8, type: 3}
+  portrait: {fileID: 2800000, guid: 35ad25b50950029cc975fdec8d604154, type: 3}
   abilityPreviews:
   - name: Cymbal Combo
+    icon: {fileID: 2800000, guid: 9c0a4e75bb505d007b8c1464cbcc04de, type: 3}
     description: An advancing melee combo with alternating cymbal strikes.
   - name: Cymbal Throw
-    description: Throw a cymbal that returns. Recast near its apex to dash after
-      it.
+    icon: {fileID: 2800000, guid: 53bd0df99ade0873e9d9ecf77bb90049, type: 3}
+    interactions: 1
+    conditionalInteractions: 1
+    description: Throw a returning cymbal. Recast in flight to leave a Burst REV. Recast near its apex to dash after it.
   - name: Frontal Parry
-    description: Parry projectiles in front of you. A successful block restores a
-      Crash charge.
+    icon: {fileID: 2800000, guid: 82f76e31741fce039875864052e8bd77, type: 3}
+    interactions: 1
+    conditionalInteractions: 0
+    description: Parry a frontal hit to restore a Crash charge and leave an Amp REV.
   - name: Crash
-    description: Spend a charge to strike a triangular area with a shockwave.
+    icon: {fileID: 2800000, guid: 173f01d8fdaadcdb590f6e6bd981ba62, type: 3}
+    interactions: 2
+    conditionalInteractions: 0
+    description: Spend a charge to send out a triangular shockwave that resonates with REVs in its path.

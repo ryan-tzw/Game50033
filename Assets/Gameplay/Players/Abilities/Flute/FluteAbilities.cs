@@ -36,6 +36,7 @@ namespace Game50033
         private float _activeDuration;
         private float _recoveryDuration;
         private float _chargeElapsed;
+        private int _chargeStartedFrame;
         private float _speedRewardUntil;
         private bool _gameplayReady;
         private bool _evasionRewarded;
@@ -61,7 +62,8 @@ namespace Game50033
         public float SpecialCooldownRemaining => Mathf.Max(0f, _specialReadyAt - Time.time);
         public float DefensiveCooldownRemaining => Mathf.Max(0f, _defensiveReadyAt - Time.time);
 
-        public override bool BlocksDefensive => IsEvasive || CurrentAction == Action.Release;
+        public override bool BlocksDefensive => IsEvasive || (CurrentAction != Action.None && !CanInterruptAttack);
+        internal override bool CanInterruptAttack => AnimationPhase is PlayerAttackPhase.Windup or PlayerAttackPhase.Recovery;
         public override float MovementSpeedMultiplier => Player.Hitstop.ActionTime < _speedRewardUntil
             ? tuning.defensive.successSpeedMultiplier : 1f;
         public override PlayerAttackPhase AnimationPhase
@@ -184,14 +186,15 @@ namespace Game50033
             }
             if (IsCharging)
             {
-                if (Player.SpecialHeld)
+                // the press that starts charging is still visible during this frame's LateUpdate.
+                if (Time.frameCount != _chargeStartedFrame && Player.SpecialPressedThisFrame)
                 {
-                    _chargeElapsed = Mathf.Min(tuning.special.chargeDuration,
-                        _chargeElapsed + Player.Hitstop.ActionDeltaTime);
+                    ReleaseChargedAttack();
                 }
                 else
                 {
-                    ReleaseChargedAttack();
+                    _chargeElapsed = Mathf.Min(tuning.special.chargeDuration,
+                        _chargeElapsed + Player.Hitstop.ActionDeltaTime);
                 }
             }
             else if (CurrentAction != Action.None && ActionProgress >= 1f)
@@ -275,6 +278,7 @@ namespace Game50033
             }
 
             _chargeElapsed = 0f;
+            _chargeStartedFrame = Time.frameCount;
             _specialRequiresRelease = true;
             BeginAction(Action.Charge, Player.AimDirection, tuning.special.chargeDuration, 0f);
             if (chargeSource != null && chargeSource.isActiveAndEnabled && chargeSound != null)
@@ -397,7 +401,7 @@ namespace Game50033
             _recoveryDuration = recoveryDuration;
             BlocksMovement = action == Action.Evasive;
             BlocksAbilities = true;
-            BlocksDodge = action == Action.Evasive;
+            BlocksDodge = true;
         }
 
         private void EndAction()
@@ -428,19 +432,21 @@ namespace Game50033
             }
         }
 
+        public override AbilityInteraction GetReadyInteractions(PlayerAbility ability) =>
+            ability == PlayerAbility.Special && IsSpecialConfigured
+                && ChargeNormalized >= 1f && flow.CanConsume(tuning.special.flowCost)
+                ? AbilityInteraction.Resonance : AbilityInteraction.None;
+
         public override PlayerAbilityStats GetAbilityStats(PlayerAbility ability)
         {
             if (tuning == null || !GetAbilityState(ability).Supported) return default;
             return ability switch
             {
-                PlayerAbility.Primary => new(("Damage by Flow", Range(tuning.primary.minimumDamage, tuning.primary.maximumDamage)),
-                    ("Cooldown", "None")),
-                PlayerAbility.Secondary => new(("Damage", Number(tuning.secondary.damage)),
-                    ("Cooldown", Seconds(tuning.secondary.cooldown))),
-                PlayerAbility.Special => new(("Charged damage", Range(tuning.special.minimumDamage, tuning.special.maximumDamage)),
-                    ("Cooldown", Seconds(tuning.special.cooldown))),
-                PlayerAbility.Defensive => new(("Invulnerability", Seconds(tuning.defensive.invulnerabilityDuration)),
-                    ("Cooldown", Seconds(tuning.defensive.cooldown))),
+                PlayerAbility.Primary => new(("DMG", Range(tuning.primary.minimumDamage, tuning.primary.maximumDamage))),
+                PlayerAbility.Secondary => new(("DMG", Number(tuning.secondary.damage)), Cooldown(tuning.secondary.cooldown)),
+                PlayerAbility.Special => new(("DMG", Range(tuning.special.minimumDamage, tuning.special.maximumDamage)),
+                    Cooldown(tuning.special.cooldown)),
+                PlayerAbility.Defensive => new(Cooldown(tuning.defensive.cooldown)),
                 _ => default
             };
         }

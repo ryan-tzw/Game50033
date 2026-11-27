@@ -29,8 +29,8 @@ namespace Game50033
         [SerializeField] protected float maxDistance = 30f;
         [SerializeField] private string bossWindUpAnimationName;
         [SerializeField] private string bossAttackAnimationName;
-        private int bossWindUpAnimationId;
-        private int bossAttackAnimationId;
+        protected int bossWindUpAnimationId;
+        protected int bossAttackAnimationId;
 
         private int projectileCount;
 

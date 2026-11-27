@@ -91,6 +91,11 @@ namespace Game50033
         public int MaxCrashCharges => tuning.crash.maxCharges;
         public bool IsParrying { get; private set; }
         public float ParryCooldownRemaining => Mathf.Max(0f, _parryReadyAt - Time.time);
+        public override bool BlocksDefensive => IsParrying || ((IsAttacking || IsCrashing || IsThrowing) && !CanInterruptAttack);
+        internal override bool CanInterruptAttack =>
+            (IsAttacking && CurrentPhase is Phase.Windup or Phase.Recovery)
+            || CurrentThrow == ThrowState.Windup
+            || CurrentCrash is CrashState.Windup or CrashState.Recovery;
 
         // body attack poses for PlayerAnimation; presentation only, read from the existing ability state.
         // free-walking parts (throw flight, the parry hold) report None so the walk cycle keeps playing.
@@ -123,24 +128,29 @@ namespace Game50033
                 return PlayerAttackPhase.None;
             }
         }
+        public override AbilityInteraction GetReadyInteractions(PlayerAbility ability) =>
+            ability == PlayerAbility.Secondary && !_recastUsed
+                && (CurrentThrow == ThrowState.Outbound || CurrentThrow == ThrowState.Returning)
+                && tuning != null && tuning.cymbalThrow.burstReverberation != null
+                ? AbilityInteraction.Reverberation : AbilityInteraction.None;
+
         public override PlayerAbilityStats GetAbilityStats(PlayerAbility ability)
         {
             if (tuning == null || !GetAbilityState(ability).Supported) return default;
             if (ability == PlayerAbility.Primary)
             {
                 var hits = System.Array.ConvertAll(tuning.combo.hits, hit => Number(hit.damage));
-                return new PlayerAbilityStats(("Damage / hit", string.Join(" / ", hits)),
-                    ("Combo cooldown", Seconds(tuning.combo.comboCooldown)));
+                return new PlayerAbilityStats(("DMG", string.Join(" / ", hits)));
             }
 
             return ability switch
             {
-                PlayerAbility.Secondary => new(("Throw damage", Number(tuning.cymbalThrow.damage)),
-                    ("Cooldown", Seconds(tuning.cymbalThrow.cooldown)), ("Recast damage", Number(tuning.cymbalThrow.dashDamage))),
-                PlayerAbility.Special => new(("Damage", Number(tuning.crash.damage)),
-                    ("Recharge / charge", Seconds(tuning.crash.rechargeTime)), ("Charges", tuning.crash.maxCharges.ToString())),
+                PlayerAbility.Secondary => new(("DMG", Number(tuning.cymbalThrow.damage) + " / " + Number(tuning.cymbalThrow.dashDamage)),
+                    Cooldown(tuning.cymbalThrow.cooldown)),
+                PlayerAbility.Special => new(("DMG", Number(tuning.crash.damage)),
+                    Cooldown(tuning.crash.rechargeTime), ("Charges", tuning.crash.maxCharges.ToString())),
                 PlayerAbility.Defensive => new(("Parry window", Seconds(tuning.parry.duration)),
-                    ("Cooldown", Seconds(tuning.parry.cooldown))),
+                    Cooldown(tuning.parry.cooldown)),
                 _ => default
             };
         }
@@ -299,8 +309,6 @@ namespace Game50033
 
             if (!_lungeRequested)
             {
-                // starting the lunge with the approach lets the windup be dash-cancelled,
-                // because movement refuses a dodge while a displacement is pending.
                 _lungeRequested = true;
                 if (_hit.lungeDistance > 0f)
                     Player.Movement.TryStartDisplacement(_direction, _hit.lungeDistance, _hit.approach, combo.lungeEasing);
@@ -359,11 +367,13 @@ namespace Game50033
         // gameplay is on the XZ plane: a damage circle extends as a column so target height does not matter.
         // triggers are ignored because they are detection/range volumes (the boss has a 10-unit one), not bodies.
         // returns false when a hit callback downed or disabled this player, so the caller stops.
-        private bool DamageColumn(Vector3 point, float radius, HashSet<IHittable> alreadyHit, float damage, Vector3 direction, bool big)
+        private bool DamageColumn(Vector3 point, float radius, HashSet<IHittable> alreadyHit, float damage,
+            Vector3 direction, bool big, bool live = false)
         {
             var combo = tuning.combo;
             var bottom = new Vector3(point.x, transform.position.y + radius, point.z);
             var top = bottom + Vector3.up * Mathf.Max(0f, combo.hitColumnHeight - 2f * radius);
+            Player.Session?.Debug.RecordAttack(DebugAttackSnapshot.Capsule(bottom, top, radius, live));
             if (tuning.showHitboxes)
             {
                 if (_debugColumns.Count >= 64) _debugColumns.RemoveAt(0);
@@ -533,7 +543,8 @@ namespace Game50033
                 // damage rides the combo's hitting point ahead of the dashing player.
                 var combo = tuning.combo;
                 var point = combo.GetHitPoint(transform.position, _dashDirection);
-                if (!DamageColumn(point, combo.hitRadius, _hitThisPass, settings.dashDamage, _dashDirection, true)) return;
+                if (!DamageColumn(point, combo.hitRadius, _hitThisPass, settings.dashDamage, _dashDirection,
+                    big: true, live: true)) return;
                 _flightSpeed = 0f;
                 if (weaponVisual != null) weaponVisual.SetCharge(_dashDirection);
                 if (!Player.Movement.IsDisplacing || elapsed >= _dashDuration + 0.1f)
@@ -547,7 +558,7 @@ namespace Game50033
         }
 
         private bool FlightDamage(CymbalsTuning.ThrowSettings settings, Vector3 direction) =>
-            DamageColumn(_cymbalPosition, settings.hitRadius, _hitThisPass, settings.damage, direction, false);
+            DamageColumn(_cymbalPosition, settings.hitRadius, _hitThisPass, settings.damage, direction, big: false, live: true);
 
         // normalised flight speed for presentation: the curve's slope, where 2 is the default peak.
         private static float Slope(AnimationCurve curve, float t)
@@ -620,10 +631,9 @@ namespace Game50033
             var fresh = Time.frameCount - _lastDefensiveFrame > 1;
             _lastDefensiveFrame = Time.frameCount;
             if (!isActiveAndEnabled || !fresh) return false;
-            // both cymbals are needed, so the thrown cymbal must be back.
-            if (!Player.CanUseAbilities || IsAttacking || IsThrowing || IsCrashing || IsParrying
-                || Time.time < _parryReadyAt) return false;
+            if (!Player.CanUseDefensive || Time.time < _parryReadyAt) return false;
 
+            if (CanInterruptAttack) InterruptAttack();
             IsParrying = true;
             PlaySound(defensiveSound);
             _parryStartedAt = Time.time;
@@ -632,9 +642,8 @@ namespace Game50033
             _parryDirection.y = 0f;
             _parryDirection = _parryDirection.sqrMagnitude > 0.0001f
                 ? _parryDirection.normalized : Player.Movement.FacingDirection;
-            // free movement and a dash-cancel; no other abilities while the cymbals hold the parry.
             BlocksMovement = false;
-            BlocksDodge = false;
+            BlocksDodge = true;
             BlocksAbilities = true;
             if (weaponVisual != null) weaponVisual.SetParryPose(_parryDirection, 0f);
             return true;
@@ -656,6 +665,9 @@ namespace Game50033
                 return;
             }
             if (weaponVisual != null) weaponVisual.SetParryPose(_parryDirection, elapsed / settings.raiseTime);
+            // the parry tests incoming direction; its presentation range sets the length of this guide.
+            Player.Session?.Debug.RecordAttack(new DebugAttackSnapshot(transform.position, _parryDirection, 0f,
+                settings.range, settings.coneAngle, Vector3.zero, 1f, live: true));
         }
 
         internal override bool TryParryHit(Vector3 incomingFrom)
@@ -828,6 +840,13 @@ namespace Game50033
 
                 // resonance uses the same ground triangle as the crash waves.
                 settings.GetTriangle(_crashTip, _crashDirection, out var left, out var right);
+                if (Player.Session?.Debug is { ShowHitboxes: true, ShowPlayerAttacks: true } debug)
+                {
+                    settings.GetTriangle(Vector3.zero, Vector3.forward, out var localLeft, out var localRight);
+                    var volume = _crashCollider.transform;
+                    debug.RecordAttack(DebugAttackSnapshot.Triangle(volume.position, volume.TransformPoint(localLeft),
+                        volume.TransformPoint(localRight), volume.TransformVector(Vector3.up * combo.hitColumnHeight)));
+                }
                 var fields = Reverberation.Active;
                 var camera = fields.Count > 0 ? Camera.main : null;
                 for (var i = fields.Count - 1; i >= 0; i = Mathf.Min(i - 1, fields.Count - 1))
@@ -856,13 +875,13 @@ namespace Game50033
             // detach before editing: changing a mesh the collider still holds leaves the collider empty.
             _crashCollider.sharedMesh = null;
             if (_crashMesh == null) _crashMesh = new Mesh { name = "Crash volume" };
-            var half = settings.width * 0.5f;
-            var l = settings.length;
+            settings.GetTriangle(Vector3.zero, Vector3.forward, out var left, out var right);
+            var heightOffset = Vector3.up * height;
             _crashMesh.Clear();
             _crashMesh.vertices = new[]
             {
-                new Vector3(0f, 0f, 0f), new Vector3(-half, 0f, l), new Vector3(half, 0f, l),
-                new Vector3(0f, height, 0f), new Vector3(-half, height, l), new Vector3(half, height, l),
+                Vector3.zero, left, right,
+                heightOffset, left + heightOffset, right + heightOffset,
             };
             _crashMesh.triangles = new[]
             {
@@ -888,6 +907,18 @@ namespace Game50033
             BlocksDodge = false;
             BlocksAbilities = false;
             if (weaponVisual != null) weaponVisual.Cancel();
+        }
+
+        internal override void InterruptAttack()
+        {
+            if (IsAttacking)
+            {
+                if (_impactResolved) FinishHit();
+                else AbortHit();
+                Player.Movement.CancelDisplacement();
+            }
+            else if (IsCrashing) EndCrash();
+            else if (IsThrowing) EndThrow(startCooldown: false);
         }
 
         public override void Cancel()

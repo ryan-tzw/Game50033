@@ -1130,7 +1130,6 @@ MonoBehaviour:
   BossStopDistance: 6
   attackDuration: 1.2
   BossAttackInterval: 3
-  BoneProjectile: {fileID: 333596568652972358, guid: bcafc2289682cb84e966226852bd2771, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

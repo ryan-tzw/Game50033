@@ -38,6 +38,17 @@ namespace Game50033
 
         private static readonly int HitStateId = Animator.StringToHash("Hit");
 
+        private void Start()
+        {
+            var session = _targetedPlayer != null ? _targetedPlayer.Session : null;
+            if (session == null) session = FindAnyObjectByType<GameSession>();
+            if (session == null) return;
+
+            // lingering effects and projectile variants use their authored collider on this object.
+            foreach (var volume in GetComponents<Collider>())
+                session.Debug.RegisterBossCollider(this, volume);
+        }
+
         public void InitializeProjectile(Player player, BaseBoss boss, Vector3 target, TargetedBossAttack targetedBossAttack)
         {
             _targetedPlayer = player;
@@ -67,7 +78,7 @@ namespace Game50033
             _target = GetLaunchPosition(target);
 
             float dropHeight = _targetedBossAttack.projectileHomingHeight;
-            if(dropHeight > 0f)
+            if (dropHeight > 0f)
             {
                 _start = _target + Vector3.up * dropHeight;
             }
@@ -187,7 +198,7 @@ namespace Game50033
 
         protected virtual void HideBoss() { } //Mainly for Charge
 
-        protected virtual void DestroyProjectile()
+        public virtual void DestroyProjectile()
         {
             if (_destroying) return;
             _destroying = true;
@@ -214,8 +225,8 @@ namespace Game50033
             _animator.Play(HitStateId);
             yield return null;
             if (_animator)
-                try {yield return new WaitUntil(() => _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f);}
-                finally {}
+                try { yield return new WaitUntil(() => _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f); }
+                finally { }
             CheckLingeringEffect();
             Destroy(gameObject);
         }

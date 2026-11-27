@@ -34,6 +34,15 @@ namespace Game50033
         public void Replay(float damageMultiplier)
         {
             if (_owner == null || _volume == null || !_volume.enabled) return;
+            if (_owner.Session?.Debug is { ShowHitboxes: true, ShowReverberationAreas: true } debug)
+            {
+                // replay places the existing collider at the stored impact pose.
+                var scale = _volume.transform.lossyScale;
+                var left = _tip + _rotation * Vector3.Scale(new Vector3(-_width * 0.5f, 0f, _length), scale);
+                var right = _tip + _rotation * Vector3.Scale(new Vector3(_width * 0.5f, 0f, _length), scale);
+                var height = _rotation * Vector3.Scale(Vector3.up * _height, scale);
+                debug.RecordAttack(DebugAttackSnapshot.Triangle(_tip, left, right, height, reverberation: true));
+            }
             var colliders = new Collider[64];
             Resolve(damageMultiplier, colliders, Collect(colliders), new HashSet<IHittable>());
         }

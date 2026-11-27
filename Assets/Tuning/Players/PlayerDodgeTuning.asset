@@ -18,6 +18,31 @@ MonoBehaviour:
   rechargeTime: 6
   hitstopEnabled: 1
   hitstopDuration: 0.05
+  invulnerabilityFlashIntensity: 0.8
+  invulnerabilityFlashDecay:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: -3
+      outSlope: -3
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   flashEnabled: 1
   flashPrefab: {fileID: 7325644495473268895, guid: a939d147cd59af60898b9ca2b41ccac0, type: 3}
   flashDuration: 0.3

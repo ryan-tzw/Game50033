@@ -14,6 +14,7 @@ namespace Game50033
 
         private Player _player;
         private PlayerHealth _health;
+        private PlayerDodgeVFX _dodgeVfx;
         private MaterialPropertyBlock _properties;
         private float _stunUntil;
         private float _hitAt;
@@ -31,6 +32,7 @@ namespace Game50033
         {
             _player = GetComponent<Player>();
             _health = GetComponent<PlayerHealth>();
+            _dodgeVfx = GetComponent<PlayerDodgeVFX>();
             _properties = new MaterialPropertyBlock();
         }
 
@@ -95,7 +97,13 @@ namespace Game50033
             if (_health.AbilityInvulnerabilityRemaining <= 0f)
             {
                 var flash = 0f;
-                if (_flashing)
+                if (_player.Movement.IsInvulnerable && _dodgeVfx != null && _dodgeVfx.Tuning != null)
+                {
+                    var dodge = _dodgeVfx.Tuning;
+                    flash = dodge.invulnerabilityFlashIntensity
+                        * Mathf.Clamp01(dodge.invulnerabilityFlashDecay.Evaluate(_player.Movement.DodgeProgress));
+                }
+                else if (_flashing)
                 {
                     flash = Mathf.Clamp01(tuning.flashDecay.Evaluate(elapsed / tuning.flashDuration));
                 }

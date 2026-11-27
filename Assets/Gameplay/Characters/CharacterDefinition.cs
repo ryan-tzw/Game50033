@@ -11,7 +11,7 @@ namespace Game50033
     {
         [SerializeField] private string displayName;
 
-        [Tooltip("Shown in the character roster/ready header and used as the in-world sprite when set.")]
+        [Tooltip("Used as the in-world character sprite when set.")]
         [SerializeField] private Sprite sprite;
 
         [Tooltip("Tint applied to the character's sprite (via the _PlayerTint shader property).")]
@@ -20,14 +20,25 @@ namespace Game50033
         [Tooltip("Optional playable prefab spawned when this character is confirmed in the Lobby.")]
         [SerializeField] private Player playerPrefab;
 
+        [SerializeField] private Material abilityPalette;
+        public Material AbilityPalette => abilityPalette;
+        [SerializeField] private Texture2D abilityBackground;
+        [SerializeField] private Texture2D portrait;
+        public Texture2D AbilityBackground => abilityBackground;
+        public Texture2D Portrait => portrait;
+
         [Serializable]
         public struct AbilityPreview
         {
             public string name;
+            public Texture2D icon;
+            public AbilityInteraction interactions;
+            [Tooltip("Effects that can become available or be spent before the cast. Include them in Interactions too.")]
+            public AbilityInteraction conditionalInteractions;
             [TextArea(2, 5)] public string description;
         }
 
-        [Tooltip("Primary, Secondary, Defensive, Special. Presentation text only; does not define gameplay values.")]
+        [Tooltip("Primary, Secondary, Defensive, Special. Presentation only; does not define gameplay values.")]
         [SerializeField] private AbilityPreview[] abilityPreviews = new AbilityPreview[4];
 
         public int PreviewRevision { get; private set; }

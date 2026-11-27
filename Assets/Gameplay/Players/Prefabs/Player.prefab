@@ -135,6 +135,7 @@ GameObject:
   - component: {fileID: 1823924041723711795}
   - component: {fileID: 6512731523353069809}
   - component: {fileID: 4604652734385103609}
+  - component: {fileID: 6686744381718891129}
   m_Layer: 12
   m_Name: Player
   m_TagString: Untagged
@@ -179,7 +180,7 @@ CharacterController:
   m_Height: 0.4
   m_Radius: 0.12
   m_SlopeLimit: 45
-  m_StepOffset: 0
+  m_StepOffset: 0.05
   m_SkinWidth: 0.01
   m_MinMoveDistance: 0
   m_Center: {x: 0, y: 0.2, z: 0}
@@ -357,3 +358,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerHitReaction
   tuning: {fileID: 11400000, guid: 697da0963b4682fd387bb52b2c8325f8, type: 2}
   avatarRenderer: {fileID: 1627041761190954647}
+--- !u!114 &6686744381718891129
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3885672621503035260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac044bbe2400c21f9b2acb6fa1fd7338, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game50033.PlayerFacingIndicator
+  tuning: {fileID: 11400000, guid: fde4eafc4187f8ef582763a71028e2bd, type: 2}
+  material: {fileID: 2100000, guid: cefa194dd3809d1ae974f91ca5fba9fb, type: 2}

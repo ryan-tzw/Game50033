@@ -14,15 +14,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game50033.CharacterDefinition
   displayName: Flute
   sprite: {fileID: 5395042229362328217, guid: f4aa2dc303f9da7669b91fe830b83084, type: 3}
-  tint: {r: 0.95, g: 0.85, b: 0.55, a: 1}
+  tint: {r: 0.7411765, g: 0.54509807, b: 0.8509804, a: 1}
   playerPrefab: {fileID: 8127240988580949929, guid: 52493c21ef8314aaba0c76990588f7bb, type: 3}
+  abilityPalette: {fileID: 2100000, guid: dbefa26d591307bac9a1c5f500fc3230, type: 2}
+  abilityBackground: {fileID: 2800000, guid: c1032d36278b46905835fa76c6a3d996, type: 3}
+  portrait: {fileID: 2800000, guid: b6cc95885745c914daa89c57a806e009, type: 3}
   abilityPreviews:
   - name: Homing Note
-    description: Send a curving note after the nearest target. Higher Flow increases damage.
+    icon: {fileID: 2800000, guid: a5322a8747f343d868bc3f0f96fd15f7, type: 3}
+    description: Send a curving note after the nearest target. Higher Flow increases
+      damage.
   - name: Rapid Shot
+    icon: {fileID: 2800000, guid: a2b90861119c36a30a890a45a0fabf5a, type: 3}
+    interactions: 2
+    conditionalInteractions: 0
     description: Fire a fast projectile that can resonate lingering energy.
   - name: Evasive Step
-    description: Evade with brief invulnerability. Avoiding a hit grants Flow and a short speed boost.
+    icon: {fileID: 2800000, guid: 24cea2c2a40216cfb87008d769791930, type: 3}
+    description: Evade with brief invulnerability. Avoiding a hit grants Flow and
+      a short speed boost.
   - name: Charged Shot
-    description: Hold to charge and release a projectile. Its power increases with
-      charge.
+    icon: {fileID: 2800000, guid: 45920b7b2f55fb39dbcbc83c9f8d77bb, type: 3}
+    interactions: 3
+    conditionalInteractions: 2
+    description: Press to charge, then press again to fire a shot that leaves a Burst REV. At full charge, firing spends Flow to make it resonate.

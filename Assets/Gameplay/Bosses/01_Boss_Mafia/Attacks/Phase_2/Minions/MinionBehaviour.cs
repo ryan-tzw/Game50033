@@ -57,7 +57,7 @@ namespace Game50033
                 transform.position = Vector3.MoveTowards(transform.position, _endPosition, MovementSpeed * Time.deltaTime);
             }
         }
-        
+
         protected override IEnumerator FireAfterWindUp(Player player)
         {
             _animator.SetTrigger(AttackId);
@@ -73,12 +73,17 @@ namespace Game50033
 
             for (int i = 0; i < 3; i++)
             {
+                yield return new WaitForSeconds(windUpTime / 6);
                 SetLRColor(_translucent);
-                yield return new WaitForSeconds(windUpTime / 3);
+                yield return new WaitForSeconds(windUpTime / 6);
                 SetLRColor(_opaque);
             }
 
-            if (Physics.Linecast(_lockedPosition, rayEndPosition, out _hitInfo, layerMask))
+            var hit = Physics.Linecast(_lockedPosition, rayEndPosition, out _hitInfo, layerMask);
+            var session = player != null ? player.Session : FindAnyObjectByType<GameSession>();
+            if (session?.Debug is { ShowHitboxes: true, ShowBossAttacks: true } debug)
+                debug.RecordAttack(DebugAttackSnapshot.BossLine(_lockedPosition, hit ? _hitInfo.point : rayEndPosition));
+            if (hit)
             {
                 var hitPlayer = _hitInfo.collider.GetComponentInParent<Player>();
                 if (hitPlayer != null && hitPlayer.Health.TryTakeDamage(1, _lockedPosition - hitPlayer.transform.position))

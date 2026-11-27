@@ -41,7 +41,7 @@ MonoBehaviour:
         m_Bits: 4294967295
       radius: 0.08
   commandZone:
-    cooldown: 1
+    cooldown: 10
     radius: 1
     pressureAccumulationMultiplier: 1.5
     pressureDecayMultiplier: 0.5

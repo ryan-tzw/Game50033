@@ -32,10 +32,14 @@ namespace Game50033
         public float RecordedAt { get; private set; }
         public float AllowedFraction { get; private set; } = 1f;
         public bool IsFinished { get; private set; }
+        internal bool KeepLastStep { get; }
 
-        public DebugProjectileTrace(Behaviour owner)
+        public DebugProjectileTrace(Behaviour owner) : this(owner, false) { }
+
+        internal DebugProjectileTrace(Behaviour owner, bool keepLastStep)
         {
             Owner = owner;
+            KeepLastStep = keepLastStep;
             Scene = owner.gameObject.scene;
             _sweepsView = _sweeps.AsReadOnly();
         }
