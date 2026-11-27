@@ -52,7 +52,7 @@ namespace Game50033
 
         public bool CanMove => isActiveAndEnabled && Movement.isActiveAndEnabled && !Health.IsDead && !Attacks.IsAttacking && fightStarted;
         public bool CanTryAttacking => isActiveAndEnabled && Movement.InRange && !Health.IsDead && !Attacks.IsAttacking && fightStarted;
-        [SerializeField] private bool fightStarted = false;
+        public bool fightStarted = false;
 
         protected void Awake()
         {
