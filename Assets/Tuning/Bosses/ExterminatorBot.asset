@@ -22,3 +22,10 @@ MonoBehaviour:
   telegraphDuration: 0.8
   dissipationDuration: 0.16
   recoveryDuration: 0.5
+  sparkDamage: 1
+  sparkRadius: 0.2
+  sparkSpeed: 5
+  sparkTurnRate: 105
+  sparkLifetime: 3
+  sparkTelegraphDuration: 0.6
+  sparkRecoveryDuration: 0.55

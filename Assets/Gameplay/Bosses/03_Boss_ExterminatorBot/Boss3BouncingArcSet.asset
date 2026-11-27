@@ -15,3 +15,5 @@ MonoBehaviour:
   attacks:
   - attack: {fileID: 8913880932602531115, guid: 8a952ed091612bf1aa1cfe8e1ee17a5b, type: 3}
     count: 1
+  - attack: {fileID: 7747605692474205602, guid: 87f531f5afb37917585a7e2c48a088b5, type: 3}
+    count: 1

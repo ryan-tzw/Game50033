@@ -18,5 +18,14 @@ namespace Game50033
         [Min(0.01f)] public float telegraphDuration = 0.8f;
         [Min(0f)] public float dissipationDuration = 0.16f;
         [Min(0f)] public float recoveryDuration = 0.5f;
+
+        [Header("Homing Spark")]
+        [Min(1)] public int sparkDamage = 1;
+        [Min(0.01f)] public float sparkRadius = 0.2f;
+        [Min(0.01f)] public float sparkSpeed = 5f;
+        [Min(0f)] public float sparkTurnRate = 105f;
+        [Min(0.01f)] public float sparkLifetime = 3f;
+        [Min(0.01f)] public float sparkTelegraphDuration = 0.6f;
+        [Min(0f)] public float sparkRecoveryDuration = 0.55f;
     }
 }
