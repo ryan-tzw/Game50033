@@ -15,6 +15,8 @@ namespace Game50033
         public float MaxHealth => _bossHealthPoints;
         public float CurrentHealth => _bossCurrentHealth;
         public bool IsDead { get; private set; }
+        public float? FirstPhaseBreak => _phaseThreshold
+            ?? (_bossTotalPhases > 1 ? (float?)(MaxHealth / _bossTotalPhases * _bossCurrentPhase) : null);
 
         // IHittable
         private MaterialPropertyBlock _hitProperties;

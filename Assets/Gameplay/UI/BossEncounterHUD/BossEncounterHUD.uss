@@ -1,0 +1,144 @@
+.boss-hud {
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    top: 16px;
+    flex-direction: column;
+    color: rgb(239, 233, 243);
+}
+.boss-meter {
+    position: relative;
+    overflow: hidden;
+    border-width: 1px;
+    border-radius: 5px;
+    background-color: rgba(21, 17, 29, 0.94);
+    flex-shrink: 0;
+}
+.boss-health {
+    height: 23px;
+    border-color: rgb(140, 115, 91);
+}
+.boss-discordance {
+    height: 19px;
+    margin-top: 4px;
+    border-color: rgb(115, 87, 141);
+}
+.boss-meter__fill {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: 0;
+    max-width: 100%;
+    border-radius: 3px;
+}
+.boss-health__fill {
+    background-color: rgb(177, 123, 71);
+    border-top-width: 2px;
+    border-top-color: rgb(230, 177, 116);
+}
+.boss-discordance__fill {
+    background-color: rgb(120, 71, 170);
+    border-top-width: 2px;
+    border-top-color: rgb(178, 120, 226);
+}
+.boss-meter__markers {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+.boss-meter__marker {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    width: 2px;
+    margin-left: -2px;
+}
+.boss-health__marker {
+    background-color: rgb(247, 220, 175);
+}
+.boss-health__marker.boss-marker--reached {
+    background-color: rgb(120, 97, 79);
+}
+.boss-discordance__marker {
+    background-color: rgb(152, 123, 177);
+    transition-property: background-color;
+    transition-duration: 150ms;
+}
+.boss-discordance__marker.boss-marker--reached {
+    background-color: rgb(234, 191, 255);
+}
+.boss-discordance__marker.boss-marker--pulse {
+    background-color: rgb(255, 246, 255);
+    width: 5px;
+    margin-left: -5px;
+}
+.boss-discordance--overcharged {
+    border-color: rgb(238, 153, 253);
+}
+.boss-discordance--overcharged .boss-discordance__fill {
+    background-color: rgb(154, 72, 193);
+    border-top-color: rgb(243, 161, 255);
+}
+.boss-meter__caption,
+.boss-meter__value {
+    position: absolute;
+    top: 1px;
+    bottom: 1px;
+    margin: 0;
+    padding: 0 6px;
+    border-radius: 3px;
+    background-color: rgba(21, 15, 29, 0.77);
+    font-size: 16px;
+    -unity-font-style: bold;
+}
+.boss-meter__value {
+    right: 4px;
+    -unity-text-align: middle-right;
+}
+.boss-meter__caption {
+    left: 4px;
+    -unity-text-align: middle-left;
+}
+.boss-discordance .boss-meter__caption,
+.boss-discordance .boss-meter__value {
+    font-size: 14px;
+}
+.boss-identity {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+    min-height: 28px;
+}
+.boss-statuses {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    flex-shrink: 1;
+}
+.boss-status {
+    display: none;
+    color: rgb(235, 213, 250);
+    background-color: rgba(31, 20, 45, 0.95);
+    border-width: 1px;
+    border-color: rgb(133, 94, 166);
+    border-radius: 5px;
+    font-size: 15px;
+    margin: 0 6px 2px 0;
+    padding: 1px 8px 2px;
+}
+.boss-status--overcharge {
+    color: rgb(255, 225, 251);
+    border-color: rgb(238, 153, 253);
+}
+.boss-name {
+    font-size: 27px;
+    color: rgb(249, 228, 193);
+    -unity-text-align: middle-right;
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: rgba(25, 15, 29, 0.92);
+    margin: 0 1px 0 12px;
+    padding: 0;
+}

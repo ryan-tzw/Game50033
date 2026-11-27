@@ -1,0 +1,23 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="boss-hud" class="boss-hud" picking-mode="Ignore">
+        <ui:VisualElement name="health" class="boss-meter boss-health" picking-mode="Ignore">
+            <ui:VisualElement name="health-fill" class="boss-meter__fill boss-health__fill" picking-mode="Ignore" />
+            <ui:VisualElement name="phase-break" class="boss-meter__marker boss-health__marker" picking-mode="Ignore" />
+            <ui:Label name="health-value" class="boss-meter__value" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement name="discordance" class="boss-meter boss-discordance" picking-mode="Ignore">
+            <ui:VisualElement name="discordance-fill" class="boss-meter__fill boss-discordance__fill" picking-mode="Ignore" />
+            <ui:VisualElement name="discordance-markers" class="boss-meter__markers" picking-mode="Ignore" />
+            <ui:Label class="boss-meter__caption" text="Discordance" picking-mode="Ignore" />
+            <ui:Label name="discordance-value" class="boss-meter__value" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement class="boss-identity" picking-mode="Ignore">
+            <ui:VisualElement name="boss-statuses" class="boss-statuses" picking-mode="Ignore">
+                <ui:Label name="resistance-status" class="boss-status" text="Damage Resist" picking-mode="Ignore" />
+                <ui:Label name="haste-status" class="boss-status" text="Faster Casts" picking-mode="Ignore" />
+                <ui:Label name="overcharge-status" class="boss-status boss-status--overcharge" text="Overcharged" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:Label name="boss-name" class="boss-name" picking-mode="Ignore" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -15,6 +15,7 @@ namespace Game50033
 
         public float Value { get; private set; }
         public float Maximum => tuning != null ? tuning.max : 100f;
+        public IReadOnlyList<float> Thresholds => tuning != null ? tuning.thresholds ?? Array.Empty<float>() : Array.Empty<float>();
         public int Level { get; private set; }
         public float ConventionalDamageMultiplier => _session != null && Level >= 1 ? tuning.conventionalDamageMultiplier : 1f;
         public float AttackDelayMultiplier => _session != null && Level >= 2 ? tuning.attackDelayMultiplier : 1f;

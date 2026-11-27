@@ -44,6 +44,8 @@ namespace Game50033
         [SerializeField] private Slider _healthBar;
         [SerializeField] private Text _bossText;
 
+        public string DisplayName => string.IsNullOrWhiteSpace(_bossName) ? name : _bossName;
+
         private static readonly int AttackId = Animator.StringToHash("Attack");
         private static readonly int IsWalkingId = Animator.StringToHash("IsWalking");
 
@@ -65,8 +67,8 @@ namespace Game50033
                 _attackAnimator = _sr.GetComponent<Animator>();
             }
 
-            _bossText = GameObject.Find("BossText").GetComponent<Text>();
-            _healthBar = GameObject.Find("BossHealthBar").GetComponent<Slider>();
+            if (!_bossText) _bossText = GameObject.Find("BossText")?.GetComponent<Text>();
+            if (!_healthBar) _healthBar = GameObject.Find("BossHealthBar")?.GetComponent<Slider>();
             HandleHealthChange(Health.CurrentHealth, Health.MaxHealth);
 
             if (BossNextPhase != 2) BossNextPhase = 2;
