@@ -23,7 +23,11 @@ namespace Game50033
         private float _lastHitTime = float.NegativeInfinity;
         [SerializeField, Min(0.01f)] private float hitFlashDuration = 0.15f;
         private static readonly int FlashAmountId = Shader.PropertyToID("_FlashAmount");
+        [SerializeField] private EnemyHitFeedbackTuning hitFeedback;
+        [SerializeField] private Transform hitShakePivot;
         private SpriteRenderer _sr;
+        private Vector3 _shakeRestPosition;
+        private Vector3 _shakeDirection;
 
         public event Action<float, float> HealthChanged;
         public event Action Dead;
@@ -50,6 +54,7 @@ namespace Game50033
 
             _hitProperties = new MaterialPropertyBlock();
             _sr = GetComponentInChildren<SpriteRenderer>();
+            if (hitShakePivot) _shakeRestPosition = hitShakePivot.localPosition;
 
             _bossTotalPhases = BossTotalPhases;
             _bossNextPhase = GetComponent<BaseBoss>().BossNextPhase;
@@ -57,10 +62,34 @@ namespace Game50033
             _initialized = true;
         }
 
-        void Update()
+        private void LateUpdate()
         {
+            if (float.IsNegativeInfinity(_lastHitTime)) return;
+
             var elapsed = Time.time - _lastHitTime;
-            SetHitFlash(Mathf.Clamp01(1f - elapsed / Mathf.Max(0.01f, hitFlashDuration)));
+            var flashDuration = Mathf.Max(0.01f, hitFeedback ? hitFeedback.flashDuration : hitFlashDuration);
+            SetHitFlash(Mathf.Clamp01(1f - elapsed / flashDuration));
+
+            var shakeDuration = hitFeedback && hitShakePivot ? hitFeedback.shakeDuration : 0f;
+            if (hitShakePivot && hitFeedback)
+            {
+                // the pivot moves the whole visual without overwriting the animator's jump height.
+                var decay = shakeDuration > 0f ? Mathf.Clamp01(1f - elapsed / shakeDuration) : 0f;
+                var wobble = Mathf.Sin(elapsed * 60f) * decay * hitFeedback.shakeDistance;
+                hitShakePivot.localPosition = _shakeRestPosition + _shakeDirection * wobble;
+            }
+
+            if (elapsed >= Mathf.Max(flashDuration, shakeDuration))
+                _lastHitTime = float.NegativeInfinity;
+        }
+
+        private void OnDisable()
+        {
+            if (float.IsNegativeInfinity(_lastHitTime)) return;
+
+            _lastHitTime = float.NegativeInfinity;
+            SetHitFlash(0f);
+            if (hitShakePivot) hitShakePivot.localPosition = _shakeRestPosition;
         }
 
         public void TakeHit(in HitInfo hit)
@@ -83,6 +112,8 @@ namespace Game50033
             var before = _bossCurrentHealth;
             _bossCurrentHealth = Mathf.Max(0f, _bossCurrentHealth - damage);
             _lastHitTime = Time.time;
+            if (hitShakePivot && hitShakePivot.parent)
+                _shakeDirection = hitShakePivot.parent.InverseTransformDirection(hit.Direction);
             SetHitFlash(1f);
 
             HealthChanged?.Invoke(CurrentHealth, MaxHealth);
