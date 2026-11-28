@@ -66,15 +66,25 @@ MonoBehaviour:
   spiralImpactReach: 0.66
   spiralTrailDuration: 0.25
   spiralTrailWidth: 0.56
-  knifeThrowCount: 6
-  knifeThrowDamage: 1
   knifeBlastDamage: 1
-  knifeLaneWidth: 0.55
   knifeBlastRadius: 0.62
   knifeSpeed: 14
   knifeThrowRadius: 4.25
-  knifeTelegraphDuration: 0.6
   knifeRecoveryDuration: 0.55
   knifeImpactDuration: 0.22
   knifeAnchorLifetime: 12
   knifeMaxActive: 12
+  knifeTargetingDuration: 1
+  knifeLockReactionDuration: 0.1
+  knifeTrackingPulseHz: {x: 2, y: 7}
+  knifeLockOutlineStartScale: 1.6
+  knifeLockFlashIntensity: 5.5
+  knifeLockFlashDuration: 1
+  knifeAngularVariation: 15
+  knifeRadiusVariation: 0.2
+  knifeJumpHeight: 1.5
+  knifeRiseDuration: 0.12
+  knifeFrame02HoldFraction: 0.6666667
+  knifeApexDriftFraction: 0.06
+  knifePostReleaseHold: 0.36
+  knifeDropDuration: 0.35

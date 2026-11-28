@@ -1,26 +1,24 @@
 namespace Game50033
 {
-    using System.Collections.Generic;
     using UnityEngine;
     using UnityEngine.Rendering;
 
     public sealed class ElectricKnifeProjectile : MonoBehaviour
     {
         private static readonly int FadeId = Shader.PropertyToID("_Fade");
-        private static readonly int TelegraphId = Shader.PropertyToID("_Telegraph");
+        private static readonly int TelegraphColorId = Shader.PropertyToID("_TelegraphColor");
         private static readonly int SpriteRotationId = Shader.PropertyToID("_SpriteRotation");
         private static readonly int SpriteFlatDepthId = Shader.PropertyToID("_SpriteFlatDepth");
-        private const float ReleaseHeight = 1.35f;
+        internal const float ThrowHandHeight = 1.35f;
         private const float AuthoredBladeAngle = -68f;
 
         [SerializeField] private SpriteRenderer blade;
         [SerializeField] private Material lightningMaterial;
 
-        private readonly HashSet<Player> _pathContacts = new();
-        private readonly HashSet<Player> _damaged = new();
         private readonly LineRenderer[] _sparks = new LineRenderer[6];
         private MaterialPropertyBlock _properties;
-        private LineRenderer _landingMarker;
+        private MeshFilter _landingMarker;
+        private LineRenderer _flashingOutline;
         private Boss3Controller _owner;
         private Vector3 _origin;
         private Vector3 _landing;
@@ -28,6 +26,11 @@ namespace Game50033
         private float _length;
         private float _distance;
         private float _speed;
+        private float _releaseHeight;
+        private float _impactRadius;
+        private float _lockedAt;
+        private float _flashDuration;
+        private float _flashIntensity;
         private float _landedAt;
         private float _embeddedRotation;
         private bool _embedded;
@@ -35,37 +38,32 @@ namespace Game50033
 
         internal bool IsEmbedded => _embedded;
 
-        internal void Launch(Boss3Controller owner, Vector3 origin, Vector3 landing, float speed)
+        internal void Launch(Boss3Controller owner, Vector3 origin, Vector3 landing, float speed, float releaseHeight,
+            float impactRadius, MeshFilter marker, float lockedAt, float flashDuration, float flashIntensity)
         {
             _owner = owner;
             _origin = origin;
             _landing = landing;
             var offset = landing - origin;
-            _length = offset.magnitude;
-            _direction = _length > 0.0001f ? offset / _length : Vector3.forward;
+            var horizontalDistance = offset.magnitude;
+            _direction = horizontalDistance > 0.0001f ? offset / horizontalDistance : Vector3.forward;
+            _length = Mathf.Sqrt(horizontalDistance * horizontalDistance + releaseHeight * releaseHeight);
             _distance = 0f;
             _speed = speed;
+            _releaseHeight = releaseHeight;
             _embedded = false;
             _launchSequence++;
-            _pathContacts.Clear();
-            _damaged.Clear();
+            _impactRadius = impactRadius;
+            _landingMarker = marker;
+            _landingMarker.transform.SetParent(null, true);
+            _lockedAt = lockedAt;
+            _flashDuration = flashDuration;
+            _flashIntensity = flashIntensity;
+            _flashingOutline = Time.time - lockedAt < flashDuration ? marker.GetComponentInChildren<LineRenderer>() : null;
 
             if (_properties == null)
             {
                 _properties = new MaterialPropertyBlock();
-                var marker = new GameObject("Landing Circle") { layer = gameObject.layer };
-                marker.transform.SetParent(transform, false);
-                _landingMarker = marker.AddComponent<LineRenderer>();
-                _landingMarker.sharedMaterial = lightningMaterial;
-                _landingMarker.shadowCastingMode = ShadowCastingMode.Off;
-                _landingMarker.receiveShadows = false;
-                _landingMarker.alignment = LineAlignment.TransformZ;
-                _landingMarker.loop = true;
-                _landingMarker.positionCount = 32;
-                _properties.Clear();
-                _properties.SetFloat(TelegraphId, 1f);
-                _landingMarker.SetPropertyBlock(_properties);
-
                 for (var i = 0; i < _sparks.Length; i++)
                 {
                     var spark = new GameObject("Impact Arc") { layer = gameObject.layer };
@@ -81,10 +79,10 @@ namespace Game50033
 
             foreach (var arc in _sparks) arc.enabled = false;
             transform.SetPositionAndRotation(origin, Quaternion.LookRotation(_direction));
-            blade.transform.localPosition = Vector3.up * ReleaseHeight;
+            blade.transform.localPosition = Vector3.up * _releaseHeight;
             var camera = Camera.main;
             var view = camera ? camera.transform : null;
-            var flight = offset - Vector3.up * ReleaseHeight;
+            var flight = offset - Vector3.up * _releaseHeight;
             var screenX = view ? Vector3.Dot(flight, view.right) : flight.x;
             var screenY = view ? Vector3.Dot(flight, view.up) : flight.y;
             var flightAngle = Mathf.Atan2(screenY, screenX) * Mathf.Rad2Deg;
@@ -93,17 +91,6 @@ namespace Game50033
             _properties.SetFloat(SpriteFlatDepthId, 2f);
             _properties.SetFloat(SpriteRotationId, flightAngle - AuthoredBladeAngle);
             blade.SetPropertyBlock(_properties);
-            // keep the blast marked while the knife is in flight.
-            _landingMarker.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-            _landingMarker.widthMultiplier = 0.10f;
-            var markerRadius = Mathf.Max(0f, owner.Tuning.knifeBlastRadius - _landingMarker.widthMultiplier * 0.5f);
-            for (var i = 0; i < _landingMarker.positionCount; i++)
-            {
-                var angle = i * (2f * Mathf.PI / _landingMarker.positionCount);
-                var radial = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
-                _landingMarker.SetPosition(i, landing + Vector3.up * 0.01f + radial * markerRadius);
-            }
-            _landingMarker.enabled = true;
             gameObject.SetActive(true);
         }
 
@@ -112,49 +99,35 @@ namespace Game50033
             if (!_owner || !_owner.isActiveAndEnabled || _owner.IsDefeated || _embedded) return;
 
             var tuning = _owner.Tuning;
-            var nextDistance = Mathf.Min(_length, _distance + _speed * Time.fixedDeltaTime);
-            var landed = nextDistance >= _length;
+            _distance = Mathf.Min(_length, _distance + _speed * Time.fixedDeltaTime);
+            var progress = _length > 0f ? _distance / _length : 1f;
+            transform.position = Vector3.Lerp(_origin, _landing, progress);
+            if (progress < 1f)
+            {
+                blade.transform.localPosition = Vector3.up * (_releaseHeight * (1f - progress));
+                return;
+            }
+
+            _embedded = true;
+            _landedAt = Time.time;
+            ClearLandingMarker();
+
             var targets = _owner.Targets;
             for (var i = targets.Count - 1; i >= 0; i--)
             {
                 if (i >= targets.Count) continue;
                 var player = targets[i];
                 if (!player || !player.isActiveAndEnabled || player.Health.IsDowned
-                    || _damaged.Contains(player) || !player.Hurtbox || !player.Hurtbox.IsAvailable) continue;
+                    || !player.Hurtbox || !player.Hurtbox.IsAvailable) continue;
                 player.Hurtbox.GetWorldCapsule(out var bottom, out _, out var playerRadius);
-                bottom.y = _origin.y;
-
-                // overlap the ground-plane combat capsule against the rectangular portion crossed this step.
-                var offset = bottom - _origin;
-                var along = Vector3.Dot(offset, _direction);
-                var beside = (offset - _direction * along).magnitude;
-                var endGap = along - Mathf.Clamp(along, _distance, nextDistance);
-                var sideGap = Mathf.Max(0f, beside - tuning.knifeLaneWidth * 0.5f);
-                if (_length > 0.0001f && endGap * endGap + sideGap * sideGap <= playerRadius * playerRadius
-                    && _pathContacts.Add(player) && player.Health.TryTakeDamage(tuning.knifeThrowDamage, -_direction, _owner))
-                {
-                    _damaged.Add(player);
-                    continue;
-                }
-
+                bottom.y = _landing.y;
                 var fromImpact = bottom - _landing;
-                var blastReach = tuning.knifeBlastRadius + playerRadius;
-                if (landed && fromImpact.sqrMagnitude <= blastReach * blastReach
-                    && player.Health.TryTakeDamage(tuning.knifeBlastDamage, -fromImpact.normalized, _owner))
-                    _damaged.Add(player);
+                var blastReach = _impactRadius + playerRadius;
+                if (fromImpact.sqrMagnitude <= blastReach * blastReach)
+                    player.Health.TryTakeDamage(tuning.knifeBlastDamage, -fromImpact.normalized, _owner);
+                if (!_embedded) return;
             }
 
-            _distance = nextDistance;
-            transform.position = landed ? _landing : _origin + _direction * _distance;
-            if (!landed)
-            {
-                blade.transform.localPosition = Vector3.up * (ReleaseHeight * (1f - _distance / _length));
-                return;
-            }
-
-            _embedded = true;
-            _landedAt = Time.time;
-            _landingMarker.enabled = false;
             // the source sprite's pivot is at the tip, so planting it only changes the visual height and angle.
             blade.transform.localPosition = Vector3.zero;
             _properties.Clear();
@@ -171,10 +144,10 @@ namespace Game50033
                 var angle = turn + (i + (float)random.NextDouble() * 0.5f) * (360f / _sparks.Length);
                 var bearing = Quaternion.Euler(0f, angle, 0f) * Vector3.forward;
                 var lateral = Vector3.Cross(Vector3.up, bearing);
-                var reach = tuning.knifeBlastRadius * Mathf.Lerp(0.58f, 1f, (float)random.NextDouble());
+                var reach = _impactRadius * Mathf.Lerp(0.58f, 1f, (float)random.NextDouble());
                 var bend = Mathf.Lerp(-0.28f, 0.28f, (float)random.NextDouble());
                 var spark = _sparks[i];
-                spark.widthMultiplier = tuning.knifeBlastRadius * (i % 2 == 0 ? 0.27f : 0.16f);
+                spark.widthMultiplier = _impactRadius * (i % 2 == 0 ? 0.27f : 0.16f);
                 spark.SetPosition(0, sparkOrigin + bearing * (reach * 0.13f));
                 spark.SetPosition(1, sparkOrigin + (bearing * 0.6f + lateral * bend) * reach + Vector3.up * 0.12f);
                 spark.SetPosition(2, sparkOrigin + bearing * reach);
@@ -194,7 +167,18 @@ namespace Game50033
                 _owner.ReturnKnife(this);
                 return;
             }
-            if (!_embedded) return;
+            if (!_embedded)
+            {
+                if (_flashingOutline)
+                {
+                    var elapsed = Time.time - _lockedAt;
+                    _flashingOutline.GetPropertyBlock(_properties);
+                    _properties.SetVector(TelegraphColorId, EvaluateLockOutlineColor(elapsed, _flashDuration, _flashIntensity));
+                    _flashingOutline.SetPropertyBlock(_properties);
+                    if (elapsed >= _flashDuration) _flashingOutline = null;
+                }
+                return;
+            }
 
             var age = Time.time - _landedAt;
             var tuning = _owner.Tuning;
@@ -215,11 +199,27 @@ namespace Game50033
             }
         }
 
+        private void ClearLandingMarker()
+        {
+            _flashingOutline = null;
+            if (!_landingMarker) return;
+            _landingMarker.gameObject.SetActive(false);
+            Destroy(_landingMarker.sharedMesh);
+            Destroy(_landingMarker.gameObject);
+            _landingMarker = null;
+        }
+
+        internal static Vector4 EvaluateLockOutlineColor(float elapsed, float duration, float intensity)
+        {
+            var flash = 1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+            var red = Mathf.Lerp(2.55f, intensity, flash);
+            return new Vector4(red, red * Mathf.Lerp(0.05f, 0.46f, flash), red * Mathf.Lerp(0.07f, 0.34f, flash), 0.98f);
+        }
+
         private void OnDisable()
         {
             _embedded = false;
-            _pathContacts.Clear();
-            _damaged.Clear();
+            ClearLandingMarker();
         }
     }
 }

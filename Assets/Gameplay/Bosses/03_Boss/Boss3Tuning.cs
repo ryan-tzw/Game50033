@@ -78,17 +78,34 @@ namespace Game50033
         [Min(0.01f)] public float spiralTrailWidth = 0.56f;
 
         [Header("Electric Knives")]
-        [Range(1, 8)] public int knifeThrowCount = 6;
-        [Min(1)] public int knifeThrowDamage = 1;
         [Min(1)] public int knifeBlastDamage = 1;
-        [Min(0.01f)] public float knifeLaneWidth = 0.55f;
         [Min(0.01f)] public float knifeBlastRadius = 0.62f;
         [Min(0.01f)] public float knifeSpeed = 14f;
         [Min(0.01f)] public float knifeThrowRadius = 4.25f;
-        [Min(0.01f)] public float knifeTelegraphDuration = 0.6f;
         [Min(0f)] public float knifeRecoveryDuration = 0.55f;
         [Min(0.01f)] public float knifeImpactDuration = 0.22f;
         [Min(0.01f)] public float knifeAnchorLifetime = 12f;
-        [Range(1, 24)] public int knifeMaxActive = 12;
+        [Range(ElectricKnivesAttack.KnivesPerCast, 24)] public int knifeMaxActive = 12;
+
+        [Header("Electric Knives Targeting")]
+        [Min(0.01f)] public float knifeTargetingDuration = 0.75f;
+        [Min(0.01f)] public float knifeLockReactionDuration = 0.30f;
+        [Tooltip("Pulse frequency at the start and end of tracking, in Hz.")]
+        public Vector2 knifeTrackingPulseHz = new(2f, 7f);
+        [Tooltip("Starting radius of the closing ring relative to the damage circle. The ring closes onto the damage radius at lock-on.")]
+        [Min(1f)] public float knifeLockOutlineStartScale = 1.6f;
+        [Min(3.9f)] public float knifeLockFlashIntensity = 5.5f;
+        [Min(0.01f)] public float knifeLockFlashDuration = 0.12f;
+        [Range(0f, 45f)] public float knifeAngularVariation = 15f;
+        [Range(0f, 1f)] public float knifeRadiusVariation = 0.20f;
+
+        [Header("Electric Knives Jump")]
+        [Min(0f)] public float knifeJumpHeight = 0.82f;
+        [Min(0.01f)] public float knifeRiseDuration = 0.10f;
+        [Tooltip("Fraction of the pre-release apex spent on frame 02.")]
+        [Range(0f, 1f)] public float knifeFrame02HoldFraction = 2f / 3f;
+        [Range(0f, 1f)] public float knifeApexDriftFraction = 0.08f;
+        [Min(0.01f)] public float knifePostReleaseHold = 0.36f;
+        [Min(0.01f)] public float knifeDropDuration = 0.18f;
     }
 }

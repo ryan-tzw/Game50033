@@ -21,6 +21,7 @@ namespace Game50033
 
         [SerializeField] private Boss3Tuning tuning;
         [SerializeField] private BoxCollider arenaFloor;
+        [SerializeField] private SpriteRenderer kunaiOverlay;
 
         private Animator _batonAnimator;
         private bool _chargingBaton;
@@ -38,6 +39,7 @@ namespace Game50033
 
         internal Boss3Tuning Tuning => tuning;
         internal BoxCollider ArenaFloor => arenaFloor;
+        internal SpriteRenderer KunaiOverlay => kunaiOverlay;
         internal BouncingArcAttack ActiveArc { get; set; }
         internal HomingSparkAttack ActiveSparkAttack { get; set; }
         internal SpiralSurgeAttack ActiveSpiralSurge { get; set; }
@@ -109,6 +111,7 @@ namespace Game50033
 
         private void LateUpdate()
         {
+            if (kunaiOverlay && kunaiOverlay.sprite) kunaiOverlay.flipX = _sr.flipX;
             if (!_spiralWindupActive) return;
             // apply the lift after the Animator writes its pose. the boss root and collider stay on the ground.
             var sprite = _batonAnimator.transform;
@@ -285,7 +288,8 @@ namespace Game50033
             ClearKnives();
         }
 
-        internal void LaunchKnife(ElectricKnifeProjectile prefab, Vector3 origin, Vector3 landing, float speed)
+        internal void LaunchKnife(ElectricKnifeProjectile prefab, Vector3 origin, Vector3 landing, float speed, float releaseHeight,
+            float impactRadius, MeshFilter warning, float lockedAt, float flashDuration, float flashIntensity)
         {
             _knifePool ??= new ObjectPool<ElectricKnifeProjectile>(
                 () => Instantiate(prefab, transform),
@@ -301,7 +305,7 @@ namespace Game50033
             var projectile = _knifePool.Get();
             _activeKnives.Add(projectile);
             projectile.transform.SetParent(null, true);
-            projectile.Launch(this, origin, landing, speed);
+            projectile.Launch(this, origin, landing, speed, releaseHeight, impactRadius, warning, lockedAt, flashDuration, flashIntensity);
         }
 
         internal void KnifeEmbedded()
@@ -310,7 +314,7 @@ namespace Game50033
             for (var i = _activeKnives.Count - 1; i >= 0; i--)
             {
                 var knife = _activeKnives[i];
-                if (knife.IsEmbedded && ++count > Mathf.Max(1, tuning.knifeMaxActive))
+                if (knife.IsEmbedded && ++count > Mathf.Max(ElectricKnivesAttack.KnivesPerCast, tuning.knifeMaxActive))
                     ReturnKnife(knife);
             }
         }
