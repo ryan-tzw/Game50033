@@ -103,7 +103,6 @@ namespace Game50033
             _running = true;
             _startedAt = Time.time;
             _bot.ActiveArc = this;
-            _bot.FaceArc(_points[1].x - _points[0].x);
             _line.widthMultiplier = _tuning.beamWidth;
             DrawPath(_beamLength, telegraph: true, opacity: 1f);
         }

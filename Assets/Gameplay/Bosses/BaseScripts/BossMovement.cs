@@ -23,6 +23,8 @@ namespace Game50033
         public bool IsMoving => (_rb.linearVelocity.sqrMagnitude > 0.01f) ? true : false;
         public bool InRange = false;
         public bool FlipX => _sr.flipX;
+        internal Player FollowTarget => _followTarget;
+        internal bool UpdatesFacing { get; set; } = true;
 
         public bool movingToCenter = false;
 
@@ -152,7 +154,7 @@ namespace Game50033
         private void FaceDirection(float x)
         {
             // if (IsAttacking) return;
-            if (Mathf.Abs(x) < 0.01f) return;
+            if (!UpdatesFacing || Mathf.Abs(x) < 0.01f) return;
 
             bool faceLeft = x < 0f;
             _sr.flipX = !faceLeft;
@@ -160,11 +162,7 @@ namespace Game50033
 
         public void FaceTowards(Vector3 position)
         {
-            float x = position.x - _rb.position.x;
-            if (Mathf.Abs(x) < 0.01f) return;
-
-            bool faceLeft = x < 0f;
-            _sr.flipX = !faceLeft;
+            FaceDirection(position.x - _rb.position.x);
         }
 
     }

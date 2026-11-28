@@ -26,20 +26,21 @@ namespace Game50033
 
         protected override void InitializeHealth()
         {
+            Movement.UpdatesFacing = false;
             Health.Initialize(BossTotalPhases, tuning.maxHealth, Mathf.Clamp(tuning.phaseTwoHealth, 0f, tuning.maxHealth));
             Defeated += HandleDefeat;
         }
 
         protected override void Update()
         {
-            var velocityX = _rb.linearVelocity.x;
-            if (!Attacks.IsAttacking && Mathf.Abs(velocityX) > 0.01f) FaceArc(velocityX);
+            var target = Movement.FollowTarget;
+            if (!Attacks.IsAttacking && target && target.isActiveAndEnabled && !target.Health.IsDowned)
+            {
+                var toTargetX = target.transform.position.x - transform.position.x;
+                if (Mathf.Abs(toTargetX) > 0.01f) _sr.flipX = toTargetX < 0f;
+            }
+            // choose facing before the shared update can start the next cast.
             base.Update();
-        }
-
-        internal void FaceArc(float x)
-        {
-            if (Mathf.Abs(x) > 0.01f) _sr.flipX = x < 0f;
         }
 
         protected override void HandlePhaseChange(int phaseNumber)

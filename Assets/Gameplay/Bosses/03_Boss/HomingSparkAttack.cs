@@ -50,7 +50,6 @@ namespace Game50033
             for (var i = 0; i < _warnings.Length; i++)
                 _warnings[i] = CreateRing("Spark Target Warning");
             _chargeRing = CreateRing("Spark Charge");
-            _bot.FaceArc(_targets[0].transform.position.x - _bot.transform.position.x);
             Update();
         }
 
@@ -73,7 +72,6 @@ namespace Game50033
                 foreach (var target in _targets)
                 {
                     if (!HomingSparkProjectile.CanTrack(target)) continue;
-                    if (!fired) _bot.FaceArc(target.transform.position.x - origin.x);
                     fired = true;
                     _bot.LaunchSpark(projectilePrefab, target, origin, _speed);
                 }

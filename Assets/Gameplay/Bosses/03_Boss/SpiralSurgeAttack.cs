@@ -64,7 +64,6 @@ namespace Game50033
         {
             _running = true;
             _bot.ActiveSpiralSurge = this;
-            _bot.FaceArc(_firstDirection.x);
             _nextShotAt = Time.time + windUpTime;
 
             _initialLane = CreateWarning("Spiral First Shot", 2, _bot.Tuning.spiralRadius * 2f);
@@ -119,7 +118,6 @@ namespace Game50033
 
             var tuning = _bot.Tuning;
             var direction = Quaternion.AngleAxis(_shotsFired * tuning.spiralDegreesPerShot, Vector3.up) * _firstDirection;
-            _bot.FaceArc(direction.x);
             _bot.LaunchSpiralBolt(projectilePrefab, _origin, direction, _speed);
             _shotsFired++;
             if (_shotsFired >= _shotCount)
