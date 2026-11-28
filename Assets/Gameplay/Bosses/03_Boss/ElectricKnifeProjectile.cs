@@ -29,7 +29,7 @@ namespace Game50033
         private float _flashDuration;
         private float _flashIntensity;
         private float _landedAt;
-        private float _embeddedRotation;
+        private bool _embeddedFlipX;
         private bool _embedded;
 
         internal bool IsEmbedded => _embedded;
@@ -59,13 +59,15 @@ namespace Game50033
             _properties ??= new MaterialPropertyBlock();
             transform.SetPositionAndRotation(origin, Quaternion.LookRotation(_direction));
             blade.transform.localPosition = Vector3.up * _releaseHeight;
+            blade.transform.localRotation = Quaternion.identity;
+            blade.flipX = false;
             var camera = Camera.main;
             var view = camera ? camera.transform : null;
             var flight = offset - Vector3.up * _releaseHeight;
             var screenX = view ? Vector3.Dot(flight, view.right) : flight.x;
             var screenY = view ? Vector3.Dot(flight, view.up) : flight.y;
             var flightAngle = Mathf.Atan2(screenY, screenX) * Mathf.Rad2Deg;
-            _embeddedRotation = screenX >= 0f ? 0f : -180f - 2f * AuthoredBladeAngle;
+            _embeddedFlipX = screenX < 0f;
             _properties.Clear();
             _properties.SetFloat(SpriteFlatDepthId, 2f);
             _properties.SetFloat(SpriteRotationId, flightAngle - AuthoredBladeAngle);
@@ -107,11 +109,13 @@ namespace Game50033
                 if (!_embedded) return;
             }
 
-            // the source sprite's pivot is at the tip, so planting it only changes the visual height and angle.
-            blade.transform.localPosition = Vector3.zero;
+            // the blade's pivot is at the tip. plant it on the floor below the raised landing marker.
+            blade.transform.SetPositionAndRotation(
+                new Vector3(_landing.x, _owner.ArenaFloor.bounds.max.y, _landing.z), Quaternion.identity);
+            // the upright mesh and the billboard use the same flip, so the shadow follows the blade.
+            blade.flipX = _embeddedFlipX;
             _properties.Clear();
             _properties.SetFloat(SpriteFlatDepthId, 2f);
-            _properties.SetFloat(SpriteRotationId, _embeddedRotation);
             blade.SetPropertyBlock(_properties);
 
             _owner.PlayElectricalImpact(_landing, lightningMaterial, tuning.knifeImpact, _impactRadius);
