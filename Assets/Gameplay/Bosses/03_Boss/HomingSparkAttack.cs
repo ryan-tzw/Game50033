@@ -7,7 +7,6 @@ namespace Game50033
     public sealed class HomingSparkAttack : BaseBossAttack
     {
         private static readonly int TelegraphId = Shader.PropertyToID("_Telegraph");
-        private static readonly int ShootId = Animator.StringToHash("Attack");
         private const int RingSegments = 32;
 
         [SerializeField] private HomingSparkProjectile projectilePrefab;
@@ -45,6 +44,7 @@ namespace Game50033
         {
             _running = true;
             _bot.ActiveSparkAttack = this;
+            _bot.BeginBatonWindup(windUpTime);
             _nextReleaseAt = Time.time + windUpTime;
             _warnings = new LineRenderer[_targets.Count];
             for (var i = 0; i < _warnings.Length; i++)
@@ -75,7 +75,7 @@ namespace Game50033
                     fired = true;
                     _bot.LaunchSpark(projectilePrefab, target, origin, _speed);
                 }
-                if (fired) _bot.PlayAnimationTrigger(ShootId);
+                if (fired) _bot.SlashBaton();
                 Cancel();
                 return;
             }
@@ -132,7 +132,11 @@ namespace Game50033
             _running = false;
             foreach (var warning in _warnings) warning.enabled = false;
             if (_chargeRing != null) _chargeRing.enabled = false;
-            if (_bot != null && _bot.ActiveSparkAttack == this) _bot.ActiveSparkAttack = null;
+            if (_bot && _bot.ActiveSparkAttack == this)
+            {
+                _bot.EndBatonCharge();
+                _bot.ActiveSparkAttack = null;
+            }
             NotifyBossControlReleased();
         }
     }

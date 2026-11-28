@@ -51,10 +51,25 @@ namespace Game50033
         [Min(0.05f)] public float spiralLifetime = 3f;
         [Min(0.05f)] public float spiralShotInterval = 0.14f;
         [Range(1f, 180f)] public float spiralDegreesPerShot = 32f;
-        [Min(0.05f)] public float spiralTelegraphDuration = 1f;
+        [Min(0.05f)] public float spiralTelegraphDuration = 1.35f;
+        [Min(0.05f)] public float spiralBoltWarningLead = 0.4f;
         [Min(0f)] public float spiralRecoveryDuration = 0.65f;
+        [Min(1)] public int spiralLandingDamage = 1;
+        [Min(0.1f)] public float spiralLandingRadius = 1.4f;
+
+        [Header("Spiral Surge Jump")]
+        [Min(0f)] public float spiralJumpHeight = 0.82f;
+        [Min(0f)] public float spiralTakeoffDelay = 0.15f;
+        [Min(0.01f)] public float spiralRiseDuration = 0.05f;
+        [Min(0f)] public float spiralApexHoldDuration = 0.65f;
+        [Min(0.01f)] public float spiralDropDuration = 0.05f;
 
         [Header("Spiral Surge VFX")]
+        [Min(0.01f)] public float spiralLandingBurstDuration = 0.30f;
+        [Min(0f)] public float spiralLandingFlashIntensity = 4.5f;
+        [Min(0.1f)] public float spiralLandingSparkReach = 1.45f;
+        public Vector2 spiralWarningGlow = new(1.7f, 3.4f);
+        [Min(0f)] public float spiralWarningPulseHz = 3.6f;
         [Min(0.01f)] public float spiralBoltLength = 0.74f;
         [Min(0.01f)] public float spiralBoltWidth = 0.12f;
         [Min(0.01f)] public float spiralImpactDuration = 0.2f;

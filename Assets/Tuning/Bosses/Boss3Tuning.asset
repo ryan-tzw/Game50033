@@ -45,8 +45,21 @@ MonoBehaviour:
   spiralLifetime: 3
   spiralShotInterval: 0.14
   spiralDegreesPerShot: 32
-  spiralTelegraphDuration: 1
+  spiralTelegraphDuration: 1.35
+  spiralBoltWarningLead: 0.4
   spiralRecoveryDuration: 0.65
+  spiralLandingDamage: 1
+  spiralLandingRadius: 1.4
+  spiralJumpHeight: 0.82
+  spiralTakeoffDelay: 0.15
+  spiralRiseDuration: 0.05
+  spiralApexHoldDuration: 0.65
+  spiralDropDuration: 0.05
+  spiralLandingBurstDuration: 0.3
+  spiralLandingFlashIntensity: 4.5
+  spiralLandingSparkReach: 1.45
+  spiralWarningGlow: {x: 1.7, y: 3.4}
+  spiralWarningPulseHz: 3.6
   spiralBoltLength: 0.86
   spiralBoltWidth: 0.16
   spiralImpactDuration: 0.2

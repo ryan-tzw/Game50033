@@ -8,7 +8,6 @@ namespace Game50033
     {
         private static readonly int TelegraphId = Shader.PropertyToID("_Telegraph");
         private static readonly int FadeId = Shader.PropertyToID("_Fade");
-        private static readonly int AttackAnimation = Animator.StringToHash("Attack");
         private const float EdgeInset = 0.001f;
 
         private readonly List<Vector3> _points = new(14);
@@ -103,6 +102,7 @@ namespace Game50033
             _running = true;
             _startedAt = Time.time;
             _bot.ActiveArc = this;
+            _bot.BeginBatonWindup(windUpTime);
             _line.widthMultiplier = _tuning.beamWidth;
             DrawPath(_beamLength, telegraph: true, opacity: 1f);
         }
@@ -121,7 +121,7 @@ namespace Game50033
             if (!_fired)
             {
                 _fired = true;
-                _bot.PlayAnimationTrigger(AttackAnimation);
+                _bot.SlashBaton();
             }
 
             var head = Mathf.Min(elapsed * _tuning.beamSpeed, _beamLength);
@@ -239,7 +239,11 @@ namespace Game50033
             _line.enabled = false;
             foreach (var flash in _sideFlashes)
                 if (flash) flash.enabled = false;
-            if (_bot && _bot.ActiveArc == this) _bot.ActiveArc = null;
+            if (_bot && _bot.ActiveArc == this)
+            {
+                _bot.EndBatonCharge();
+                _bot.ActiveArc = null;
+            }
             NotifyBossControlReleased();
         }
     }
