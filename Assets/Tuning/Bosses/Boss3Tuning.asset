@@ -53,3 +53,15 @@ MonoBehaviour:
   spiralImpactReach: 0.66
   spiralTrailDuration: 0.25
   spiralTrailWidth: 0.56
+  knifeThrowCount: 6
+  knifeThrowDamage: 1
+  knifeBlastDamage: 1
+  knifeLaneWidth: 0.55
+  knifeBlastRadius: 0.62
+  knifeSpeed: 14
+  knifeThrowRadius: 4.25
+  knifeTelegraphDuration: 0.6
+  knifeRecoveryDuration: 0.55
+  knifeImpactDuration: 0.22
+  knifeAnchorLifetime: 12
+  knifeMaxActive: 12

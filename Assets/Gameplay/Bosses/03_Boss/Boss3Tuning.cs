@@ -61,5 +61,19 @@ namespace Game50033
         [Min(0.01f)] public float spiralImpactReach = 0.58f;
         [Min(0.01f)] public float spiralTrailDuration = 0.25f;
         [Min(0.01f)] public float spiralTrailWidth = 0.56f;
+
+        [Header("Electric Knives")]
+        [Range(1, 8)] public int knifeThrowCount = 6;
+        [Min(1)] public int knifeThrowDamage = 1;
+        [Min(1)] public int knifeBlastDamage = 1;
+        [Min(0.01f)] public float knifeLaneWidth = 0.55f;
+        [Min(0.01f)] public float knifeBlastRadius = 0.62f;
+        [Min(0.01f)] public float knifeSpeed = 14f;
+        [Min(0.01f)] public float knifeThrowRadius = 4.25f;
+        [Min(0.01f)] public float knifeTelegraphDuration = 0.6f;
+        [Min(0f)] public float knifeRecoveryDuration = 0.55f;
+        [Min(0.01f)] public float knifeImpactDuration = 0.22f;
+        [Min(0.01f)] public float knifeAnchorLifetime = 12f;
+        [Range(1, 24)] public int knifeMaxActive = 12;
     }
 }

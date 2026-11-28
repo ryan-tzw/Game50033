@@ -13,12 +13,15 @@ namespace Game50033
         private ObjectPool<HomingSparkProjectile> _sparkPool;
         private readonly List<SpiralSurgeProjectile> _activeSpiralBolts = new(24);
         private ObjectPool<SpiralSurgeProjectile> _spiralPool;
+        private readonly List<ElectricKnifeProjectile> _activeKnives = new(8);
+        private ObjectPool<ElectricKnifeProjectile> _knifePool;
 
         internal Boss3Tuning Tuning => tuning;
         internal BoxCollider ArenaFloor => arenaFloor;
         internal BouncingArcAttack ActiveArc { get; set; }
         internal HomingSparkAttack ActiveSparkAttack { get; set; }
         internal SpiralSurgeAttack ActiveSpiralSurge { get; set; }
+        internal ElectricKnivesAttack ActiveElectricKnives { get; set; }
         protected override bool PlayAttackAnimationOnStart => false;
 
         protected override void InitializeHealth()
@@ -44,8 +47,10 @@ namespace Game50033
             if (ActiveArc != null) ActiveArc.Cancel();
             if (ActiveSparkAttack != null) ActiveSparkAttack.Cancel();
             if (ActiveSpiralSurge != null) ActiveSpiralSurge.Cancel();
+            if (ActiveElectricKnives != null) ActiveElectricKnives.Cancel();
             ClearSparks();
             ClearSpiralBolts();
+            ClearKnives();
             Attacks.SetPhase(phaseNumber);
         }
 
@@ -115,6 +120,49 @@ namespace Game50033
         {
             ClearSparks();
             ClearSpiralBolts();
+            ClearKnives();
+        }
+
+        internal void LaunchKnife(ElectricKnifeProjectile prefab, Vector3 origin, Vector3 landing, float speed)
+        {
+            _knifePool ??= new ObjectPool<ElectricKnifeProjectile>(
+                () => Instantiate(prefab, transform),
+                actionOnRelease: knife =>
+                {
+                    knife.gameObject.SetActive(false);
+                    knife.transform.SetParent(transform, false);
+                },
+                actionOnDestroy: knife => { if (knife != null) Destroy(knife.gameObject); },
+                defaultCapacity: 8,
+                maxSize: 24);
+
+            var projectile = _knifePool.Get();
+            _activeKnives.Add(projectile);
+            projectile.transform.SetParent(null, true);
+            projectile.Launch(this, origin, landing, speed);
+        }
+
+        internal void KnifeEmbedded()
+        {
+            var count = 0;
+            for (var i = _activeKnives.Count - 1; i >= 0; i--)
+            {
+                var knife = _activeKnives[i];
+                if (knife.IsEmbedded && ++count > Mathf.Max(1, tuning.knifeMaxActive))
+                    ReturnKnife(knife);
+            }
+        }
+
+        internal void ReturnKnife(ElectricKnifeProjectile knife)
+        {
+            if (_activeKnives.Remove(knife))
+                _knifePool.Release(knife);
+        }
+
+        private void ClearKnives()
+        {
+            for (var i = _activeKnives.Count - 1; i >= 0; i--)
+                ReturnKnife(_activeKnives[i]);
         }
 
         private void OnDestroy()
@@ -125,6 +173,9 @@ namespace Game50033
             foreach (var bolt in _activeSpiralBolts)
                 if (bolt != null) Destroy(bolt.gameObject);
             _spiralPool?.Clear();
+            foreach (var knife in _activeKnives)
+                if (knife != null) Destroy(knife.gameObject);
+            _knifePool?.Clear();
         }
     }
 }
