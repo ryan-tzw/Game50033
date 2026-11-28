@@ -1,11 +1,9 @@
 namespace Game50033
 {
     using UnityEngine;
-    using UnityEngine.Rendering;
 
     public sealed class ElectricKnifeProjectile : MonoBehaviour
     {
-        private static readonly int FadeId = Shader.PropertyToID("_Fade");
         private static readonly int TelegraphColorId = Shader.PropertyToID("_TelegraphColor");
         private static readonly int SpriteRotationId = Shader.PropertyToID("_SpriteRotation");
         private static readonly int SpriteFlatDepthId = Shader.PropertyToID("_SpriteFlatDepth");
@@ -15,7 +13,6 @@ namespace Game50033
         [SerializeField] private SpriteRenderer blade;
         [SerializeField] private Material lightningMaterial;
 
-        private readonly LineRenderer[] _sparks = new LineRenderer[6];
         private MaterialPropertyBlock _properties;
         private MeshFilter _landingMarker;
         private LineRenderer _flashingOutline;
@@ -34,7 +31,6 @@ namespace Game50033
         private float _landedAt;
         private float _embeddedRotation;
         private bool _embedded;
-        private uint _launchSequence;
 
         internal bool IsEmbedded => _embedded;
 
@@ -52,7 +48,6 @@ namespace Game50033
             _speed = speed;
             _releaseHeight = releaseHeight;
             _embedded = false;
-            _launchSequence++;
             _impactRadius = impactRadius;
             _landingMarker = marker;
             _landingMarker.transform.SetParent(null, true);
@@ -61,23 +56,7 @@ namespace Game50033
             _flashIntensity = flashIntensity;
             _flashingOutline = Time.time - lockedAt < flashDuration ? marker.GetComponentInChildren<LineRenderer>() : null;
 
-            if (_properties == null)
-            {
-                _properties = new MaterialPropertyBlock();
-                for (var i = 0; i < _sparks.Length; i++)
-                {
-                    var spark = new GameObject("Impact Arc") { layer = gameObject.layer };
-                    spark.transform.SetParent(transform, false);
-                    var arc = spark.AddComponent<LineRenderer>();
-                    arc.sharedMaterial = lightningMaterial;
-                    arc.shadowCastingMode = ShadowCastingMode.Off;
-                    arc.receiveShadows = false;
-                    arc.positionCount = 3;
-                    _sparks[i] = arc;
-                }
-            }
-
-            foreach (var arc in _sparks) arc.enabled = false;
+            _properties ??= new MaterialPropertyBlock();
             transform.SetPositionAndRotation(origin, Quaternion.LookRotation(_direction));
             blade.transform.localPosition = Vector3.up * _releaseHeight;
             var camera = Camera.main;
@@ -135,27 +114,7 @@ namespace Game50033
             _properties.SetFloat(SpriteRotationId, _embeddedRotation);
             blade.SetPropertyBlock(_properties);
 
-            // use a per-throw seed so cosmetic variation never changes the attack deck's randomness.
-            var random = new System.Random(unchecked(GetInstanceID() * 397 ^ (int)_launchSequence));
-            var turn = (float)random.NextDouble() * 360f;
-            var sparkOrigin = _landing + Vector3.up * 0.10f;
-            for (var i = 0; i < _sparks.Length; i++)
-            {
-                var angle = turn + (i + (float)random.NextDouble() * 0.5f) * (360f / _sparks.Length);
-                var bearing = Quaternion.Euler(0f, angle, 0f) * Vector3.forward;
-                var lateral = Vector3.Cross(Vector3.up, bearing);
-                var reach = _impactRadius * Mathf.Lerp(0.58f, 1f, (float)random.NextDouble());
-                var bend = Mathf.Lerp(-0.28f, 0.28f, (float)random.NextDouble());
-                var spark = _sparks[i];
-                spark.widthMultiplier = _impactRadius * (i % 2 == 0 ? 0.27f : 0.16f);
-                spark.SetPosition(0, sparkOrigin + bearing * (reach * 0.13f));
-                spark.SetPosition(1, sparkOrigin + (bearing * 0.6f + lateral * bend) * reach + Vector3.up * 0.12f);
-                spark.SetPosition(2, sparkOrigin + bearing * reach);
-                _properties.Clear();
-                _properties.SetFloat(FadeId, 1f);
-                spark.SetPropertyBlock(_properties);
-                spark.enabled = true;
-            }
+            _owner.PlayElectricalImpact(_landing, lightningMaterial, tuning.knifeImpact, _impactRadius);
             _owner.KnifeEmbedded();
         }
 
@@ -180,23 +139,8 @@ namespace Game50033
                 return;
             }
 
-            var age = Time.time - _landedAt;
-            var tuning = _owner.Tuning;
-            if (age >= Mathf.Max(tuning.knifeAnchorLifetime, tuning.knifeImpactDuration))
-            {
+            if (Time.time - _landedAt >= _owner.Tuning.knifeAnchorLifetime)
                 _owner.ReturnKnife(this);
-                return;
-            }
-            if (!_sparks[0].enabled) return;
-
-            var fade = 1f - Mathf.Clamp01(age / tuning.knifeImpactDuration);
-            _properties.Clear();
-            _properties.SetFloat(FadeId, fade * fade);
-            foreach (var spark in _sparks)
-            {
-                spark.SetPropertyBlock(_properties);
-                spark.enabled = fade > 0f;
-            }
         }
 
         private void ClearLandingMarker()

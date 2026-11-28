@@ -37,6 +37,9 @@ namespace Game50033
         private readonly List<ElectricKnifeProjectile> _activeKnives = new(8);
         private ObjectPool<ElectricKnifeProjectile> _knifePool;
 
+        private readonly List<ElectricalImpactVFX> _activeImpacts = new(16);
+        private ObjectPool<ElectricalImpactVFX> _impactPool;
+
         internal Boss3Tuning Tuning => tuning;
         internal BoxCollider ArenaFloor => arenaFloor;
         internal SpriteRenderer KunaiOverlay => kunaiOverlay;
@@ -216,6 +219,7 @@ namespace Game50033
             ClearSparks();
             ClearSpiralBolts();
             ClearKnives();
+            ClearElectricalImpacts();
             Attacks.SetPhase(phaseNumber);
         }
 
@@ -286,6 +290,7 @@ namespace Game50033
             ClearSparks();
             ClearSpiralBolts();
             ClearKnives();
+            ClearElectricalImpacts();
         }
 
         internal void LaunchKnife(ElectricKnifeProjectile prefab, Vector3 origin, Vector3 landing, float speed, float releaseHeight,
@@ -331,8 +336,50 @@ namespace Game50033
                 ReturnKnife(_activeKnives[i]);
         }
 
+        internal void PlayElectricalImpact(Vector3 contact, Material material, Boss3Tuning.ElectricalImpact impact,
+            float? shockwaveRadius = null, Vector3 inward = default)
+        {
+            if (!isActiveAndEnabled || IsDefeated || !material) return;
+
+            _impactPool ??= new ObjectPool<ElectricalImpactVFX>(
+                () =>
+                {
+                    var effect = new GameObject("Electrical Impact") { layer = LayerMask.NameToLayer("PixelWorldVFX") };
+                    effect.SetActive(false);
+                    effect.transform.SetParent(transform, false);
+                    return effect.AddComponent<ElectricalImpactVFX>();
+                },
+                actionOnRelease: effect =>
+                {
+                    effect.gameObject.SetActive(false);
+                    effect.transform.SetParent(transform, false);
+                },
+                actionOnDestroy: effect => Destroy(effect.gameObject),
+                defaultCapacity: 16,
+                maxSize: 40);
+            var burst = _impactPool.Get();
+            _activeImpacts.Add(burst);
+            // leave the burst at the contact point while the boss moves on.
+            burst.transform.SetParent(null, false);
+            burst.Play(this, contact, material, impact, shockwaveRadius, inward);
+        }
+
+        internal void ReturnElectricalImpact(ElectricalImpactVFX effect)
+        {
+            if (_activeImpacts.Remove(effect)) _impactPool.Release(effect);
+        }
+
+        private void ClearElectricalImpacts()
+        {
+            for (var i = _activeImpacts.Count - 1; i >= 0; i--)
+                ReturnElectricalImpact(_activeImpacts[i]);
+        }
+
         private void OnDestroy()
         {
+            foreach (var impact in _activeImpacts)
+                if (impact) Destroy(impact.gameObject);
+            _impactPool?.Clear();
             foreach (var spark in _activeSparks)
                 if (spark != null) Destroy(spark.gameObject);
             _sparkPool?.Clear();

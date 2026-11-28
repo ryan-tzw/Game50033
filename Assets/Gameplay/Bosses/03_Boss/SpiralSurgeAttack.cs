@@ -7,10 +7,7 @@ namespace Game50033
     {
         private static readonly int TelegraphId = Shader.PropertyToID("_Telegraph");
         private static readonly int TelegraphColorId = Shader.PropertyToID("_TelegraphColor");
-        private static readonly int FadeId = Shader.PropertyToID("_Fade");
-        private static readonly int GlowIntensityId = Shader.PropertyToID("_GlowIntensity");
         private const int LandingSegments = 32;
-        private const int LandingSparkCount = 16;
 
         private struct BoltWarning
         {
@@ -26,9 +23,6 @@ namespace Game50033
         private BoltWarning[] _boltWarnings;
         private MeshRenderer _landingDisc;
         private Mesh _landingMesh;
-        private Color[] _landingBurstColors;
-        private readonly LineRenderer[] _landingSparks = new LineRenderer[LandingSparkCount];
-        private readonly Vector3[] _sparkDirections = new Vector3[LandingSparkCount];
         private MaterialPropertyBlock _landingProperties;
         private Bounds _arena;
         private Vector3 _origin;
@@ -44,7 +38,6 @@ namespace Game50033
         private Vector3 _landingCenter;
         private float _landingRadius;
         private float _landsAt;
-        private float _landingBurstStartedAt;
         private bool _landed;
         private bool _running;
 
@@ -100,18 +93,6 @@ namespace Game50033
             _landingCenter.y = _arena.max.y + 0.025f;
             CreateLandingDisc();
             _landingProperties = new MaterialPropertyBlock();
-            var random = new System.Random(GetInstanceID());
-            for (var i = 0; i < LandingSparkCount; i++)
-            {
-                var angle = (i + (float)random.NextDouble() * 0.7f) * (360f / LandingSparkCount);
-                _sparkDirections[i] = Quaternion.Euler(0f, angle, 0f) * Vector3.forward
-                    * Mathf.Lerp(0.50f, 1f, (float)random.NextDouble());
-                var spark = CreateLightningLine("Spiral Landing Spark", 3, 0.15f);
-                spark.alignment = LineAlignment.View;
-                spark.enabled = false;
-                _landingSparks[i] = spark;
-            }
-
             _boltWarnings = new BoltWarning[_shotCount];
             var warningOrigin = new Vector3(_origin.x, _arena.max.y + 0.04f, _origin.z);
             var lifetimeDistance = _speed * tuning.spiralLifetime;
@@ -142,8 +123,7 @@ namespace Game50033
             if (!_landed && Time.time >= _landsAt)
             {
                 _landed = true;
-                _landingBurstStartedAt = Time.time;
-                _landingMesh.colors = _landingBurstColors;
+                _landingDisc.enabled = false;
                 var targets = _bot.Targets;
                 for (var i = targets.Count - 1; i >= 0 && _running; i--)
                 {
@@ -158,41 +138,7 @@ namespace Game50033
                         player.Health.TryTakeDamage(tuning.spiralLandingDamage, toCenter.normalized, _bot);
                 }
                 if (!_running) return;
-            }
-
-            // the disc flashes briefly at contact, while sparks continue outward after it fades.
-            if (_landed && (_landingDisc.enabled || _landingSparks[0].enabled))
-            {
-                var progress = Mathf.Clamp01((Time.time - _landingBurstStartedAt) / tuning.spiralLandingBurstDuration);
-                _landingProperties.Clear();
-                var remaining = 1f - progress;
-                _landingProperties.SetFloat(FadeId, remaining * remaining);
-                _landingProperties.SetFloat(GlowIntensityId, 2.4f);
-                var travel = 1f - (1f - progress) * (1f - progress);
-                for (var i = 0; i < LandingSparkCount; i++)
-                {
-                    var spark = _landingSparks[i];
-                    var sparkDirection = _sparkDirections[i] * _landingRadius;
-                    var height = 4f * travel * (1f - travel) * _landingRadius * (i % 2 == 0 ? 0.48f : 0.30f);
-                    var root = _landingCenter + Vector3.up * (0.08f + height);
-                    var reach = Mathf.Lerp(0.38f, tuning.spiralLandingSparkReach, travel);
-                    var length = Mathf.Lerp(0.34f, 0.04f, progress);
-                    var side = Vector3.Cross(Vector3.up, sparkDirection) * (i % 2 == 0 ? 0.12f : -0.12f);
-                    spark.widthMultiplier = Mathf.Lerp(i % 2 == 0 ? 0.23f : 0.15f, 0.05f, progress);
-                    spark.SetPosition(0, root + sparkDirection * (reach - length));
-                    spark.SetPosition(1, root + sparkDirection * (reach - length * 0.55f) + side + Vector3.up * length * 0.5f);
-                    spark.SetPosition(2, root + sparkDirection * reach);
-                    spark.SetPropertyBlock(_landingProperties);
-                    spark.enabled = progress < 1f;
-                }
-
-                var flash = 1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(progress / 0.55f));
-                _landingProperties.SetFloat(FadeId, flash);
-                _landingProperties.SetFloat(TelegraphId, 1f);
-                var light = tuning.spiralLandingFlashIntensity;
-                _landingProperties.SetVector(TelegraphColorId, new Vector4(light, light, light, 1f));
-                _landingDisc.SetPropertyBlock(_landingProperties);
-                _landingDisc.enabled = flash > 0f;
+                _bot.PlayElectricalImpact(_landingCenter, lightningMaterial, tuning.slamImpact, _landingRadius);
             }
 
             var now = Time.time;
@@ -239,14 +185,13 @@ namespace Game50033
             _landingDisc.shadowCastingMode = ShadowCastingMode.Off;
             _landingDisc.receiveShadows = false;
 
-            // shared shader UVs keep the fill solid. the extra vertex ring shapes the blue-white flash.
+            // the intermediate ring keeps the shader fill solid across the warning.
             var vertices = new Vector3[1 + LandingSegments * 2];
             var uv = new Vector2[vertices.Length];
             var colors = new Color[vertices.Length];
-            _landingBurstColors = new Color[vertices.Length];
             var indices = new int[LandingSegments * 9];
             uv[0] = new Vector2(0.5f, 0.5f);
-            colors[0] = _landingBurstColors[0] = Color.white;
+            colors[0] = Color.white;
             for (var i = 0; i < LandingSegments; i++)
             {
                 var direction = Quaternion.Euler(0f, i * (360f / LandingSegments), 0f) * Vector3.forward;
@@ -259,8 +204,6 @@ namespace Game50033
                 uv[inner] = new Vector2(0.5f, 0.60f);
                 uv[outer] = new Vector2(0.5f, 0.78f);
                 colors[inner] = colors[outer] = Color.white;
-                _landingBurstColors[inner] = new Color(0.55f, 0.84f, 1f);
-                _landingBurstColors[outer] = new Color(0.02f, 0.36f, 1f);
                 var start = i * 9;
                 indices[start] = 0;
                 indices[start + 1] = inner;
@@ -297,7 +240,6 @@ namespace Game50033
             _running = false;
             foreach (var warning in _boltWarnings) warning.Lane.enabled = false;
             _landingDisc.enabled = false;
-            foreach (var spark in _landingSparks) spark.enabled = false;
             if (_bot && _bot.ActiveSpiralSurge == this)
             {
                 _bot.FinishSpiralCharge(_shotsFired >= _shotCount ? recoveryTime : 0f);

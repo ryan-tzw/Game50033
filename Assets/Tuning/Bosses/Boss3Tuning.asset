@@ -35,8 +35,6 @@ MonoBehaviour:
   sparkTrailDuration: 0.3
   sparkTrailWidth: 0.68
   sparkTrailIntensity: 0.8
-  sparkImpactDuration: 0.22
-  sparkImpactSizeMultiplier: 2.4
   sparkFizzleDuration: 0.28
   spiralShotCount: 14
   spiralDamage: 1
@@ -55,15 +53,9 @@ MonoBehaviour:
   spiralRiseDuration: 0.05
   spiralApexHoldDuration: 0.65
   spiralDropDuration: 0.05
-  spiralLandingBurstDuration: 0.3
-  spiralLandingFlashIntensity: 4.5
-  spiralLandingSparkReach: 1.45
   spiralWarningGlow: {x: 1.7, y: 3.4}
   spiralWarningPulseHz: 3.6
   spiralBoltLength: 0.86
-  spiralBoltWidth: 0.16
-  spiralImpactDuration: 0.2
-  spiralImpactReach: 0.66
   spiralTrailDuration: 0.25
   spiralTrailWidth: 0.56
   knifeBlastDamage: 1
@@ -71,7 +63,6 @@ MonoBehaviour:
   knifeSpeed: 14
   knifeThrowRadius: 4.25
   knifeRecoveryDuration: 0.55
-  knifeImpactDuration: 0.22
   knifeAnchorLifetime: 12
   knifeMaxActive: 12
   knifeTargetingDuration: 1
@@ -88,3 +79,23 @@ MonoBehaviour:
   knifeApexDriftFraction: 0.06
   knifePostReleaseHold: 0.36
   knifeDropDuration: 0.35
+  slamImpact:
+    radius: 1.8
+    intensity: 2.3
+    duration: 0.4
+    directionVariation: 20
+  knifeImpact:
+    radius: 0.86
+    intensity: 1.8
+    duration: 0.36
+    directionVariation: 22
+  sparkImpact:
+    radius: 1.05
+    intensity: 1.9
+    duration: 0.36
+    directionVariation: 23
+  spiralBoltImpact:
+    radius: 0.57
+    intensity: 1.35
+    duration: 0.3
+    directionVariation: 25

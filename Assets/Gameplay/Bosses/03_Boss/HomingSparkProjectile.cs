@@ -75,6 +75,7 @@ namespace Game50033
                 _orbProperties.SetVector(CoreColorId, lightningPalette.GetVector(CoreColorId));
                 _orbProperties.SetVector(RimColorId, lightningPalette.GetVector(GlowColorId));
             }
+            _orbRenderer.enabled = true;
             _orbRenderer.SetPropertyBlock(_orbProperties);
             _orbProperties.SetFloat(TrailIntensityId, tuning.sparkTrailIntensity);
             trail.SetPropertyBlock(_orbProperties);
@@ -98,22 +99,25 @@ namespace Game50033
             _ending = Ending.None;
         }
 
-        private void BeginEnding(Ending ending, Vector3 position)
+        private void BeginEnding(Ending ending, Vector3 position, Vector3 inward = default)
         {
             if (!isActiveAndEnabled) return;
 
             _ending = ending;
             _endingStartedAt = Time.time;
             var tuning = _owner.Tuning;
-            var duration = ending == Ending.Impact ? tuning.sparkImpactDuration : tuning.sparkFizzleDuration;
-            _endingDuration = Mathf.Max(0.01f, duration * Mathf.Lerp(0.84f, 1.16f, Mathf.Repeat(_visualSeed * 0.731f, 1f)));
+            _endingDuration = Mathf.Max(0.01f, tuning.sparkFizzleDuration * Mathf.Lerp(0.84f, 1.16f, Mathf.Repeat(_visualSeed * 0.731f, 1f)));
             trail.emitting = false;
             _target = null;
 
-            // move just the effect so the old trail ends at the last flight position.
-            orb.position = position;
             if (ending == Ending.Impact)
-                orb.localScale *= tuning.sparkImpactSizeMultiplier * Mathf.Lerp(0.86f, 1.14f, Mathf.Repeat(_visualSeed * 0.479f, 1f));
+            {
+                _endingDuration = 0f;
+                _orbRenderer.enabled = false;
+                _owner.PlayElectricalImpact(position, lightningPalette, tuning.sparkImpact, inward: inward);
+            }
+            else
+                orb.position = position;
             Update();
         }
 
@@ -122,7 +126,6 @@ namespace Game50033
             if (_ending == Ending.None) return;
 
             var elapsed = Time.time - _endingStartedAt;
-            var progress = elapsed / _endingDuration;
             if (!_owner.isActiveAndEnabled || _owner.IsDefeated || elapsed >= Mathf.Max(_endingDuration, trail.time))
             {
                 _owner.ReturnSpark(this);
@@ -130,10 +133,11 @@ namespace Game50033
             }
 
             // the flight root stays at expiry while the fading orb carries its last velocity.
-            if (_ending == Ending.Fizzle)
-                orb.position = transform.position + _direction * (_speed * Mathf.Min(elapsed, _endingDuration));
+            if (_ending != Ending.Fizzle) return;
 
-            _orbProperties.SetVector(EndingId, new Vector4((float)_ending, Mathf.Clamp01(progress), _visualSeed, 0f));
+            orb.position = transform.position + _direction * (_speed * Mathf.Min(elapsed, _endingDuration));
+
+            _orbProperties.SetVector(EndingId, new Vector4((float)_ending, Mathf.Clamp01(elapsed / _endingDuration), _visualSeed, 0f));
             _orbRenderer.SetPropertyBlock(_orbProperties);
         }
 
@@ -223,7 +227,7 @@ namespace Game50033
                 var contact = transform.position;
                 if (toXWall <= toZWall + 0.0001f) contact.x = _direction.x > 0f ? _arena.max.x : _arena.min.x;
                 if (toZWall <= toXWall + 0.0001f) contact.z = _direction.z > 0f ? _arena.max.z : _arena.min.z;
-                BeginEnding(Ending.Impact, contact);
+                BeginEnding(Ending.Impact, contact, (transform.position - contact).normalized);
             }
         }
     }

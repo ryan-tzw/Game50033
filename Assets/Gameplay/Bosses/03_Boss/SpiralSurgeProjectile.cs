@@ -5,11 +5,6 @@ namespace Game50033
 
     public sealed class SpiralSurgeProjectile : MonoBehaviour
     {
-        private static readonly int FadeId = Shader.PropertyToID("_Fade");
-        private static readonly int ThicknessId = Shader.PropertyToID("_Thickness");
-        private static readonly int GlowIntensityId = Shader.PropertyToID("_GlowIntensity");
-        private static readonly int JaggednessId = Shader.PropertyToID("_Jaggedness");
-        private static readonly int DistortionId = Shader.PropertyToID("_Distortion");
         private static readonly int CoreColorId = Shader.PropertyToID("_CoreColor");
         private static readonly int GlowColorId = Shader.PropertyToID("_GlowColor");
         private static readonly int RimColorId = Shader.PropertyToID("_RimColor");
@@ -17,12 +12,10 @@ namespace Game50033
         private static readonly int EndingId = Shader.PropertyToID("_SparkEnding");
 
         [SerializeField] private LineRenderer bolt;
-        [SerializeField] private LineRenderer[] branches;
         [SerializeField] private TrailRenderer trail;
 
         private readonly HashSet<Player> _contacted = new();
         private Boss3Controller _owner;
-        private MaterialPropertyBlock _properties;
         private MaterialPropertyBlock _trailProperties;
         private Material _impactMaterial;
         private Bounds _arena;
@@ -34,10 +27,6 @@ namespace Game50033
         private bool _endsAtWall;
         private bool _impacting;
         private float _impactStartedAt;
-        private float _impactDuration;
-        private float _impactReach;
-        private int _impactArmCount;
-        private Vector3 _impactInward;
         private uint _visualSeed;
 
         internal void Launch(Boss3Controller owner, Vector3 center, Vector3 direction, float speed)
@@ -58,18 +47,6 @@ namespace Game50033
             transform.SetPositionAndRotation(center, Quaternion.LookRotation(direction));
             _impacting = false;
             _visualSeed += (uint)GetInstanceID() | 1u;
-            _properties ??= new MaterialPropertyBlock();
-            _properties.SetFloat(ThicknessId, 0.38f);
-            _properties.SetFloat(GlowIntensityId, 0.70f);
-            // the impact lines supply the bends, with a little flicker inside the shader's core.
-            _properties.SetFloat(JaggednessId, 0.07f);
-            _properties.SetFloat(DistortionId, 0.015f);
-            _properties.SetFloat(FadeId, 1f);
-            foreach (var branch in branches)
-            {
-                branch.SetPropertyBlock(_properties);
-                branch.enabled = false;
-            }
             if (!_impactMaterial) _impactMaterial = bolt.sharedMaterial;
             _trailProperties ??= new MaterialPropertyBlock();
             _trailProperties.SetVector(CoreColorId, _impactMaterial.GetVector(CoreColorId));
@@ -102,63 +79,8 @@ namespace Game50033
 
         private void Update()
         {
-            if (!_owner || !_impacting) return;
-            var tuning = _owner.Tuning;
-            var elapsed = Time.time - _impactStartedAt;
-            if (elapsed >= _impactDuration)
-            {
-                if (elapsed >= trail.time)
-                {
-                    _owner.ReturnSpiralBolt(this);
-                    return;
-                }
-                bolt.enabled = false;
-                foreach (var branch in branches) branch.enabled = false;
-                return;
-            }
-
-            var rotation = Noise(44) * 360f;
-            var interval = Mathf.Max(0.05f, tuning.lightningFlashInterval);
-            for (var i = 0; i < _impactArmCount; i++)
-            {
-                var line = i == 0 ? bolt : branches[i - 1];
-                var delay = i == 0 ? 0f : Noise(i + 48) * _impactDuration * 0.3f;
-                var cycle = Mathf.FloorToInt((elapsed - delay) / interval);
-                var age = elapsed - delay - cycle * interval;
-                var seedOffset = cycle * 67;
-                var duration = Mathf.Lerp(tuning.lightningFlashDuration.x, tuning.lightningFlashDuration.y,
-                    Noise(i + 73 + seedOffset));
-                line.enabled = cycle >= 0 && age < duration;
-                if (!line.enabled) continue;
-                var reach = _impactReach * Mathf.Lerp(0.52f, 1.0f, Noise(i + 84 + seedOffset));
-                var angle = rotation + (i + Noise(i) * 0.68f) * 360f / _impactArmCount;
-                var outward = Vector3.forward;
-                if (_impactInward != Vector3.zero)
-                {
-                    // keep wall sparks on the visible side of the wall.
-                    var span = Mathf.Lerp(43f, 73f, Noise(45));
-                    angle = Mathf.Lerp(-span, span, (i + Noise(i) * 0.45f) / (_impactArmCount - 0.55f));
-                    outward = _impactInward;
-                }
-                var direction = Quaternion.AngleAxis(angle, Vector3.up) * outward;
-                var sideways = Vector3.Cross(Vector3.up, direction);
-                var arm = reach * Mathf.Lerp(0.55f, 1f, Noise(i + 7));
-                var bend = Mathf.Lerp(-0.34f, 0.34f, Noise(i + 56 + seedOffset));
-                line.widthMultiplier = tuning.spiralBoltWidth * Mathf.Lerp(0.55f, 1.15f, Noise(i + 94 + seedOffset));
-                line.SetPosition(0, direction * (arm * cycle * 0.08f));
-                line.SetPosition(1, direction * (arm * 0.57f) + sideways * (arm * bend));
-                line.SetPosition(2, direction * arm - sideways * (arm * bend * 0.4f));
-                _properties.SetFloat(FadeId, Mathf.Lerp(0.57f, 1f, Noise(i + 112 + seedOffset)));
-                line.SetPropertyBlock(_properties);
-            }
-        }
-
-        private float Noise(int channel)
-        {
-            // variation is local to presentation so it cannot perturb the boss deck's random sequence.
-            var value = _visualSeed ^ ((uint)channel * 2891336453u);
-            value = ((value >> ((int)(value >> 28) + 4)) ^ value) * 277803737u;
-            return ((value ^ (value >> 22)) & 65535u) / 65535f;
+            if (_owner && _impacting && Time.time - _impactStartedAt >= trail.time)
+                _owner.ReturnSpiralBolt(this);
         }
 
         private void BeginImpact(Vector3 contact, Vector3 inward = default)
@@ -166,17 +88,9 @@ namespace Game50033
             if (!isActiveAndEnabled) return;
             _impacting = true;
             _impactStartedAt = Time.time;
-            var tuning = _owner.Tuning;
-            _impactDuration = Mathf.Max(0.01f, tuning.spiralImpactDuration * Mathf.Lerp(0.82f, 1.18f, Noise(40)));
-            _impactReach = tuning.spiralImpactReach * Mathf.Lerp(0.80f, 1.20f, Noise(41));
-            _impactArmCount = Mathf.Min(2 + (int)(Noise(42) * branches.Length), branches.Length + 1);
-            _impactInward = transform.InverseTransformDirection(inward);
             trail.emitting = false;
-            transform.position = contact;
-            bolt.sharedMaterial = _impactMaterial;
-            bolt.positionCount = 3;
-            foreach (var branch in branches) branch.enabled = false;
-            Update();
+            bolt.enabled = false;
+            _owner.PlayElectricalImpact(contact, _impactMaterial, _owner.Tuning.spiralBoltImpact, inward: inward);
         }
 
         internal static Vector3 ClampToArena(Bounds bounds, Vector3 position, float radius)

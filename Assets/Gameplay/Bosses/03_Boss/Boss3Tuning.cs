@@ -5,6 +5,24 @@ namespace Game50033
     [CreateAssetMenu(menuName = "Game50033/Tuning/Boss 3", fileName = "Boss3Tuning")]
     public sealed class Boss3Tuning : ScriptableObject
     {
+        [System.Serializable]
+        public struct ElectricalImpact
+        {
+            [Tooltip("Visual radius in world units. The slam and kunai shockwaves use their damage radius instead.")]
+            [Min(0.01f)] public float radius;
+            [Tooltip("HDR brightness multiplier for the flash, arcs and shockwave.")]
+            [Min(0f)] public float intensity;
+            [Min(0.01f)] public float duration;
+            [Tooltip("Maximum random angular offset of each spark from its radial direction.")]
+            [Range(0f, 45f)] public float directionVariation;
+        }
+
+        [Header("Electrical Impacts")]
+        public ElectricalImpact slamImpact = new() { radius = 1.8f, intensity = 2.3f, duration = 0.40f, directionVariation = 20f };
+        public ElectricalImpact knifeImpact = new() { radius = 0.86f, intensity = 1.8f, duration = 0.36f, directionVariation = 22f };
+        public ElectricalImpact sparkImpact = new() { radius = 1.05f, intensity = 1.9f, duration = 0.36f, directionVariation = 23f };
+        public ElectricalImpact spiralBoltImpact = new() { radius = 0.57f, intensity = 1.35f, duration = 0.30f, directionVariation = 25f };
+
         [Header("Encounter")]
         [Min(1f)] public float maxHealth = 30000f;
         [Min(0f)] public float phaseTwoHealth = 20000f;
@@ -39,8 +57,6 @@ namespace Game50033
         [Range(0f, 1f)] public float sparkTrailIntensity = 0.8f;
 
         [Header("Homing Spark End Effects")]
-        [Min(0.01f)] public float sparkImpactDuration = 0.22f;
-        [Min(0.1f)] public float sparkImpactSizeMultiplier = 2.4f;
         [Min(0.01f)] public float sparkFizzleDuration = 0.28f;
 
         [Header("Spiral Surge")]
@@ -65,15 +81,9 @@ namespace Game50033
         [Min(0.01f)] public float spiralDropDuration = 0.05f;
 
         [Header("Spiral Surge VFX")]
-        [Min(0.01f)] public float spiralLandingBurstDuration = 0.30f;
-        [Min(0f)] public float spiralLandingFlashIntensity = 4.5f;
-        [Min(0.1f)] public float spiralLandingSparkReach = 1.45f;
         public Vector2 spiralWarningGlow = new(1.7f, 3.4f);
         [Min(0f)] public float spiralWarningPulseHz = 3.6f;
         [Min(0.01f)] public float spiralBoltLength = 0.74f;
-        [Min(0.01f)] public float spiralBoltWidth = 0.12f;
-        [Min(0.01f)] public float spiralImpactDuration = 0.2f;
-        [Min(0.01f)] public float spiralImpactReach = 0.58f;
         [Min(0.01f)] public float spiralTrailDuration = 0.25f;
         [Min(0.01f)] public float spiralTrailWidth = 0.56f;
 
@@ -83,7 +93,6 @@ namespace Game50033
         [Min(0.01f)] public float knifeSpeed = 14f;
         [Min(0.01f)] public float knifeThrowRadius = 4.25f;
         [Min(0f)] public float knifeRecoveryDuration = 0.55f;
-        [Min(0.01f)] public float knifeImpactDuration = 0.22f;
         [Min(0.01f)] public float knifeAnchorLifetime = 12f;
         [Range(ElectricKnivesAttack.KnivesPerCast, 24)] public int knifeMaxActive = 12;
 

@@ -189,21 +189,19 @@ Shader "Game50033/Bosses/HomingSparkOrb"
 
                     if (_SparkEnding.x > 0.5)
                     {
-                        bool impact = _SparkEnding.x < 1.5;
                         float progress = _SparkEnding.y;
                         float fade = 1.0 - progress;
-                        float spread = 1.0 - fade * fade;
                         float seed = _SparkEnding.z;
                         float distance = sqrt(radiusSq);
-                        float coreRadius = impact ? lerp(0.28, 0.59, spread) : fade * fade;
+                        float coreRadius = fade * fade;
                         float flash = (1.0 - smoothstep(coreRadius * 0.62, coreRadius + 0.025, distance))
-                            * (impact ? fade * fade * fade : fade);
+                            * fade;
                         float glow = (1.0 - smoothstep(coreRadius * 0.85, coreRadius * 1.36 + 0.07, distance))
-                            * fade * (impact ? 0.42 : 0.58);
+                            * fade * 0.58;
 
-                        // separate the bright central flash from short 3D arcs and sparks.
+                        // residual arcs dissipate as the core collapses.
                         float sparks = 0.0;
-                        int sparkCount = (impact ? 3 : 2) + (int)(Hash(seed + 2.9) * 3.0);
+                        int sparkCount = 2 + (int)(Hash(seed + 2.9) * 3.0);
                         [unroll]
                         for (int i = 0; i < 5; i++)
                         {
@@ -219,10 +217,10 @@ Shader "Game50033/Bosses/HomingSparkOrb"
                             float radial = sqrt(1.0 - y * y);
                             float3 direction = float3(cos(azimuth) * radial, y, sin(azimuth) * radial);
                             float3 side = normalize(cross(direction, float3(0.0, 1.0, 0.0)));
-                            float reach = impact ? 1.33 - cycle * 0.15 : 1.12 - cycle * 0.33;
+                            float reach = 1.12 - cycle * 0.33;
                             reach *= lerp(0.55, 1.12, Hash(armSeed + 12.1));
                             float width = lerp(0.045, 0.085, Hash(armSeed + 30.7));
-                            if (!impact) width *= lerp(0.55, 1.0, fade);
+                            width *= lerp(0.55, 1.0, fade);
                             float kink = lerp(-0.28, 0.28, Hash(armSeed + 3.4));
                             float3 middle = direction * reach * 0.72 + side * reach * kink;
                             float3 tip = direction * reach - side * reach * 0.10;
@@ -233,9 +231,9 @@ Shader "Game50033/Bosses/HomingSparkOrb"
                             float branch = Branch(rayStart, rayDir, middle, fork, width * 0.65) * step(0.3, Hash(i * 1.9 + seed));
                             sparks = max(sparks, max(arc, branch * 0.72) * lerp(0.5, 1.0, Hash(i * 4.3 + seed)));
                         }
-                        sparks *= (impact ? 1.0 : 0.75 * fade) * _ArcOpacity;
+                        sparks *= 0.75 * fade * _ArcOpacity;
                         float blue = max(glow, sparks);
-                        float white = max(flash, sparks * (impact ? 0.78 : 0.38));
+                        float white = max(flash, sparks * 0.38);
                         return half4(_CoreColor.rgb * white + _RimColor.rgb * blue * (1.0 - white),
                             max(white, blue));
                     }
