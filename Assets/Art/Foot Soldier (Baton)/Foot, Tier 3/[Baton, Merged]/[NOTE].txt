@@ -1,0 +1,15 @@
+BatonblockingStart, Batonblocking (which is a duplicate of Lieutenantblocking), BatonblockingEnd and KatanaDownstabland2 have different animation speeds for the bandanna and the baton, and are desynced. Animation timings are listed below.
+
+Armor:
+
+BatonblockingStart: 0.08 per frame
+Batonblocking: 0.10 per frame
+BatonblockingEnd: 0.10 per frame except for _00, _01, _03 and _04 which are 0.11
+KatanaDownstabland2: 0.08 per frame
+
+Baton:
+
+BatonblockingStart: 0.03 per frame except for _10 which is 0.13
+Batonblocking: 0.04 per frame
+BatonblockingEnd: 0.03 per frame except for _07 which is 0.10 and _14 which is 0.20
+KatanaDownstabland2: 0.05 per frame
